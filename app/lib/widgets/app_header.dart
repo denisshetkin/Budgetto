@@ -1,0 +1,38 @@
+import 'package:flutter/material.dart';
+
+import '../theme/app_colors.dart';
+
+class AppHeader extends StatelessWidget {
+  const AppHeader({super.key, required this.title, this.actions = const []});
+
+  final String title;
+  final List<Widget> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          child: SizedBox(
+            height: 48,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                if (actions.isNotEmpty)
+                  Row(mainAxisSize: MainAxisSize.min, children: actions),
+              ],
+            ),
+          ),
+        ),
+        Container(height: 1, color: AppColors.stroke),
+      ],
+    );
+  }
+}

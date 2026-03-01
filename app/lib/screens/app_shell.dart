@@ -5,7 +5,6 @@ import '../theme/app_colors.dart';
 import '../widgets/currency_picker_sheet.dart';
 import 'cards_screen.dart';
 import 'categories_screen.dart';
-import 'search_screen.dart';
 import 'settings_screen.dart';
 import 'transactions_screen.dart';
 
@@ -22,7 +21,6 @@ class _AppShellState extends State<AppShell> {
 
   final List<Widget> _screens = const [
     TransactionsScreen(),
-    SearchScreen(),
     CategoriesScreen(),
     CardsScreen(),
     SettingsScreen(),
@@ -87,11 +85,6 @@ class _AppShellState extends State<AppShell> {
               icon: Icon(Icons.swap_horiz),
               selectedIcon: Icon(Icons.swap_horiz),
               label: 'Операции',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.search_outlined),
-              selectedIcon: Icon(Icons.search),
-              label: 'Поиск',
             ),
             NavigationDestination(
               icon: Icon(Icons.grid_view_outlined),

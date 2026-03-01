@@ -172,6 +172,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     final accent = _type == TransactionType.expense
         ? AppColors.accentExpense
         : AppColors.accentIncome;
+    const leftColumnWidth = 120.0;
 
     final categories = appState.categories;
     final methods = appState.paymentMethods;
@@ -212,101 +213,95 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final width = constraints.maxWidth;
-                  final dateWidth = (width * 0.34).clamp(130.0, 160.0);
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: SegmentedButton<TransactionType>(
-                          showSelectedIcon: false,
-                          style: ButtonStyle(
-                            backgroundColor: WidgetStateProperty.resolveWith((states) {
-                              if (states.contains(WidgetState.selected)) {
-                                return accent.withOpacity(0.22);
-                              }
-                              return AppColors.surface1;
-                            }),
-                            textStyle: WidgetStatePropertyAll(
-                              Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                    fontWeight: FontWeight.w600,
+              SoftCard(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: leftColumnWidth,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          InkWell(
+                            onTap: _pickDate,
+                            borderRadius: BorderRadius.circular(16),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.calendar_month_outlined, size: 18),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    _formatDate(_selectedDate),
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                          color: AppColors.textSecondary,
+                                        ),
                                   ),
+                                ),
+                              ],
                             ),
                           ),
-                          segments: const [
-                            ButtonSegment(
-                              value: TransactionType.expense,
-                              label: Text('Расход'),
+                          const SizedBox(height: 8),
+                          InkWell(
+                            onTap: _pickTime,
+                            borderRadius: BorderRadius.circular(16),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.access_time, size: 18),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    _formatTime(_selectedTime),
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                          color: AppColors.textSecondary,
+                                        ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            ButtonSegment(
-                              value: TransactionType.income,
-                              label: Text('Доход'),
-                            ),
-                          ],
-                          selected: {_type},
-                          onSelectionChanged: (selection) {
-                            setState(() {
-                              _type = selection.first;
-                            });
-                          },
-                        ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                      SizedBox(
-                        width: dateWidth,
-                        child: SoftCard(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              InkWell(
-                                onTap: _pickDate,
-                                borderRadius: BorderRadius.circular(16),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.calendar_month_outlined, size: 18),
-                                    const SizedBox(width: 6),
-                                    Expanded(
-                                      child: Text(
-                                        _formatDate(_selectedDate),
-                                        overflow: TextOverflow.ellipsis,
-                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                              color: AppColors.textSecondary,
-                                            ),
-                                      ),
-                                    ),
-                                  ],
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SegmentedButton<TransactionType>(
+                        showSelectedIcon: false,
+                        style: ButtonStyle(
+                          backgroundColor: WidgetStateProperty.resolveWith((states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return accent.withOpacity(0.22);
+                            }
+                            return AppColors.surface1;
+                          }),
+                          textStyle: WidgetStatePropertyAll(
+                            Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
                                 ),
-                              ),
-                              const SizedBox(height: 8),
-                              InkWell(
-                                onTap: _pickTime,
-                                borderRadius: BorderRadius.circular(16),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.access_time, size: 18),
-                                    const SizedBox(width: 6),
-                                    Expanded(
-                                      child: Text(
-                                        _formatTime(_selectedTime),
-                                        overflow: TextOverflow.ellipsis,
-                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                              color: AppColors.textSecondary,
-                                            ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
                           ),
                         ),
+                        segments: const [
+                          ButtonSegment(
+                            value: TransactionType.expense,
+                            label: Text('Расход'),
+                          ),
+                          ButtonSegment(
+                            value: TransactionType.income,
+                            label: Text('Доход'),
+                          ),
+                        ],
+                        selected: {_type},
+                        onSelectionChanged: (selection) {
+                          setState(() {
+                            _type = selection.first;
+                          });
+                        },
                       ),
-                    ],
-                  );
-                },
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
               SoftCard(
@@ -314,7 +309,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 child: Row(
                   children: [
                     SizedBox(
-                      width: 90,
+                      width: leftColumnWidth,
                       child: Text(
                         'Сумма',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -358,7 +353,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(
-                      width: 90,
+                      width: leftColumnWidth,
                       child: Text(
                         'Описание',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(

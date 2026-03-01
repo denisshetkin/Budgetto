@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import '../models/category_entry.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
+import '../widgets/app_header.dart';
 import '../widgets/soft_card.dart';
 
 class CategoriesScreen extends StatelessWidget {
   const CategoriesScreen({super.key});
 
-  void _openAddCategory(BuildContext context, AppState appState, {CategoryEntry? category}) {
+  void _openAddCategory(
+    BuildContext context,
+    AppState appState, {
+    CategoryEntry? category,
+  }) {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface1,
@@ -35,7 +40,11 @@ class CategoriesScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context, AppState appState, CategoryEntry category) async {
+  Future<void> _confirmDelete(
+    BuildContext context,
+    AppState appState,
+    CategoryEntry category,
+  ) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
@@ -61,12 +70,11 @@ class CategoriesScreen extends StatelessWidget {
         return;
       }
       appState.removeCategory(category.id);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Категория удалена')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Категория удалена')));
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -75,28 +83,20 @@ class CategoriesScreen extends StatelessWidget {
 
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Категории',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                  IconButton(
-                    onPressed: () => _openAddCategory(context, appState),
-                    icon: const Icon(Icons.add),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Expanded(
+        child: Column(
+          children: [
+            AppHeader(
+              title: 'Категории',
+              actions: [
+                IconButton(
+                  onPressed: () => _openAddCategory(context, appState),
+                  icon: const Icon(Icons.add),
+                ),
+              ],
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
                 child: ReorderableListView.builder(
                   buildDefaultDragHandles: false,
                   itemCount: categories.length,
@@ -122,13 +122,19 @@ class CategoriesScreen extends StatelessWidget {
                                     color: AppColors.surface2,
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  child: Icon(category.icon, color: category.color, size: 18),
+                                  child: Icon(
+                                    category.icon,
+                                    color: category.color,
+                                    size: 18,
+                                  ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
                                     category.name,
-                                    style: Theme.of(context).textTheme.bodyLarge,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyLarge,
                                   ),
                                 ),
                                 Icon(
@@ -138,20 +144,39 @@ class CategoriesScreen extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 6),
                                 IconButton(
-                                  onPressed: () =>
-                                      _openAddCategory(context, appState, category: category),
-                                  icon: const Icon(Icons.edit, color: AppColors.accentIncome),
+                                  onPressed: () => _openAddCategory(
+                                    context,
+                                    appState,
+                                    category: category,
+                                  ),
+                                  icon: const Icon(
+                                    Icons.edit,
+                                    color: AppColors.accentIncome,
+                                  ),
                                   iconSize: 26,
                                   padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+                                  constraints: const BoxConstraints.tightFor(
+                                    width: 32,
+                                    height: 32,
+                                  ),
                                 ),
                                 const SizedBox(width: 2),
                                 IconButton(
-                                  onPressed: () => _confirmDelete(context, appState, category),
-                                  icon: const Icon(Icons.delete, color: AppColors.accentExpense),
+                                  onPressed: () => _confirmDelete(
+                                    context,
+                                    appState,
+                                    category,
+                                  ),
+                                  icon: const Icon(
+                                    Icons.delete,
+                                    color: AppColors.accentExpense,
+                                  ),
                                   iconSize: 26,
                                   padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+                                  constraints: const BoxConstraints.tightFor(
+                                    width: 32,
+                                    height: 32,
+                                  ),
                                 ),
                               ],
                             ),
@@ -162,8 +187,8 @@ class CategoriesScreen extends StatelessWidget {
                   },
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -345,15 +370,20 @@ class _AddCategorySheetState extends State<_AddCategorySheet> {
               children: [
                 Expanded(
                   child: Text(
-                    widget.initialCategory == null ? 'Новая категория' : 'Редактировать категорию',
+                    widget.initialCategory == null
+                        ? 'Новая категория'
+                        : 'Редактировать категорию',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close_rounded, color: AppColors.accentExpense),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    color: AppColors.accentExpense,
+                  ),
                   iconSize: 32,
                   tooltip: 'Отмена',
                 ),
@@ -365,7 +395,10 @@ class _AddCategorySheetState extends State<_AddCategorySheet> {
                     }
                     widget.onSave(name, _selectedIcon, _selectedColor);
                   },
-                  icon: const Icon(Icons.check_rounded, color: Color(0xFF9AD27A)),
+                  icon: const Icon(
+                    Icons.check_rounded,
+                    color: Color(0xFF9AD27A),
+                  ),
                   iconSize: 32,
                   tooltip: 'Сохранить',
                 ),
@@ -374,16 +407,14 @@ class _AddCategorySheetState extends State<_AddCategorySheet> {
             const SizedBox(height: 12),
             TextField(
               controller: _controller,
-              decoration: const InputDecoration(
-                hintText: 'Например, Спорт',
-              ),
+              decoration: const InputDecoration(hintText: 'Например, Спорт'),
             ),
             Text(
               'Цвет иконки',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -393,7 +424,8 @@ class _AddCategorySheetState extends State<_AddCategorySheet> {
               runSpacing: 10,
               children: [
                 ..._colors.map((color) {
-                  final isSelected = color.toARGB32() == _selectedColor.toARGB32();
+                  final isSelected =
+                      color.toARGB32() == _selectedColor.toARGB32();
                   return GestureDetector(
                     onTap: () {
                       setState(() {
@@ -407,7 +439,9 @@ class _AddCategorySheetState extends State<_AddCategorySheet> {
                         color: color,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: isSelected ? AppColors.textPrimary : Colors.transparent,
+                          color: isSelected
+                              ? AppColors.textPrimary
+                              : Colors.transparent,
                           width: 2,
                         ),
                       ),
@@ -432,9 +466,9 @@ class _AddCategorySheetState extends State<_AddCategorySheet> {
             const SizedBox(height: 12),
             Text(
               'Иконка',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 8),
             LayoutBuilder(
@@ -442,7 +476,8 @@ class _AddCategorySheetState extends State<_AddCategorySheet> {
                 const columns = 6;
                 const spacing = 10.0;
                 final itemSize =
-                    ((constraints.maxWidth - spacing * (columns - 1)) / columns).clamp(44.0, 56.0);
+                    ((constraints.maxWidth - spacing * (columns - 1)) / columns)
+                        .clamp(44.0, 56.0);
                 return Wrap(
                   alignment: WrapAlignment.center,
                   runAlignment: WrapAlignment.center,
@@ -463,11 +498,17 @@ class _AddCategorySheetState extends State<_AddCategorySheet> {
                           color: AppColors.surface2,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: isSelected ? AppColors.accentIncome : AppColors.stroke,
+                            color: isSelected
+                                ? AppColors.accentIncome
+                                : AppColors.stroke,
                             width: 1,
                           ),
                         ),
-                        child: Icon(icon, color: _selectedColor, size: itemSize * 0.5),
+                        child: Icon(
+                          icon,
+                          color: _selectedColor,
+                          size: itemSize * 0.5,
+                        ),
                       ),
                     );
                   }).toList(),

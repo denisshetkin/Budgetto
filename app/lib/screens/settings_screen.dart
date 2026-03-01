@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
+import '../widgets/app_header.dart';
 import '../widgets/currency_picker_sheet.dart';
 import '../widgets/soft_card.dart';
 
@@ -36,7 +37,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _openCreateFamily(BuildContext context, AppState appState) {
-    final controller = TextEditingController(text: appState.family?.name ?? 'Семейный бюджет');
+    final controller = TextEditingController(
+      text: appState.family?.name ?? 'Семейный бюджет',
+    );
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface1,
@@ -54,8 +57,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Text(
                   'Создать семейный бюджет',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -102,16 +105,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Text(
                   'Вступить по коду',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: controller,
                   textCapitalization: TextCapitalization.characters,
-                  decoration: const InputDecoration(
-                    hintText: 'Код семьи',
-                  ),
+                  decoration: const InputDecoration(hintText: 'Код семьи'),
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
@@ -132,7 +133,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Future<void> _confirmLeaveFamily(BuildContext context, AppState appState) async {
+  Future<void> _confirmLeaveFamily(
+    BuildContext context,
+    AppState appState,
+  ) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
@@ -182,115 +186,111 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: ListView(
-            children: [
-              Text(
-                'Настройки',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
+        child: Column(
+          children: [
+            const AppHeader(title: 'Настройки'),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  SoftCard(
+                    child: Column(
+                      children: [
+                        Text(
+                          'Профиль',
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _nameController,
+                          decoration: const InputDecoration(hintText: 'Имя'),
+                          onChanged: (value) => appState.setUserName(value),
+                        ),
+                      ],
                     ),
-              ),
-              const SizedBox(height: 16),
-              SoftCard(
-                child: Column(
-                  children: [
-                    Text(
-                      'Профиль',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
+                  ),
+                  const SizedBox(height: 16),
+                  SoftCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Семейный бюджет',
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 12),
+                        _SettingsRow(
+                          title: 'Режим',
+                          value: appState.isFamilyMode ? 'Семейный' : 'Личный',
+                        ),
+                        if (family != null) ...[
+                          const SizedBox(height: 12),
+                          _SettingsRow(title: 'Название', value: family.name),
+                          const SizedBox(height: 12),
+                          _SettingsRow(title: 'Код', value: family.inviteCode),
+                        ],
+                        const SizedBox(height: 16),
+                        if (family == null) ...[
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton(
+                              onPressed: () =>
+                                  _openCreateFamily(context, appState),
+                              child: const Text('Создать семейный бюджет'),
+                            ),
                           ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        hintText: 'Имя',
-                      ),
-                      onChanged: (value) => appState.setUserName(value),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              SoftCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Семейный бюджет',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton(
+                              onPressed: () =>
+                                  _openJoinFamily(context, appState),
+                              child: const Text('Вступить по коду'),
+                            ),
                           ),
+                        ] else ...[
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton(
+                              onPressed: () =>
+                                  _confirmLeaveFamily(context, appState),
+                              child: const Text('Покинуть семейный бюджет'),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    _SettingsRow(
-                      title: 'Режим',
-                      value: appState.isFamilyMode ? 'Семейный' : 'Личный',
+                  ),
+                  const SizedBox(height: 16),
+                  SoftCard(
+                    child: Column(
+                      children: [
+                        InkWell(
+                          onTap: () => _openCurrencyPicker(context, appState),
+                          borderRadius: BorderRadius.circular(16),
+                          child: _SettingsRow(
+                            title: 'Валюта',
+                            value: appState.currencyCode ?? 'Не выбрана',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _SettingsRow(
+                          title: 'Синхронизация',
+                          value: appState.syncEnabled
+                              ? 'Включена'
+                              : 'Выключена',
+                        ),
+                        const SizedBox(height: 12),
+                        const _SettingsRow(title: 'Тема', value: 'Темная'),
+                      ],
                     ),
-                    if (family != null) ...[
-                      const SizedBox(height: 12),
-                      _SettingsRow(title: 'Название', value: family.name),
-                      const SizedBox(height: 12),
-                      _SettingsRow(title: 'Код', value: family.inviteCode),
-                    ],
-                    const SizedBox(height: 16),
-                    if (family == null) ...[
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          onPressed: () => _openCreateFamily(context, appState),
-                          child: const Text('Создать семейный бюджет'),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: () => _openJoinFamily(context, appState),
-                          child: const Text('Вступить по коду'),
-                        ),
-                      ),
-                    ] else ...[
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: () => _confirmLeaveFamily(context, appState),
-                          child: const Text('Покинуть семейный бюджет'),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              SoftCard(
-                child: Column(
-                  children: [
-                    InkWell(
-                      onTap: () => _openCurrencyPicker(context, appState),
-                      borderRadius: BorderRadius.circular(16),
-                      child: _SettingsRow(
-                        title: 'Валюта',
-                        value: appState.currencyCode ?? 'Не выбрана',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _SettingsRow(
-                      title: 'Синхронизация',
-                      value: appState.syncEnabled ? 'Включена' : 'Выключена',
-                    ),
-                    const SizedBox(height: 12),
-                    const _SettingsRow(
-                      title: 'Тема',
-                      value: 'Темная',
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -298,10 +298,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 }
 
 class _SettingsRow extends StatelessWidget {
-  const _SettingsRow({
-    required this.title,
-    this.value,
-  });
+  const _SettingsRow({required this.title, this.value});
 
   final String title;
   final String? value;
@@ -311,15 +308,12 @@ class _SettingsRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
+        Text(title, style: Theme.of(context).textTheme.bodyMedium),
         Text(
           value ?? '—',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
         ),
       ],
     );

@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import '../models/payment_method.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
+import '../widgets/app_header.dart';
 import '../widgets/soft_card.dart';
 
 class CardsScreen extends StatelessWidget {
   const CardsScreen({super.key});
 
-  void _openAddCard(BuildContext context, AppState appState, {PaymentMethod? method}) {
+  void _openAddCard(
+    BuildContext context,
+    AppState appState, {
+    PaymentMethod? method,
+  }) {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface1,
@@ -21,7 +26,12 @@ class CardsScreen extends StatelessWidget {
             if (method == null) {
               appState.addCard(name: name, icon: icon, color: color);
             } else {
-              appState.updateCard(id: method.id, name: name, icon: icon, color: color);
+              appState.updateCard(
+                id: method.id,
+                name: name,
+                icon: icon,
+                color: color,
+              );
             }
             Navigator.of(context).pop();
           },
@@ -30,7 +40,11 @@ class CardsScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context, AppState appState, PaymentMethod method) async {
+  Future<void> _confirmDelete(
+    BuildContext context,
+    AppState appState,
+    PaymentMethod method,
+  ) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
@@ -56,12 +70,11 @@ class CardsScreen extends StatelessWidget {
         return;
       }
       appState.removeCard(method.id);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Карта удалена')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Карта удалена')));
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -72,35 +85,26 @@ class CardsScreen extends StatelessWidget {
 
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Карты',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                  IconButton(
-                    onPressed: () => _openAddCard(context, appState),
-                    icon: const Icon(Icons.add),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Expanded(
+        child: Column(
+          children: [
+            AppHeader(
+              title: 'Карты',
+              actions: [
+                IconButton(
+                  onPressed: () => _openAddCard(context, appState),
+                  icon: const Icon(Icons.add),
+                ),
+              ],
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
                 child: cards.isEmpty
                     ? Center(
                         child: Text(
                           'Пока нет карт',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.textSecondary),
                         ),
                       )
                     : ReorderableListView.builder(
@@ -126,15 +130,23 @@ class CardsScreen extends StatelessWidget {
                                         width: 32,
                                         decoration: BoxDecoration(
                                           color: AppColors.surface2,
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                         ),
-                                        child: Icon(method.icon, color: method.color, size: 18),
+                                        child: Icon(
+                                          method.icon,
+                                          color: method.color,
+                                          size: 18,
+                                        ),
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
                                         child: Text(
                                           method.name,
-                                          style: Theme.of(context).textTheme.bodyLarge,
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodyLarge,
                                         ),
                                       ),
                                       Icon(
@@ -144,19 +156,41 @@ class CardsScreen extends StatelessWidget {
                                       ),
                                       const SizedBox(width: 6),
                                       IconButton(
-                                        onPressed: () => _openAddCard(context, appState, method: method),
-                                        icon: const Icon(Icons.edit, color: AppColors.accentIncome),
+                                        onPressed: () => _openAddCard(
+                                          context,
+                                          appState,
+                                          method: method,
+                                        ),
+                                        icon: const Icon(
+                                          Icons.edit,
+                                          color: AppColors.accentIncome,
+                                        ),
                                         iconSize: 26,
                                         padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+                                        constraints:
+                                            const BoxConstraints.tightFor(
+                                              width: 32,
+                                              height: 32,
+                                            ),
                                       ),
                                       const SizedBox(width: 2),
                                       IconButton(
-                                        onPressed: () => _confirmDelete(context, appState, method),
-                                        icon: const Icon(Icons.delete, color: AppColors.accentExpense),
+                                        onPressed: () => _confirmDelete(
+                                          context,
+                                          appState,
+                                          method,
+                                        ),
+                                        icon: const Icon(
+                                          Icons.delete,
+                                          color: AppColors.accentExpense,
+                                        ),
                                         iconSize: 26,
                                         padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+                                        constraints:
+                                            const BoxConstraints.tightFor(
+                                              width: 32,
+                                              height: 32,
+                                            ),
                                       ),
                                     ],
                                   ),
@@ -167,8 +201,8 @@ class CardsScreen extends StatelessWidget {
                         },
                       ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -332,15 +366,20 @@ class _AddCardSheetState extends State<_AddCardSheet> {
               children: [
                 Expanded(
                   child: Text(
-                    widget.initialMethod == null ? 'Новая карта' : 'Редактировать карту',
+                    widget.initialMethod == null
+                        ? 'Новая карта'
+                        : 'Редактировать карту',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close_rounded, color: AppColors.accentExpense),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    color: AppColors.accentExpense,
+                  ),
                   iconSize: 32,
                   tooltip: 'Отмена',
                 ),
@@ -352,7 +391,10 @@ class _AddCardSheetState extends State<_AddCardSheet> {
                     }
                     widget.onSave(name, _selectedIcon, _selectedColor);
                   },
-                  icon: const Icon(Icons.check_rounded, color: Color(0xFF9AD27A)),
+                  icon: const Icon(
+                    Icons.check_rounded,
+                    color: Color(0xFF9AD27A),
+                  ),
                   iconSize: 32,
                   tooltip: 'Сохранить',
                 ),
@@ -369,9 +411,9 @@ class _AddCardSheetState extends State<_AddCardSheet> {
             Text(
               'Цвет иконки',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -381,7 +423,8 @@ class _AddCardSheetState extends State<_AddCardSheet> {
               runSpacing: 10,
               children: [
                 ..._colors.map((color) {
-                  final isSelected = color.toARGB32() == _selectedColor.toARGB32();
+                  final isSelected =
+                      color.toARGB32() == _selectedColor.toARGB32();
                   return GestureDetector(
                     onTap: () {
                       setState(() {
@@ -395,7 +438,9 @@ class _AddCardSheetState extends State<_AddCardSheet> {
                         color: color,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: isSelected ? AppColors.textPrimary : Colors.transparent,
+                          color: isSelected
+                              ? AppColors.textPrimary
+                              : Colors.transparent,
                           width: 2,
                         ),
                       ),
@@ -420,9 +465,9 @@ class _AddCardSheetState extends State<_AddCardSheet> {
             const SizedBox(height: 12),
             Text(
               'Иконка',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 8),
             LayoutBuilder(
@@ -430,7 +475,8 @@ class _AddCardSheetState extends State<_AddCardSheet> {
                 const columns = 6;
                 const spacing = 10.0;
                 final itemSize =
-                    ((constraints.maxWidth - spacing * (columns - 1)) / columns).clamp(44.0, 56.0);
+                    ((constraints.maxWidth - spacing * (columns - 1)) / columns)
+                        .clamp(44.0, 56.0);
                 return Wrap(
                   alignment: WrapAlignment.center,
                   runAlignment: WrapAlignment.center,
@@ -451,11 +497,17 @@ class _AddCardSheetState extends State<_AddCardSheet> {
                           color: AppColors.surface2,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: isSelected ? AppColors.accentIncome : AppColors.stroke,
+                            color: isSelected
+                                ? AppColors.accentIncome
+                                : AppColors.stroke,
                             width: 1,
                           ),
                         ),
-                        child: Icon(icon, color: _selectedColor, size: itemSize * 0.5),
+                        child: Icon(
+                          icon,
+                          color: _selectedColor,
+                          size: itemSize * 0.5,
+                        ),
                       ),
                     );
                   }).toList(),
