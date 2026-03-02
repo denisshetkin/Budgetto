@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
@@ -14,8 +15,63 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _memberNameController = TextEditingController();
+  final TextEditingController _familyNameController = TextEditingController();
+  bool _memberNameDirty = false;
+  bool _familyNameDirty = false;
+  bool _showFamilyErrors = false;
   bool _initialized = false;
+
+  bool _validateMemberName(String value) {
+    final name = value.trim();
+    if (name.isEmpty || name.toLowerCase() == 'я') {
+      showDialog<void>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Нужно имя'),
+            content: const Text('Укажи имя участника.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Ок'),
+              ),
+            ],
+          );
+        },
+      );
+      return false;
+    }
+    return true;
+  }
+
+  bool _validateFamilyForm() {
+    final memberValid =
+        _memberNameController.text.trim().isNotEmpty &&
+        _memberNameController.text.trim().toLowerCase() != 'я';
+    final budgetValid = _familyNameController.text.trim().isNotEmpty;
+    setState(() {
+      _showFamilyErrors = !memberValid || !budgetValid;
+    });
+    if (!memberValid || !budgetValid) {
+      return false;
+    }
+    return true;
+  }
+
+  InputDecoration _inlineInputDecoration({
+    required String hint,
+    required bool showError,
+  }) {
+    return InputDecoration(
+      isDense: true,
+      hintText: hint,
+      hintStyle: TextStyle(
+        color: showError ? AppColors.accentExpense : AppColors.textSecondary,
+      ),
+      border: InputBorder.none,
+    );
+  }
 
   void _openCurrencyPicker(BuildContext context, AppState appState) {
     showModalBottomSheet(
@@ -40,6 +96,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final controller = TextEditingController(
       text: appState.family?.name ?? 'Семейный бюджет',
     );
+    final nameController = TextEditingController(
+      text: _memberNameController.text,
+    );
+    var showErrors = false;
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface1,
@@ -47,40 +107,107 @@ class _SettingsScreenState extends State<SettingsScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Создать семейный бюджет',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            void refresh() => setModalState(() {});
+            final budgetError = showErrors && controller.text.trim().isEmpty;
+            final nameError =
+                showErrors &&
+                (nameController.text.trim().isEmpty ||
+                    nameController.text.trim().toLowerCase() == 'я');
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Создать семейный бюджет',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SoftCard(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 130,
+                            child: Text(
+                              'Название',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
+                          Expanded(
+                            child: TextField(
+                              controller: controller,
+                              decoration: _inlineInputDecoration(
+                                hint: 'Название бюджета',
+                                showError: budgetError,
+                              ),
+                              onChanged: (_) => refresh(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SoftCard(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 130,
+                            child: Text(
+                              'Ваше имя',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
+                          Expanded(
+                            child: TextField(
+                              controller: nameController,
+                              decoration: _inlineInputDecoration(
+                                hint: 'Ваше имя',
+                                showError: nameError,
+                              ),
+                              onChanged: (_) => refresh(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () async {
+                          showErrors = true;
+                          refresh();
+                          if (controller.text.trim().isEmpty ||
+                              nameController.text.trim().isEmpty ||
+                              nameController.text.trim().toLowerCase() == 'я') {
+                            return;
+                          }
+                          Navigator.of(context).pop();
+                          await appState.updateDisplayName(nameController.text);
+                          await appState.createFamily(controller.text);
+                        },
+                        child: const Text('Создать'),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: controller,
-                  decoration: const InputDecoration(
-                    hintText: 'Название бюджета',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () {
-                      appState.createFamily(controller.text);
-                      Navigator.of(context).pop();
-                    },
-                    child: const Text('Создать'),
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -88,6 +215,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _openJoinFamily(BuildContext context, AppState appState) {
     final controller = TextEditingController();
+    final nameController = TextEditingController(
+      text: _memberNameController.text,
+    );
+    var showErrors = false;
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface1,
@@ -95,39 +226,118 @@ class _SettingsScreenState extends State<SettingsScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Вступить по коду',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            void refresh() => setModalState(() {});
+            final codeError = showErrors && controller.text.trim().isEmpty;
+            final nameError =
+                showErrors &&
+                (nameController.text.trim().isEmpty ||
+                    nameController.text.trim().toLowerCase() == 'я');
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Вступить по коду',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SoftCard(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 130,
+                            child: Text(
+                              'Код семьи',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
+                          Expanded(
+                            child: TextField(
+                              controller: controller,
+                              textCapitalization: TextCapitalization.characters,
+                              decoration: _inlineInputDecoration(
+                                hint: 'Код семьи',
+                                showError: codeError,
+                              ),
+                              onChanged: (_) => refresh(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SoftCard(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 130,
+                            child: Text(
+                              'Ваше имя',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
+                          Expanded(
+                            child: TextField(
+                              controller: nameController,
+                              decoration: _inlineInputDecoration(
+                                hint: 'Ваше имя',
+                                showError: nameError,
+                              ),
+                              onChanged: (_) => refresh(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () async {
+                          showErrors = true;
+                          refresh();
+                          if (controller.text.trim().isEmpty ||
+                              nameController.text.trim().isEmpty ||
+                              nameController.text.trim().toLowerCase() == 'я') {
+                            return;
+                          }
+                          Navigator.of(context).pop();
+                          await appState.updateDisplayName(nameController.text);
+                          final success = await appState.joinFamily(
+                            controller.text,
+                          );
+                          if (!context.mounted) {
+                            return;
+                          }
+                          if (!success) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Код не найден')),
+                            );
+                          }
+                        },
+                        child: const Text('Вступить'),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: controller,
-                  textCapitalization: TextCapitalization.characters,
-                  decoration: const InputDecoration(hintText: 'Код семьи'),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () {
-                      appState.joinFamily(controller.text);
-                      Navigator.of(context).pop();
-                    },
-                    child: const Text('Вступить'),
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -158,7 +368,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
     if (confirm == true) {
-      appState.leaveFamily();
+      await appState.leaveFamily();
+    }
+  }
+
+  Future<void> _confirmClearTransactions(
+    BuildContext context,
+    AppState appState,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Очистить операции?'),
+          content: const Text('Все операции будут удалены без восстановления.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Отмена'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Очистить'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true) {
+      await appState.clearTransactions();
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Операции очищены')));
     }
   }
 
@@ -169,13 +414,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return;
     }
     final appState = AppStateScope.of(context);
-    _nameController.text = appState.currentUser.name;
+    _memberNameController.text = appState.currentUser.name;
+    _familyNameController.text = appState.family?.name ?? '';
     _initialized = true;
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
+    _memberNameController.dispose();
+    _familyNameController.dispose();
     super.dispose();
   }
 
@@ -183,6 +430,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
     final family = appState.family;
+    if (family != null) {
+      if (!_familyNameDirty &&
+          _familyNameController.text.trim() != family.name.trim()) {
+        _familyNameController.text = family.name;
+      }
+      if (!_memberNameDirty &&
+          _memberNameController.text.trim() !=
+              appState.currentUser.name.trim()) {
+        _memberNameController.text = appState.currentUser.name;
+      }
+    }
 
     return Scaffold(
       body: SafeArea(
@@ -193,24 +451,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  SoftCard(
-                    child: Column(
-                      children: [
-                        Text(
-                          'Профиль',
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _nameController,
-                          decoration: const InputDecoration(hintText: 'Имя'),
-                          onChanged: (value) => appState.setUserName(value),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
                   SoftCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,9 +467,176 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         if (family != null) ...[
                           const SizedBox(height: 12),
-                          _SettingsRow(title: 'Название', value: family.name),
+                          SoftCard(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 130,
+                                  child: Text(
+                                    'Название',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _familyNameController,
+                                    decoration: _inlineInputDecoration(
+                                      hint: 'Название бюджета',
+                                      showError:
+                                          _showFamilyErrors &&
+                                          _familyNameController.text
+                                              .trim()
+                                              .isEmpty,
+                                    ),
+                                    onChanged: (_) {
+                                      _familyNameDirty = true;
+                                      if (_showFamilyErrors) {
+                                        setState(() {});
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                           const SizedBox(height: 12),
-                          _SettingsRow(title: 'Код', value: family.inviteCode),
+                          SoftCard(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 130,
+                                  child: Text(
+                                    'Ваше имя',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _memberNameController,
+                                    decoration: _inlineInputDecoration(
+                                      hint: 'Ваше имя',
+                                      showError:
+                                          _showFamilyErrors &&
+                                          (_memberNameController.text
+                                                  .trim()
+                                                  .isEmpty ||
+                                              _memberNameController.text
+                                                      .trim()
+                                                      .toLowerCase() ==
+                                                  'я'),
+                                    ),
+                                    onChanged: (_) {
+                                      _memberNameDirty = true;
+                                      if (_showFamilyErrors) {
+                                        setState(() {});
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton(
+                              onPressed: () async {
+                                if (!_validateFamilyForm()) {
+                                  return;
+                                }
+                                if (_familyNameDirty) {
+                                  await appState.updateFamilyName(
+                                    _familyNameController.text,
+                                  );
+                                  _familyNameDirty = false;
+                                }
+                                if (_memberNameDirty) {
+                                  await appState.updateDisplayName(
+                                    _memberNameController.text,
+                                  );
+                                  _memberNameDirty = false;
+                                }
+                                if (!context.mounted) {
+                                  return;
+                                }
+                                setState(() {
+                                  _showFamilyErrors = false;
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Изменения сохранены'),
+                                  ),
+                                );
+                              },
+                              child: const Text('Применить изменения'),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _SettingsRow(
+                            title: 'Код',
+                            value: family.inviteCode,
+                            trailing: IconButton(
+                              onPressed: () {
+                                Clipboard.setData(
+                                  ClipboardData(text: family.inviteCode),
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Код скопирован'),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(
+                                Icons.copy_rounded,
+                                size: 18,
+                                color: AppColors.textSecondary,
+                              ),
+                              tooltip: 'Скопировать код',
+                            ),
+                          ),
+                          if (appState.familyMembers.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              'Участники',
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: appState.familyMembers.map((member) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surface2,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Text(
+                                    member.name,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ],
                         ],
                         const SizedBox(height: 16),
                         if (family == null) ...[
@@ -287,6 +694,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  SoftCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Данные',
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                _confirmClearTransactions(context, appState),
+                            child: const Text('Очистить операции'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -298,23 +727,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
 }
 
 class _SettingsRow extends StatelessWidget {
-  const _SettingsRow({required this.title, this.value});
+  const _SettingsRow({required this.title, this.value, this.trailing});
 
   final String title;
   final String? value;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: Theme.of(context).textTheme.bodyMedium),
+        Expanded(
+          child: Text(title, style: Theme.of(context).textTheme.bodyMedium),
+        ),
         Text(
           value ?? '—',
           style: Theme.of(
             context,
           ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
         ),
+        if (trailing != null) ...[const SizedBox(width: 6), trailing!],
       ],
     );
   }

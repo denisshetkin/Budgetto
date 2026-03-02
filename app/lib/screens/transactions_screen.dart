@@ -27,6 +27,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   TimeOfDay? _fromTime;
   DateTime? _toDate;
   TimeOfDay? _toTime;
+  bool _showAuthors = false;
+  DateTime? _selectedMonth;
+  bool _useCustomRange = false;
   final TextEditingController _queryController = TextEditingController();
   bool _filtersInitialized = false;
 
@@ -161,27 +164,73 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     return '${_formatDate(date)} ${_formatTime(t)}';
   }
 
+  DateTime _monthStart(DateTime month) {
+    return DateTime(month.year, month.month);
+  }
+
+  DateTime _monthEnd(DateTime month) {
+    return DateTime(
+      month.year,
+      month.month + 1,
+    ).subtract(const Duration(minutes: 1));
+  }
+
+  void _setMonthFilter(DateTime month) {
+    _selectedMonth = DateTime(month.year, month.month);
+    _useCustomRange = false;
+    final start = _monthStart(month);
+    final end = _monthEnd(month);
+    _fromDate = DateTime(start.year, start.month, start.day);
+    _fromTime = const TimeOfDay(hour: 0, minute: 0);
+    _toDate = DateTime(end.year, end.month, end.day);
+    _toTime = const TimeOfDay(hour: 23, minute: 59);
+  }
+
+  bool _isFullMonthRange(
+    DateTime? fromDate,
+    TimeOfDay? fromTime,
+    DateTime? toDate,
+    TimeOfDay? toTime,
+  ) {
+    if (fromDate == null || toDate == null) {
+      return false;
+    }
+    final from = _combine(fromDate, fromTime);
+    final to = _combine(toDate, toTime);
+    if (from == null || to == null) {
+      return false;
+    }
+    final start = _monthStart(fromDate);
+    final end = _monthEnd(fromDate);
+    return from.isAtSameMomentAs(start) && to.isAtSameMomentAs(end);
+  }
+
   List<TransactionEntry> _sorted(List<TransactionEntry> source) {
     final sorted = [...source];
     sorted.sort((a, b) => b.date.compareTo(a.date));
     return sorted;
   }
 
-  double _sumForMonth(
-    List<TransactionEntry> entries,
-    DateTime month,
-    TransactionType type,
-  ) {
-    final start = DateTime(month.year, month.month);
-    final end = DateTime(month.year, month.month + 1);
+  double _sumForType(List<TransactionEntry> entries, TransactionType type) {
     return entries
-        .where(
-          (entry) =>
-              entry.type == type &&
-              !entry.date.isBefore(start) &&
-              entry.date.isBefore(end),
-        )
+        .where((entry) => entry.type == type)
         .fold(0.0, (sum, entry) => sum + entry.amount);
+  }
+
+  String _rangeLabel() {
+    if (!_useCustomRange && _selectedMonth != null) {
+      return _monthLabel(_selectedMonth!);
+    }
+    if (_fromDate == null || _toDate == null) {
+      final now = DateTime.now();
+      return _monthLabel(DateTime(now.year, now.month));
+    }
+    return '${_formatDateTime(_fromDate!, _fromTime)} – ${_formatDateTime(_toDate!, _toTime)}';
+  }
+
+  List<DateTime> _monthOptions() {
+    final now = DateTime.now();
+    return List.generate(12, (index) => DateTime(now.year, now.month - index));
   }
 
   @override
@@ -197,6 +246,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     _selectedMethodIds.addAll(
       appState.paymentMethods.map((method) => method.id),
     );
+    _setMonthFilter(DateTime.now());
     _filtersInitialized = true;
   }
 
@@ -262,12 +312,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         _selectedCategoryIds.length == appState.categories.length;
     final methodsAll =
         _selectedMethodIds.length == appState.paymentMethods.length;
+    final showAuthors = appState.isFamilyMode && _showAuthors;
+    final monthOnly = !_useCustomRange;
     return query ||
         _filterType != FilterType.all ||
-        _fromDate != null ||
-        _toDate != null ||
+        (monthOnly ? false : (_fromDate != null || _toDate != null)) ||
         !categoriesAll ||
-        !methodsAll;
+        !methodsAll ||
+        showAuthors;
   }
 
   void _openFilterSheet(AppState appState) {
@@ -277,6 +329,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     var tempFromTime = _fromTime;
     var tempToDate = _toDate;
     var tempToTime = _toTime;
+    var tempShowAuthors = _showAuthors;
     final tempCategoryIds = <String>{..._selectedCategoryIds};
     final tempMethodIds = <String>{..._selectedMethodIds};
 
@@ -568,18 +621,51 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           ),
                         ),
                       ),
+                      if (appState.isFamilyMode) ...[
+                        const SizedBox(height: 12),
+                        SoftCard(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          child: SwitchListTile.adaptive(
+                            value: tempShowAuthors,
+                            onChanged: (value) {
+                              tempShowAuthors = value;
+                              refresh();
+                            },
+                            title: const Text('Показывать автора'),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       Row(
                         children: [
                           Expanded(
                             child: OutlinedButton(
                               onPressed: () {
+                                final month = DateTime.now();
                                 tempQuery.clear();
                                 tempType = FilterType.all;
-                                tempFromDate = null;
-                                tempFromTime = null;
-                                tempToDate = null;
-                                tempToTime = null;
+                                tempFromDate = _monthStart(month);
+                                tempFromTime = const TimeOfDay(
+                                  hour: 0,
+                                  minute: 0,
+                                );
+                                final end = _monthEnd(month);
+                                tempToDate = DateTime(
+                                  end.year,
+                                  end.month,
+                                  end.day,
+                                );
+                                tempToTime = const TimeOfDay(
+                                  hour: 23,
+                                  minute: 59,
+                                );
+                                tempShowAuthors = false;
                                 tempCategoryIds
                                   ..clear()
                                   ..addAll(
@@ -606,6 +692,28 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                   _fromTime = tempFromTime;
                                   _toDate = tempToDate;
                                   _toTime = tempToTime;
+                                  _showAuthors = tempShowAuthors;
+                                  if (tempFromDate == null ||
+                                      tempToDate == null) {
+                                    _setMonthFilter(DateTime.now());
+                                  } else if (_isFullMonthRange(
+                                    tempFromDate,
+                                    tempFromTime,
+                                    tempToDate,
+                                    tempToTime,
+                                  )) {
+                                    _selectedMonth = DateTime(
+                                      tempFromDate!.year,
+                                      tempFromDate!.month,
+                                    );
+                                    _useCustomRange = false;
+                                  } else {
+                                    _selectedMonth = DateTime(
+                                      tempFromDate!.year,
+                                      tempFromDate!.month,
+                                    );
+                                    _useCustomRange = true;
+                                  }
                                   _selectedCategoryIds
                                     ..clear()
                                     ..addAll(tempCategoryIds);
@@ -637,20 +745,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final symbol = appState.currencySymbol();
     final transactions = _sorted(appState.transactions);
     final filteredTransactions = _applyFilters(transactions);
-    final now = DateTime.now();
-    final displayMonth = DateTime(now.year, now.month);
-    final income = _sumForMonth(
-      filteredTransactions,
-      displayMonth,
-      TransactionType.income,
-    );
-    final expense = _sumForMonth(
-      filteredTransactions,
-      displayMonth,
-      TransactionType.expense,
-    );
+    final income = _sumForType(filteredTransactions, TransactionType.income);
+    final expense = _sumForType(filteredTransactions, TransactionType.expense);
     final balance = income - expense;
     final hasFilter = _isFilterActive(appState);
+    final showAuthors = appState.isFamilyMode && _showAuthors;
     final emptyLabel = hasFilter ? 'Ничего не найдено' : 'Пока нет операций';
 
     return Scaffold(
@@ -715,11 +814,45 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         children: [
                           Align(
                             alignment: Alignment.centerRight,
-                            child: Text(
-                              _monthLabel(displayMonth),
-                              textAlign: TextAlign.right,
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(fontWeight: FontWeight.w600),
+                            child: PopupMenuButton<DateTime>(
+                              onSelected: (month) {
+                                setState(() {
+                                  _setMonthFilter(month);
+                                });
+                              },
+                              itemBuilder: (context) {
+                                return _monthOptions()
+                                    .map(
+                                      (month) => PopupMenuItem<DateTime>(
+                                        value: month,
+                                        child: Text(_monthLabel(month)),
+                                      ),
+                                    )
+                                    .toList();
+                              },
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      _rangeLabel(),
+                                      textAlign: TextAlign.right,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Icon(
+                                    Icons.expand_more,
+                                    size: 20,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -828,6 +961,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                         child: TransactionRow(
                                           entry: entry,
                                           symbol: symbol,
+                                          authorName: showAuthors
+                                              ? appState.memberName(
+                                                  entry.createdByUserId,
+                                                )
+                                              : null,
                                         ),
                                       ),
                                     ),

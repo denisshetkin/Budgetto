@@ -13,16 +13,46 @@ class SmartWalletApp extends StatefulWidget {
 
 class _SmartWalletAppState extends State<SmartWalletApp> {
   final AppState _appState = AppState();
+  bool _ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    await _appState.initialize();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _ready = true;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return AppStateScope(
       notifier: _appState,
       child: MaterialApp(
-        title: 'Smart Wallet',
+        title: 'Budgetto',
         debugShowCheckedModeBanner: false,
         theme: buildAppTheme(),
-        home: const AppShell(),
+        home: _ready ? const AppShell() : const _SplashScreen(),
+      ),
+    );
+  }
+}
+
+class _SplashScreen extends StatelessWidget {
+  const _SplashScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(),
       ),
     );
   }

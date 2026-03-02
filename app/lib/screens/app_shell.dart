@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../state/app_state.dart';
 import '../theme/app_colors.dart';
-import '../widgets/currency_picker_sheet.dart';
 import 'cards_screen.dart';
 import 'categories_screen.dart';
 import 'settings_screen.dart';
@@ -17,7 +15,6 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
-  bool _askedCurrency = false;
 
   final List<Widget> _screens = const [
     TransactionsScreen(),
@@ -25,41 +22,6 @@ class _AppShellState extends State<AppShell> {
     CardsScreen(),
     SettingsScreen(),
   ];
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_askedCurrency) {
-      return;
-    }
-
-    final appState = AppStateScope.of(context);
-    if (appState.currencyCode == null) {
-      _askedCurrency = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showCurrencyPicker(appState);
-      });
-    }
-  }
-
-  void _showCurrencyPicker(AppState appState) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surface1,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return CurrencyPickerSheet(
-          selectedCode: appState.currencyCode,
-          onSelected: (code) {
-            appState.setCurrency(code);
-            Navigator.of(context).pop();
-          },
-        );
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {

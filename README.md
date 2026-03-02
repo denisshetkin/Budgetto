@@ -1,26 +1,26 @@
-# Smart Wallet
+# Budgetto
 
-Cross-platform budget app (iOS + Android) inspired by Monefy UX, with a soft dark theme and a faster, cleaner flow.
+Budgetto — кроссплатформенное приложение для учета бюджета (iOS + Android) в мягкой темной стилистике.
 
-## Goals
-- Fast income/expense entry
-- Clear balance and period overview
-- Editable categories
-- Weekly/monthly budgets
-- Reports by time and categories
-- Optional sync (Apple/Google)
+## Цели
+- Быстрый ввод доходов и расходов
+- Понятный обзор баланса и периода
+- Редактируемые категории
+- Бюджеты по неделям и месяцам
+- Отчеты по времени и категориям
+- Опциональная синхронизация (Apple/Google)
 
-## Current status
-Flutter scaffold created in `app/`. Initial dark UI skeleton is in progress.
+## Текущий статус
+Флаттер‑скелет находится в `app/`. Основной темный UI в процессе.
 
-## Tech stack
+## Технологии
 - Flutter (UI)
-- Local DB: SQLite (Drift or Isar)
-- Sync: Firebase Auth (Apple/Google) + Firestore (optional, post-MVP)
+- Локальная БД: SQLite (Drift или Isar)
+- Синхронизация: Firebase Auth (Apple/Google) + Firestore (после MVP)
 
-## Docs
-- Product requirements: `docs/requirements.md`
-- UX structure: `docs/ux.md`
-- Design system (dark): `docs/design-system.md`
-- Data model: `docs/data-model.md`
-- Sync plan: `docs/sync.md`
+## Документация
+- Требования: `docs/requirements.md`
+- UX структура: `docs/ux.md`
+- Дизайн‑система (dark): `docs/design-system.md`
+- Модель данных: `docs/data-model.md`
+- План синка: `docs/sync.md`

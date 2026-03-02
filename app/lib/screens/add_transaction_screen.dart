@@ -53,21 +53,31 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           .where((item) => item.id == entry.categoryId)
           .cast<_CategoryItem?>()
           .firstWhere((item) => item != null, orElse: () => null);
-      _selectedCategory = category ?? (appState.categories.isNotEmpty ? appState.categories.first : null);
+      _selectedCategory =
+          category ??
+          (appState.categories.isNotEmpty ? appState.categories.first : null);
 
       final method = appState.paymentMethods
           .where((item) => item.id == entry.paymentMethod.id)
           .cast<_PaymentItem?>()
           .firstWhere((item) => item != null, orElse: () => null);
-      _selectedMethod = method ?? (appState.paymentMethods.isNotEmpty ? appState.paymentMethods.first : null);
+      _selectedMethod =
+          method ??
+          (appState.paymentMethods.isNotEmpty
+              ? appState.paymentMethods.first
+              : null);
 
       _amountController.text = entry.amount % 1 == 0
           ? entry.amount.toStringAsFixed(0)
           : entry.amount.toStringAsFixed(2);
       _noteController.text = entry.note ?? '';
     } else {
-      _selectedCategory = appState.categories.isNotEmpty ? appState.categories.first : null;
-      _selectedMethod = appState.paymentMethods.isNotEmpty ? appState.paymentMethods.first : null;
+      _selectedCategory = appState.categories.isNotEmpty
+          ? appState.categories.first
+          : null;
+      _selectedMethod = appState.paymentMethods.isNotEmpty
+          ? appState.paymentMethods.first
+          : null;
     }
 
     _initialized = true;
@@ -137,7 +147,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
 
     final entry = TransactionEntry(
-      id: widget.initialEntry?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      id:
+          widget.initialEntry?.id ??
+          DateTime.now().millisecondsSinceEpoch.toString(),
       type: _type,
       amount: amount,
       categoryId: _selectedCategory!.id,
@@ -146,8 +158,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       categoryColor: _selectedCategory!.color,
       date: dateTime,
       paymentMethod: _selectedMethod!,
-      note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
-      createdByUserId: widget.initialEntry?.createdByUserId ?? appState.currentUser.id,
+      note: _noteController.text.trim().isEmpty
+          ? null
+          : _noteController.text.trim(),
+      createdByUserId:
+          widget.initialEntry?.createdByUserId ?? appState.currentUser.id,
     );
 
     if (widget.initialEntry == null) {
@@ -160,9 +175,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -179,22 +194,24 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.initialEntry == null ? 'Новый $typeLabel' : 'Редактировать'),
+        title: Text(
+          widget.initialEntry == null ? 'Новый $typeLabel' : 'Редактировать',
+        ),
         backgroundColor: AppColors.surface1,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(
-            height: 1,
-            color: AppColors.stroke,
-          ),
+          child: Container(height: 1, color: AppColors.stroke),
         ),
         actions: [
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.close_rounded, color: AppColors.accentExpense),
+            icon: const Icon(
+              Icons.close_rounded,
+              color: AppColors.accentExpense,
+            ),
             iconSize: 36,
             tooltip: 'Отмена',
           ),
@@ -214,7 +231,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SoftCard(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -228,13 +248,19 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                             borderRadius: BorderRadius.circular(16),
                             child: Row(
                               children: [
-                                const Icon(Icons.calendar_month_outlined, size: 18),
+                                const Icon(
+                                  Icons.calendar_month_outlined,
+                                  size: 18,
+                                ),
                                 const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
                                     _formatDate(_selectedDate),
                                     overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
                                           color: AppColors.textSecondary,
                                         ),
                                   ),
@@ -254,7 +280,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                   child: Text(
                                     _formatTime(_selectedTime),
                                     overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
                                           color: AppColors.textSecondary,
                                         ),
                                   ),
@@ -270,7 +299,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       child: SegmentedButton<TransactionType>(
                         showSelectedIcon: false,
                         style: ButtonStyle(
-                          backgroundColor: WidgetStateProperty.resolveWith((states) {
+                          backgroundColor: WidgetStateProperty.resolveWith((
+                            states,
+                          ) {
                             if (states.contains(WidgetState.selected)) {
                               return accent.withOpacity(0.22);
                             }
@@ -278,8 +309,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           }),
                           textStyle: WidgetStatePropertyAll(
                             Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                         segments: const [
@@ -305,7 +336,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ),
               const SizedBox(height: 16),
               SoftCard(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
                     SizedBox(
@@ -313,8 +347,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       child: Text(
                         'Сумма',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -332,9 +366,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                             decimal: true,
                           ),
                           textAlign: TextAlign.left,
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
+                          style: Theme.of(context).textTheme.headlineMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
                           decoration: const InputDecoration(
                             hintText: '0',
                             isDense: true,
@@ -348,7 +381,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ),
               const SizedBox(height: 16),
               SoftCard(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -357,8 +393,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       child: Text(
                         'Описание',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -387,9 +423,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               const SizedBox(height: 16),
               Text(
                 'Оплата',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 12),
               Wrap(
@@ -404,9 +440,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       });
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
-                        color: isSelected ? AppColors.surface2 : AppColors.surface1,
+                        color: isSelected
+                            ? AppColors.surface2
+                            : AppColors.surface1,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: isSelected ? accent : AppColors.stroke,
@@ -431,9 +472,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               const SizedBox(height: 16),
               Text(
                 'Категория',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 12),
               Wrap(
@@ -453,7 +494,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: isSelected ? AppColors.surface2 : AppColors.surface1,
+                        color: isSelected
+                            ? AppColors.surface2
+                            : AppColors.surface1,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: isSelected ? accent : AppColors.stroke,
@@ -471,9 +514,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           ),
                         ],
                       ),
-                  ),
-                );
-              }).toList(),
+                    ),
+                  );
+                }).toList(),
               ),
             ],
           ),

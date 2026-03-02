@@ -8,10 +8,12 @@ class TransactionRow extends StatelessWidget {
     super.key,
     required this.entry,
     required this.symbol,
+    this.authorName,
   });
 
   final TransactionEntry entry;
   final String symbol;
+  final String? authorName;
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +23,7 @@ class TransactionRow extends StatelessWidget {
         : entry.amount.toStringAsFixed(2);
     final note = (entry.note ?? '').trim();
     final description = note.isNotEmpty ? note : entry.categoryName;
+    final author = (authorName ?? '').trim();
 
     return Row(
       children: [
@@ -33,7 +36,11 @@ class TransactionRow extends StatelessWidget {
                 color: AppColors.surface2,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(entry.categoryIcon, color: entry.categoryColor, size: 20),
+              child: Icon(
+                entry.categoryIcon,
+                color: entry.categoryColor,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 8),
             Container(
@@ -63,11 +70,28 @@ class TransactionRow extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 4),
-              Text(
-                _formatDateTime(entry.date),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _formatDateTime(entry.date),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
+                  ),
+                  if (author.isNotEmpty) ...[
+                    const SizedBox(width: 6),
+                    Text(
+                      '• $author',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
@@ -76,9 +100,9 @@ class TransactionRow extends StatelessWidget {
         Text(
           '${isIncome ? '+' : '-'} $amount ${symbol.isEmpty ? '' : symbol}',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: isIncome ? AppColors.accentIncome : AppColors.accentExpense,
-                fontWeight: FontWeight.w600,
-              ),
+            color: isIncome ? AppColors.accentIncome : AppColors.accentExpense,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     );

@@ -33,8 +33,12 @@ class _SearchScreenState extends State<SearchScreen> {
       return;
     }
     final appState = AppStateScope.of(context);
-    _selectedCategoryIds.addAll(appState.categories.map((category) => category.id));
-    _selectedMethodIds.addAll(appState.paymentMethods.map((method) => method.id));
+    _selectedCategoryIds.addAll(
+      appState.categories.map((category) => category.id),
+    );
+    _selectedMethodIds.addAll(
+      appState.paymentMethods.map((method) => method.id),
+    );
     _initialized = true;
   }
 
@@ -61,7 +65,8 @@ class _SearchScreenState extends State<SearchScreen> {
     );
     setState(() {
       _fromDate = pickedDate;
-      _fromTime = pickedTime ?? _fromTime ?? const TimeOfDay(hour: 0, minute: 0);
+      _fromTime =
+          pickedTime ?? _fromTime ?? const TimeOfDay(hour: 0, minute: 0);
     });
   }
 
@@ -103,13 +108,16 @@ class _SearchScreenState extends State<SearchScreen> {
       if (_type == SearchType.income && entry.type != TransactionType.income) {
         return false;
       }
-      if (_type == SearchType.expense && entry.type != TransactionType.expense) {
+      if (_type == SearchType.expense &&
+          entry.type != TransactionType.expense) {
         return false;
       }
-      if (_selectedCategoryIds.isNotEmpty && !_selectedCategoryIds.contains(entry.categoryId)) {
+      if (_selectedCategoryIds.isNotEmpty &&
+          !_selectedCategoryIds.contains(entry.categoryId)) {
         return false;
       }
-      if (_selectedMethodIds.isNotEmpty && !_selectedMethodIds.contains(entry.paymentMethod.id)) {
+      if (_selectedMethodIds.isNotEmpty &&
+          !_selectedMethodIds.contains(entry.paymentMethod.id)) {
         return false;
       }
       if (from != null && entry.date.isBefore(from)) {
@@ -147,9 +155,9 @@ class _SearchScreenState extends State<SearchScreen> {
           children: [
             Text(
               'Поиск',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
             SoftCard(
@@ -165,7 +173,10 @@ class _SearchScreenState extends State<SearchScreen> {
             SegmentedButton<SearchType>(
               segments: const [
                 ButtonSegment(value: SearchType.all, label: Text('Все')),
-                ButtonSegment(value: SearchType.expense, label: Text('Расходы')),
+                ButtonSegment(
+                  value: SearchType.expense,
+                  label: Text('Расходы'),
+                ),
                 ButtonSegment(value: SearchType.income, label: Text('Доходы')),
               ],
               selected: {_type},
@@ -193,7 +204,10 @@ class _SearchScreenState extends State<SearchScreen> {
                       ),
                       style: TextButton.styleFrom(
                         alignment: Alignment.centerLeft,
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 8,
+                        ),
                       ),
                     ),
                   ),
@@ -211,7 +225,10 @@ class _SearchScreenState extends State<SearchScreen> {
                       ),
                       style: TextButton.styleFrom(
                         alignment: Alignment.centerLeft,
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 8,
+                        ),
                       ),
                     ),
                   ),
@@ -222,24 +239,37 @@ class _SearchScreenState extends State<SearchScreen> {
             SoftCard(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               child: Theme(
-                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                data: Theme.of(
+                  context,
+                ).copyWith(dividerColor: Colors.transparent),
                 child: ExpansionTile(
                   title: const Text('Категории'),
                   initiallyExpanded: false,
                   collapsedIconColor: AppColors.textSecondary,
                   iconColor: AppColors.textSecondary,
-                  shape: const RoundedRectangleBorder(side: BorderSide(color: Colors.transparent)),
+                  shape: const RoundedRectangleBorder(
+                    side: BorderSide(color: Colors.transparent),
+                  ),
                   collapsedShape: const RoundedRectangleBorder(
                     side: BorderSide(color: Colors.transparent),
                   ),
-                  tilePadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  childrenPadding: const EdgeInsets.only(bottom: 8, left: 4, right: 4),
+                  tilePadding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 2,
+                  ),
+                  childrenPadding: const EdgeInsets.only(
+                    bottom: 8,
+                    left: 4,
+                    right: 4,
+                  ),
                   children: [
                     Wrap(
                       spacing: 6,
                       runSpacing: 6,
                       children: categories.map((category) {
-                        final isSelected = _selectedCategoryIds.contains(category.id);
+                        final isSelected = _selectedCategoryIds.contains(
+                          category.id,
+                        );
                         return FilterChip(
                           label: Text(category.name),
                           selected: isSelected,
@@ -254,9 +284,13 @@ class _SearchScreenState extends State<SearchScreen> {
                           },
                           selectedColor: AppColors.surface2,
                           checkmarkColor: AppColors.accentIncome,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
                           visualDensity: VisualDensity.compact,
-                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
                           labelStyle: Theme.of(context).textTheme.bodySmall,
                         );
                       }).toList(),
@@ -269,24 +303,37 @@ class _SearchScreenState extends State<SearchScreen> {
             SoftCard(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               child: Theme(
-                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                data: Theme.of(
+                  context,
+                ).copyWith(dividerColor: Colors.transparent),
                 child: ExpansionTile(
                   title: const Text('Способы оплаты'),
                   initiallyExpanded: false,
                   collapsedIconColor: AppColors.textSecondary,
                   iconColor: AppColors.textSecondary,
-                  shape: const RoundedRectangleBorder(side: BorderSide(color: Colors.transparent)),
+                  shape: const RoundedRectangleBorder(
+                    side: BorderSide(color: Colors.transparent),
+                  ),
                   collapsedShape: const RoundedRectangleBorder(
                     side: BorderSide(color: Colors.transparent),
                   ),
-                  tilePadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  childrenPadding: const EdgeInsets.only(bottom: 8, left: 4, right: 4),
+                  tilePadding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 2,
+                  ),
+                  childrenPadding: const EdgeInsets.only(
+                    bottom: 8,
+                    left: 4,
+                    right: 4,
+                  ),
                   children: [
                     Wrap(
                       spacing: 6,
                       runSpacing: 6,
                       children: methods.map((method) {
-                        final isSelected = _selectedMethodIds.contains(method.id);
+                        final isSelected = _selectedMethodIds.contains(
+                          method.id,
+                        );
                         return FilterChip(
                           label: Text(method.name),
                           selected: isSelected,
@@ -301,9 +348,13 @@ class _SearchScreenState extends State<SearchScreen> {
                           },
                           selectedColor: AppColors.surface2,
                           checkmarkColor: AppColors.accentIncome,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
                           visualDensity: VisualDensity.compact,
-                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
                           labelStyle: Theme.of(context).textTheme.bodySmall,
                         );
                       }).toList(),
@@ -318,8 +369,8 @@ class _SearchScreenState extends State<SearchScreen> {
                 child: Text(
                   'Ничего не найдено',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               )
             else
@@ -331,7 +382,11 @@ class _SearchScreenState extends State<SearchScreen> {
                 itemBuilder: (context, index) {
                   final entry = transactions[index];
                   return SoftCard(
-                    child: TransactionRow(entry: entry, symbol: symbol),
+                    child: TransactionRow(
+                      entry: entry,
+                      symbol: symbol,
+                      authorName: null,
+                    ),
                   );
                 },
               ),
