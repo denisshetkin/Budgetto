@@ -193,6 +193,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     final categories = appState.categories;
     final methods = appState.paymentMethods;
 
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -227,7 +229,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + bottomInset),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [

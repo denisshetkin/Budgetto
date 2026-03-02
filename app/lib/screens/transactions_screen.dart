@@ -33,6 +33,82 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   final TextEditingController _queryController = TextEditingController();
   bool _filtersInitialized = false;
 
+  Future<void> _openBudgetPicker(AppState appState) async {
+    final families = appState.availableFamilies;
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface1,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Выбери бюджет',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SoftCard(
+                  child: ListTile(
+                    title: const Text('Личный бюджет'),
+                    subtitle: const Text('Только для тебя'),
+                    trailing: !appState.isFamilyMode
+                        ? const Icon(
+                            Icons.check_circle,
+                            color: AppColors.accentIncome,
+                          )
+                        : const Icon(
+                            Icons.circle_outlined,
+                            color: AppColors.textSecondary,
+                          ),
+                    onTap: () async {
+                      Navigator.of(context).pop();
+                      await appState.switchToPersonalBudget();
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...families.map((family) {
+                  final isActive = appState.family?.id == family.id;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: SoftCard(
+                      child: ListTile(
+                        title: Text(family.name),
+                        subtitle: Text(family.inviteCode),
+                        trailing: isActive
+                            ? const Icon(
+                                Icons.check_circle,
+                                color: AppColors.accentIncome,
+                              )
+                            : const Icon(
+                                Icons.circle_outlined,
+                                color: AppColors.textSecondary,
+                              ),
+                        onTap: () async {
+                          Navigator.of(context).pop();
+                          await appState.switchToFamilyBudget(family.id);
+                        },
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _confirmDelete(
     BuildContext context,
     AppState appState,
@@ -742,6 +818,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
+    final budgetLabel = appState.isFamilyMode
+        ? (appState.family?.name ?? 'Общий бюджет')
+        : 'Личный бюджет';
+    final budgetIcon = appState.isFamilyMode
+        ? Icons.group
+        : Icons.person_outline;
     final symbol = appState.currencySymbol();
     final transactions = _sorted(appState.transactions);
     final filteredTransactions = _applyFilters(transactions);
@@ -757,7 +839,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         child: Column(
           children: [
             AppHeader(
-              title: 'Операции',
+              title: '',
+              leading: _BudgetChip(
+                label: budgetLabel,
+                icon: budgetIcon,
+                onTap: () => _openBudgetPicker(appState),
+              ),
               actions: [
                 _ActionCircle(
                   icon: hasFilter
@@ -1044,6 +1131,57 @@ class _ActionCircle extends StatelessWidget {
           border: Border.all(color: AppColors.stroke, width: 1),
         ),
         child: Icon(icon, color: color, size: 20),
+      ),
+    );
+  }
+}
+
+class _BudgetChip extends StatelessWidget {
+  const _BudgetChip({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.surface2,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.stroke),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: AppColors.textSecondary),
+            const SizedBox(width: 6),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 110),
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.expand_more,
+              size: 16,
+              color: AppColors.textSecondary,
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import 'budgets_screen.dart';
 import 'cards_screen.dart';
 import 'categories_screen.dart';
 import 'settings_screen.dart';
@@ -19,6 +20,7 @@ class _AppShellState extends State<AppShell> {
   final List<Widget> _screens = const [
     TransactionsScreen(),
     CategoriesScreen(),
+    BudgetsScreen(),
     CardsScreen(),
     SettingsScreen(),
   ];
@@ -52,6 +54,11 @@ class _AppShellState extends State<AppShell> {
               icon: Icon(Icons.grid_view_outlined),
               selectedIcon: Icon(Icons.grid_view),
               label: 'Категории',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.account_balance_wallet_outlined),
+              selectedIcon: Icon(Icons.account_balance_wallet),
+              label: 'Бюджеты',
             ),
             NavigationDestination(
               icon: Icon(Icons.credit_card_outlined),

@@ -3,9 +3,15 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
 class AppHeader extends StatelessWidget {
-  const AppHeader({super.key, required this.title, this.actions = const []});
+  const AppHeader({
+    super.key,
+    required this.title,
+    this.leading,
+    this.actions = const [],
+  });
 
   final String title;
+  final Widget? leading;
   final List<Widget> actions;
 
   @override
@@ -17,13 +23,25 @@ class AppHeader extends StatelessWidget {
           child: SizedBox(
             height: 48,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  title,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                Expanded(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (leading != null) leading!,
+                      if (title.isNotEmpty) ...[
+                        if (leading != null) const SizedBox(width: 12),
+                        Flexible(
+                          child: Text(
+                            title,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
                 if (actions.isNotEmpty)
                   Row(mainAxisSize: MainAxisSize.min, children: actions),
