@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.example.app</string>
+	<string>com.denshetkin.budgetto</string>
 	<key>PROJECT_ID</key>
 	<string>budgetto-777</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:941463281907:ios:70a45fd17633100a3dd786</string>
+	<string>1:941463281907:ios:3f1a345a4f91842d3dd786</string>
 </dict>
 </plist>
