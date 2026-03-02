@@ -23,6 +23,7 @@ class AppState extends ChangeNotifier {
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _methodsSub;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _transactionsSub;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _budgetSub;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _familiesSub;
   String? _budgetId;
   bool _initialized = false;
   String? _currencyCode;
@@ -31,6 +32,7 @@ class AppState extends ChangeNotifier {
   final List<CategoryEntry> _categories = [];
   final List<UserProfile> _familyMembers = [];
   final Map<String, String> _memberNames = {};
+  final List<FamilyGroup> _availableFamilies = [];
   UserProfile _currentUser = const UserProfile(id: 'local', name: '');
   FamilyGroup? _family;
   bool _syncEnabled = false;
@@ -46,6 +48,8 @@ class AppState extends ChangeNotifier {
   List<PaymentMethod> get paymentMethods => List.unmodifiable(_paymentMethods);
   List<CategoryEntry> get categories => List.unmodifiable(_categories);
   List<UserProfile> get familyMembers => List.unmodifiable(_familyMembers);
+  List<FamilyGroup> get availableFamilies =>
+      List.unmodifiable(_availableFamilies);
 
   String? memberName(String? userId) {
     if (userId == null) {
@@ -89,11 +93,43 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> resetAccount() async {
+    final user = _auth.currentUser;
+    if (user != null && _family != null && _budgetId != null) {
+      try {
+        await _db.collection('budgets').doc(_budgetId).update({
+          'memberIds': FieldValue.arrayRemove([user.uid]),
+        });
+      } catch (_) {
+        // Ignore failures when cleaning up membership on reset.
+      }
+    }
+    await _cancelSync();
+    await _familiesSub?.cancel();
+    _familiesSub = null;
+    _budgetId = null;
+    _family = null;
+    _syncEnabled = false;
+    _currencyCode = null;
+    _transactions.clear();
+    _paymentMethods.clear();
+    _categories.clear();
+    _familyMembers.clear();
+    _memberNames.clear();
+    _availableFamilies.clear();
+    _currentUser = const UserProfile(id: 'local', name: '');
+    _initialized = false;
+    notifyListeners();
+    await _auth.signOut();
+    _seedDefaults();
+    await initialize();
+  }
+
   Future<void> createFamily(String name) async {
     final user = await _ensureSignedIn();
     final id = 'fam_${DateTime.now().millisecondsSinceEpoch}';
     final code = _createInviteCode();
-    final familyName = name.trim().isEmpty ? 'Семейный бюджет' : name.trim();
+    final familyName = name.trim().isEmpty ? 'Общий бюджет' : name.trim();
     await _db.collection('budgets').doc(id).set({
       'name': familyName,
       'type': 'family',
@@ -122,7 +158,7 @@ class AppState extends ChangeNotifier {
     if (_family == null || _budgetId == null) {
       return;
     }
-    final trimmed = name.trim().isEmpty ? 'Семейный бюджет' : name.trim();
+    final trimmed = name.trim().isEmpty ? 'Общий бюджет' : name.trim();
     _family = _family!.copyWith(name: trimmed);
     await _db.collection('budgets').doc(_budgetId).set({
       'name': trimmed,
@@ -155,7 +191,7 @@ class AppState extends ChangeNotifier {
     });
     _family = FamilyGroup(
       id: doc.id,
-      name: (data['name'] as String?) ?? 'Семейный бюджет',
+      name: (data['name'] as String?) ?? 'Общий бюджет',
       memberIds: List<String>.from(data['memberIds'] ?? [user.uid]),
       inviteCode: normalized,
     );
@@ -452,10 +488,63 @@ class AppState extends ChangeNotifier {
     }
     final user = await _ensureSignedIn();
     await _ensureUserDocument(user);
-    final budgetId = await _ensurePersonalBudget(user);
+    _startFamilyListSync(user.uid);
+
+    final userSnap = await _db.collection('users').doc(user.uid).get();
+    final data = userSnap.data();
+    final currentBudgetId = data?['currentBudgetId'] as String?;
+    final currentBudgetType = data?['currentBudgetType'] as String?;
+    final personalId = await _ensurePersonalBudget(user);
+
+    var budgetId = personalId;
+    if (currentBudgetId != null) {
+      try {
+        final budgetSnap = await _db
+            .collection('budgets')
+            .doc(currentBudgetId)
+            .get();
+        if (budgetSnap.exists) {
+          if (currentBudgetType != 'family') {
+            budgetId = currentBudgetId;
+          } else {
+            final memberIds = List<String>.from(
+              budgetSnap.data()?['memberIds'] ?? [],
+            );
+            if (memberIds.contains(user.uid)) {
+              budgetId = currentBudgetId;
+            }
+          }
+        }
+      } catch (_) {
+        // Fallback to personal budget if the stored budget is not accessible.
+      }
+    }
+
     await _startSync(budgetId);
     _initialized = true;
     notifyListeners();
+  }
+
+  Future<void> switchToPersonalBudget() async {
+    final user = await _ensureSignedIn();
+    final personalId = await _ensurePersonalBudget(user);
+    await _updateUserField({
+      'currentBudgetId': personalId,
+      'currentBudgetType': 'personal',
+    });
+    await _startSync(personalId);
+  }
+
+  Future<void> switchToFamilyBudget(String budgetId) async {
+    final user = await _ensureSignedIn();
+    await _updateUserField({
+      'currentBudgetId': budgetId,
+      'currentBudgetType': 'family',
+    });
+    await _startSync(budgetId);
+    await _db.collection('budgets').doc(budgetId).set({
+      'memberIds': FieldValue.arrayUnion([user.uid]),
+    }, SetOptions(merge: true));
   }
 
   Future<User> _ensureSignedIn() async {
@@ -507,11 +596,12 @@ class AppState extends ChangeNotifier {
       'currencyCode': _currencyCode,
       'createdAt': FieldValue.serverTimestamp(),
     });
-    await userRef.set({
-      'personalBudgetId': budgetId,
-      'currentBudgetId': budgetId,
-      'currentBudgetType': 'personal',
-    }, SetOptions(merge: true));
+    final update = <String, dynamic>{'personalBudgetId': budgetId};
+    if (data?['currentBudgetId'] == null) {
+      update['currentBudgetId'] = budgetId;
+      update['currentBudgetType'] = 'personal';
+    }
+    await userRef.set(update, SetOptions(merge: true));
     return budgetId;
   }
 
@@ -519,6 +609,11 @@ class AppState extends ChangeNotifier {
     await _cancelSync();
     _budgetId = budgetId;
     _syncEnabled = true;
+    _transactions.clear();
+    _categories.clear();
+    _paymentMethods.clear();
+    _seedDefaults();
+    notifyListeners();
 
     _budgetSub = _db.collection('budgets').doc(budgetId).snapshots().listen((
       snap,
@@ -533,7 +628,7 @@ class AppState extends ChangeNotifier {
         final memberIds = List<String>.from(data['memberIds'] ?? []);
         _family = FamilyGroup(
           id: snap.id,
-          name: data['name'] as String? ?? 'Семейный бюджет',
+          name: data['name'] as String? ?? 'Общий бюджет',
           memberIds: memberIds,
           inviteCode: data['inviteCode'] as String? ?? '',
         );
@@ -587,6 +682,35 @@ class AppState extends ChangeNotifier {
           _transactions
             ..clear()
             ..addAll(list);
+          notifyListeners();
+        });
+  }
+
+  void _startFamilyListSync(String userId) {
+    _familiesSub?.cancel();
+    _familiesSub = _db
+        .collection('budgets')
+        .where('memberIds', arrayContains: userId)
+        .snapshots()
+        .listen((snap) {
+          final families = <FamilyGroup>[];
+          for (final doc in snap.docs) {
+            final data = doc.data();
+            if ((data['type'] as String?) != 'family') {
+              continue;
+            }
+            families.add(
+              FamilyGroup(
+                id: doc.id,
+                name: data['name'] as String? ?? 'Общий бюджет',
+                memberIds: List<String>.from(data['memberIds'] ?? []),
+                inviteCode: data['inviteCode'] as String? ?? '',
+              ),
+            );
+          }
+          _availableFamilies
+            ..clear()
+            ..addAll(families);
           notifyListeners();
         });
   }

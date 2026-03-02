@@ -7,6 +7,8 @@ import '../widgets/app_header.dart';
 import '../widgets/currency_picker_sheet.dart';
 import '../widgets/soft_card.dart';
 
+enum _BudgetMode { personal, family }
+
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -21,29 +23,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _familyNameDirty = false;
   bool _showFamilyErrors = false;
   bool _initialized = false;
-
-  bool _validateMemberName(String value) {
-    final name = value.trim();
-    if (name.isEmpty || name.toLowerCase() == 'я') {
-      showDialog<void>(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('Нужно имя'),
-            content: const Text('Укажи имя участника.'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Ок'),
-              ),
-            ],
-          );
-        },
-      );
-      return false;
-    }
-    return true;
-  }
 
   bool _validateFamilyForm() {
     final memberValid =
@@ -93,9 +72,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _openCreateFamily(BuildContext context, AppState appState) {
-    final controller = TextEditingController(
-      text: appState.family?.name ?? 'Семейный бюджет',
-    );
+    final controller = TextEditingController(text: '');
     final nameController = TextEditingController(
       text: _memberNameController.text,
     );
@@ -123,7 +100,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Создать семейный бюджет',
+                      'Создать общий бюджет',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -242,7 +219,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Вступить по коду',
+                      'Присоединиться по коду',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -258,7 +235,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           SizedBox(
                             width: 130,
                             child: Text(
-                              'Код семьи',
+                              'Код бюджета',
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                           ),
@@ -267,7 +244,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               controller: controller,
                               textCapitalization: TextCapitalization.characters,
                               decoration: _inlineInputDecoration(
-                                hint: 'Код семьи',
+                                hint: 'Код бюджета',
                                 showError: codeError,
                               ),
                               onChanged: (_) => refresh(),
@@ -330,7 +307,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             );
                           }
                         },
-                        child: const Text('Вступить'),
+                        child: const Text('Присоединиться'),
                       ),
                     ),
                   ],
@@ -338,6 +315,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             );
           },
+        );
+      },
+    );
+  }
+
+  Future<void> _selectFamilyBudget(AppState appState) async {
+    final families = appState.availableFamilies;
+    if (families.isEmpty) {
+      return;
+    }
+    if (families.length == 1) {
+      await appState.switchToFamilyBudget(families.first.id);
+      return;
+    }
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface1,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Выбери бюджет',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...families.map((family) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: SoftCard(
+                      child: ListTile(
+                        title: Text(family.name),
+                        subtitle: Text(family.inviteCode),
+                        onTap: () async {
+                          Navigator.of(context).pop();
+                          await appState.switchToFamilyBudget(family.id);
+                        },
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
         );
       },
     );
@@ -351,7 +381,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Покинуть семейный бюджет?'),
+          title: const Text('Покинуть общий бюджет?'),
           content: const Text('Вы уверены, что хотите выйти?'),
           actions: [
             TextButton(
@@ -407,6 +437,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _confirmResetAccount(
+    BuildContext context,
+    AppState appState,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Сбросить приложение?'),
+          content: const Text(
+            'Будет создан новый аккаунт и новый личный бюджет. '
+            'Старые данные останутся в облаке, но будут недоступны.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Отмена'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Сбросить'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true) {
+      await appState.resetAccount();
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Аккаунт сброшен')));
+    }
+  }
+
+  Future<void> _onBudgetModeChanged(AppState appState, _BudgetMode mode) async {
+    if (mode == _BudgetMode.personal) {
+      if (!appState.isFamilyMode) {
+        return;
+      }
+      await appState.switchToPersonalBudget();
+      return;
+    }
+    if (appState.availableFamilies.isEmpty) {
+      return;
+    }
+    await _selectFamilyBudget(appState);
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -430,6 +512,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
     final family = appState.family;
+    final hasFamilyOption = appState.availableFamilies.isNotEmpty;
+    final activeMode = appState.isFamilyMode
+        ? _BudgetMode.family
+        : _BudgetMode.personal;
+    final familyLabel = appState.isFamilyMode
+        ? (family?.name ?? 'Общий бюджет')
+        : (hasFamilyOption
+              ? appState.availableFamilies.first.name
+              : 'Общий бюджет');
     if (family != null) {
       if (!_familyNameDirty &&
           _familyNameController.text.trim() != family.name.trim()) {
@@ -456,14 +547,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Семейный бюджет',
+                          'Общий бюджет',
                           style: Theme.of(context).textTheme.bodyLarge
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 12),
                         _SettingsRow(
                           title: 'Режим',
-                          value: appState.isFamilyMode ? 'Семейный' : 'Личный',
+                          value: appState.isFamilyMode ? 'Общий' : 'Личный',
+                        ),
+                        const SizedBox(height: 12),
+                        SegmentedButton<_BudgetMode>(
+                          segments: [
+                            const ButtonSegment(
+                              value: _BudgetMode.personal,
+                              label: Text('Личный'),
+                            ),
+                            ButtonSegment(
+                              value: _BudgetMode.family,
+                              label: Text(familyLabel),
+                              enabled: hasFamilyOption,
+                            ),
+                          ],
+                          selected: {activeMode},
+                          onSelectionChanged: (selection) {
+                            _onBudgetModeChanged(appState, selection.first);
+                          },
+                          showSelectedIcon: false,
                         ),
                         if (family != null) ...[
                           const SizedBox(height: 12),
@@ -645,7 +755,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: FilledButton(
                               onPressed: () =>
                                   _openCreateFamily(context, appState),
-                              child: const Text('Создать семейный бюджет'),
+                              child: const Text('Создать общий бюджет'),
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -654,7 +764,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: OutlinedButton(
                               onPressed: () =>
                                   _openJoinFamily(context, appState),
-                              child: const Text('Вступить по коду'),
+                              child: const Text('Присоединиться по коду'),
                             ),
                           ),
                         ] else ...[
@@ -663,7 +773,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: OutlinedButton(
                               onPressed: () =>
                                   _confirmLeaveFamily(context, appState),
-                              child: const Text('Покинуть семейный бюджет'),
+                              child: const Text('Покинуть общий бюджет'),
                             ),
                           ),
                         ],
@@ -711,6 +821,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             onPressed: () =>
                                 _confirmClearTransactions(context, appState),
                             child: const Text('Очистить операции'),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                _confirmResetAccount(context, appState),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.accentExpense,
+                            ),
+                            child: const Text('Сбросить и начать заново'),
                           ),
                         ),
                       ],
