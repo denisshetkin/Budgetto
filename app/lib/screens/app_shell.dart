@@ -20,15 +20,15 @@ class _AppShellState extends State<AppShell> {
   final List<Widget> _screens = const [
     TransactionsScreen(),
     CategoriesScreen(),
-    BudgetsScreen(),
     CardsScreen(),
+    BudgetsScreen(),
     SettingsScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_currentIndex],
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: AppColors.surface1,
@@ -56,14 +56,14 @@ class _AppShellState extends State<AppShell> {
               label: 'Категории',
             ),
             NavigationDestination(
-              icon: Icon(Icons.account_balance_wallet_outlined),
-              selectedIcon: Icon(Icons.account_balance_wallet),
-              label: 'Бюджеты',
-            ),
-            NavigationDestination(
               icon: Icon(Icons.credit_card_outlined),
               selectedIcon: Icon(Icons.credit_card),
               label: 'Карты',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.account_balance_wallet_outlined),
+              selectedIcon: Icon(Icons.account_balance_wallet),
+              label: 'Бюджеты',
             ),
             NavigationDestination(
               icon: Icon(Icons.settings_outlined),

@@ -28,10 +28,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   DateTime? _toDate;
   TimeOfDay? _toTime;
   bool _showAuthors = false;
+  bool _showCategoryIcon = false;
+  bool _showPaymentIcon = false;
+  bool _showTotal = false;
   DateTime? _selectedMonth;
   bool _useCustomRange = false;
   final TextEditingController _queryController = TextEditingController();
   bool _filtersInitialized = false;
+  bool _showFilterBar = false;
 
   Future<void> _openBudgetPicker(AppState appState) async {
     final families = appState.availableFamilies;
@@ -304,6 +308,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     return '${_formatDateTime(_fromDate!, _fromTime)} – ${_formatDateTime(_toDate!, _toTime)}';
   }
 
+  bool _isSameMonth(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month;
+  }
+
   List<DateTime> _monthOptions() {
     final now = DateTime.now();
     return List.generate(12, (index) => DateTime(now.year, now.month - index));
@@ -389,27 +397,200 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final methodsAll =
         _selectedMethodIds.length == appState.paymentMethods.length;
     final showAuthors = appState.isFamilyMode && _showAuthors;
+    final monthActive =
+        _selectedMonth != null &&
+        !_isSameMonth(_selectedMonth!, DateTime.now());
     final monthOnly = !_useCustomRange;
     return query ||
         _filterType != FilterType.all ||
         (monthOnly ? false : (_fromDate != null || _toDate != null)) ||
+        monthActive ||
         !categoriesAll ||
         !methodsAll ||
         showAuthors;
   }
 
-  void _openFilterSheet(AppState appState) {
+  void _resetFilters(AppState appState) {
+    setState(() {
+      _queryController.clear();
+      _filterType = FilterType.all;
+      _setMonthFilter(DateTime.now());
+      _showAuthors = false;
+      _selectedCategoryIds
+        ..clear()
+        ..addAll(appState.categories.map((category) => category.id));
+      _selectedMethodIds
+        ..clear()
+        ..addAll(appState.paymentMethods.map((method) => method.id));
+    });
+  }
+
+  Future<void> _openSearchFilter() async {
     final tempQuery = TextEditingController(text: _queryController.text);
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface1,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              16,
+              16,
+              24 + MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Поиск',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 12),
+                SoftCard(
+                  child: TextField(
+                    controller: tempQuery,
+                    decoration: const InputDecoration(
+                      hintText: 'Описание или категория',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => tempQuery.clear(),
+                        child: const Text('Сбросить'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () {
+                          setState(() {
+                            _queryController.text = tempQuery.text;
+                          });
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text('Применить'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _openTypeFilter() async {
     var tempType = _filterType;
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface1,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Тип операций',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SegmentedButton<FilterType>(
+                      segments: const [
+                        ButtonSegment(
+                          value: FilterType.all,
+                          label: Text('Все'),
+                        ),
+                        ButtonSegment(
+                          value: FilterType.expense,
+                          label: Text('Расходы'),
+                        ),
+                        ButtonSegment(
+                          value: FilterType.income,
+                          label: Text('Доходы'),
+                        ),
+                      ],
+                      selected: {tempType},
+                      onSelectionChanged: (selection) {
+                        setModalState(() {
+                          tempType = selection.first;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              setModalState(() {
+                                tempType = FilterType.all;
+                              });
+                            },
+                            child: const Text('Сбросить'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () {
+                              setState(() {
+                                _filterType = tempType;
+                              });
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text('Применить'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _openDateFilter() async {
     var tempFromDate = _fromDate;
     var tempFromTime = _fromTime;
     var tempToDate = _toDate;
     var tempToTime = _toTime;
-    var tempShowAuthors = _showAuthors;
-    final tempCategoryIds = <String>{..._selectedCategoryIds};
-    final tempMethodIds = <String>{..._selectedMethodIds};
 
-    showModalBottomSheet(
+    void setRange(DateTime start, DateTime end) {
+      tempFromDate = DateTime(start.year, start.month, start.day);
+      tempFromTime = const TimeOfDay(hour: 0, minute: 0);
+      tempToDate = DateTime(end.year, end.month, end.day);
+      tempToTime = const TimeOfDay(hour: 23, minute: 59);
+    }
+
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.surface1,
@@ -419,313 +600,195 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            void refresh() => setModalState(() {});
+            final now = DateTime.now();
             return SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Фильтр',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Период',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
-                      const SizedBox(height: 12),
-                      SoftCard(
-                        child: TextField(
-                          controller: tempQuery,
-                          decoration: const InputDecoration(
-                            hintText: 'Поиск по описанию или категории',
-                          ),
-                          onChanged: (_) => refresh(),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _QuickChip(
+                          label: 'Последний месяц',
+                          onTap: () {
+                            final start = DateTime(now.year, now.month - 1, 1);
+                            final end = DateTime(now.year, now.month, 0);
+                            setModalState(() => setRange(start, end));
+                          },
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      SegmentedButton<FilterType>(
-                        segments: const [
-                          ButtonSegment(
-                            value: FilterType.all,
-                            label: Text('Все'),
-                          ),
-                          ButtonSegment(
-                            value: FilterType.expense,
-                            label: Text('Расходы'),
-                          ),
-                          ButtonSegment(
-                            value: FilterType.income,
-                            label: Text('Доходы'),
-                          ),
-                        ],
-                        selected: {tempType},
-                        onSelectionChanged: (selection) {
-                          tempType = selection.first;
-                          refresh();
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      SoftCard(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
+                        _QuickChip(
+                          label: 'Квартал',
+                          onTap: () {
+                            final start = DateTime(now.year, now.month - 3, 1);
+                            final end = DateTime(now.year, now.month, 0);
+                            setModalState(() => setRange(start, end));
+                          },
                         ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextButton.icon(
-                                onPressed: () async {
-                                  final now = DateTime.now();
-                                  final pickedDate = await showDatePicker(
-                                    context: context,
-                                    initialDate: tempFromDate ?? now,
-                                    firstDate: DateTime(now.year - 2),
-                                    lastDate: DateTime(now.year + 1),
-                                  );
-                                  if (pickedDate == null) {
-                                    return;
-                                  }
-                                  final pickedTime = await showTimePicker(
-                                    context: context,
-                                    initialTime:
-                                        tempFromTime ??
-                                        TimeOfDay.fromDateTime(now),
-                                  );
-                                  tempFromDate = pickedDate;
-                                  tempFromTime =
-                                      pickedTime ??
-                                      tempFromTime ??
-                                      const TimeOfDay(hour: 0, minute: 0);
-                                  refresh();
-                                },
-                                icon: const Icon(Icons.schedule, size: 18),
-                                label: Text(
-                                  tempFromDate == null
-                                      ? 'От: дата и время'
-                                      : 'От: ${_formatDateTime(tempFromDate!, tempFromTime)}',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                style: TextButton.styleFrom(
-                                  alignment: Alignment.centerLeft,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 8,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: TextButton.icon(
-                                onPressed: () async {
-                                  final now = DateTime.now();
-                                  final pickedDate = await showDatePicker(
-                                    context: context,
-                                    initialDate: tempToDate ?? now,
-                                    firstDate: DateTime(now.year - 2),
-                                    lastDate: DateTime(now.year + 1),
-                                  );
-                                  if (pickedDate == null) {
-                                    return;
-                                  }
-                                  final pickedTime = await showTimePicker(
-                                    context: context,
-                                    initialTime:
-                                        tempToTime ??
-                                        TimeOfDay.fromDateTime(now),
-                                  );
-                                  tempToDate = pickedDate;
-                                  tempToTime =
-                                      pickedTime ??
-                                      tempToTime ??
-                                      const TimeOfDay(hour: 23, minute: 59);
-                                  refresh();
-                                },
-                                icon: const Icon(Icons.schedule, size: 18),
-                                label: Text(
-                                  tempToDate == null
-                                      ? 'До: дата и время'
-                                      : 'До: ${_formatDateTime(tempToDate!, tempToTime)}',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                style: TextButton.styleFrom(
-                                  alignment: Alignment.centerLeft,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 8,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SoftCard(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        child: Theme(
-                          data: Theme.of(
-                            context,
-                          ).copyWith(dividerColor: Colors.transparent),
-                          child: ExpansionTile(
-                            title: const Text('Категории'),
-                            collapsedIconColor: AppColors.textSecondary,
-                            iconColor: AppColors.textSecondary,
-                            shape: const RoundedRectangleBorder(
-                              side: BorderSide(color: Colors.transparent),
-                            ),
-                            collapsedShape: const RoundedRectangleBorder(
-                              side: BorderSide(color: Colors.transparent),
-                            ),
-                            tilePadding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 2,
-                            ),
-                            childrenPadding: const EdgeInsets.only(
-                              bottom: 8,
-                              left: 4,
-                              right: 4,
-                            ),
-                            children: [
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                children: appState.categories.map((category) {
-                                  final isSelected = tempCategoryIds.contains(
-                                    category.id,
-                                  );
-                                  return FilterChip(
-                                    label: Text(category.name),
-                                    selected: isSelected,
-                                    onSelected: (selected) {
-                                      if (selected) {
-                                        tempCategoryIds.add(category.id);
-                                      } else {
-                                        tempCategoryIds.remove(category.id);
-                                      }
-                                      refresh();
-                                    },
-                                    selectedColor: AppColors.surface2,
-                                    checkmarkColor: AppColors.accentIncome,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 6,
-                                    ),
-                                    visualDensity: VisualDensity.compact,
-                                    materialTapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                    labelStyle: Theme.of(
-                                      context,
-                                    ).textTheme.bodySmall,
-                                  );
-                                }).toList(),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SoftCard(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        child: Theme(
-                          data: Theme.of(
-                            context,
-                          ).copyWith(dividerColor: Colors.transparent),
-                          child: ExpansionTile(
-                            title: const Text('Способы оплаты'),
-                            collapsedIconColor: AppColors.textSecondary,
-                            iconColor: AppColors.textSecondary,
-                            shape: const RoundedRectangleBorder(
-                              side: BorderSide(color: Colors.transparent),
-                            ),
-                            collapsedShape: const RoundedRectangleBorder(
-                              side: BorderSide(color: Colors.transparent),
-                            ),
-                            tilePadding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 2,
-                            ),
-                            childrenPadding: const EdgeInsets.only(
-                              bottom: 8,
-                              left: 4,
-                              right: 4,
-                            ),
-                            children: [
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                children: appState.paymentMethods.map((method) {
-                                  final isSelected = tempMethodIds.contains(
-                                    method.id,
-                                  );
-                                  return FilterChip(
-                                    label: Text(method.name),
-                                    selected: isSelected,
-                                    onSelected: (selected) {
-                                      if (selected) {
-                                        tempMethodIds.add(method.id);
-                                      } else {
-                                        tempMethodIds.remove(method.id);
-                                      }
-                                      refresh();
-                                    },
-                                    selectedColor: AppColors.surface2,
-                                    checkmarkColor: AppColors.accentIncome,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 6,
-                                    ),
-                                    visualDensity: VisualDensity.compact,
-                                    materialTapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                    labelStyle: Theme.of(
-                                      context,
-                                    ).textTheme.bodySmall,
-                                  );
-                                }).toList(),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      if (appState.isFamilyMode) ...[
-                        const SizedBox(height: 12),
-                        SoftCard(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          child: SwitchListTile.adaptive(
-                            value: tempShowAuthors,
-                            onChanged: (value) {
-                              tempShowAuthors = value;
-                              refresh();
-                            },
-                            title: const Text('Показывать автора'),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                            ),
-                          ),
+                        _QuickChip(
+                          label: 'Год',
+                          onTap: () {
+                            final start = DateTime(now.year - 1, now.month, 1);
+                            final end = DateTime(now.year, now.month, 0);
+                            setModalState(() => setRange(start, end));
+                          },
                         ),
                       ],
-                      const SizedBox(height: 16),
-                      Row(
+                    ),
+                    const SizedBox(height: 10),
+                    SoftCard(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      child: Row(
                         children: [
+                          const Icon(
+                            Icons.calendar_month,
+                            size: 18,
+                            color: AppColors.textSecondary,
+                          ),
+                          const SizedBox(width: 8),
                           Expanded(
-                            child: OutlinedButton(
-                              onPressed: () {
-                                final month = DateTime.now();
-                                tempQuery.clear();
-                                tempType = FilterType.all;
+                            child: PopupMenuButton<DateTime>(
+                              onSelected: (month) {
+                                setModalState(() {
+                                  final start = DateTime(
+                                    month.year,
+                                    month.month,
+                                    1,
+                                  );
+                                  final end = DateTime(
+                                    month.year,
+                                    month.month + 1,
+                                    0,
+                                  );
+                                  setRange(start, end);
+                                });
+                              },
+                              itemBuilder: (context) {
+                                return _monthOptions()
+                                    .map(
+                                      (month) => PopupMenuItem<DateTime>(
+                                        value: month,
+                                        child: Text(_monthLabel(month)),
+                                      ),
+                                    )
+                                    .toList();
+                              },
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    tempFromDate == null
+                                        ? _monthLabel(now)
+                                        : _monthLabel(tempFromDate!),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(fontWeight: FontWeight.w600),
+                                  ),
+                                  const Icon(
+                                    Icons.expand_more,
+                                    size: 18,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SoftCard(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      child: Column(
+                        children: [
+                          _DateRow(
+                            label: 'От',
+                            value: tempFromDate == null
+                                ? 'Выбери дату'
+                                : _formatDateTime(tempFromDate!, tempFromTime),
+                            onTap: () async {
+                              final pickedDate = await showDatePicker(
+                                context: context,
+                                initialDate: tempFromDate ?? now,
+                                firstDate: DateTime(now.year - 2),
+                                lastDate: DateTime(now.year + 1),
+                              );
+                              if (pickedDate == null) {
+                                return;
+                              }
+                              final pickedTime = await showTimePicker(
+                                context: context,
+                                initialTime:
+                                    tempFromTime ?? TimeOfDay.fromDateTime(now),
+                              );
+                              setModalState(() {
+                                tempFromDate = pickedDate;
+                                tempFromTime =
+                                    pickedTime ??
+                                    tempFromTime ??
+                                    const TimeOfDay(hour: 0, minute: 0);
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          _DateRow(
+                            label: 'До',
+                            value: tempToDate == null
+                                ? 'Выбери дату'
+                                : _formatDateTime(tempToDate!, tempToTime),
+                            onTap: () async {
+                              final pickedDate = await showDatePicker(
+                                context: context,
+                                initialDate: tempToDate ?? now,
+                                firstDate: DateTime(now.year - 2),
+                                lastDate: DateTime(now.year + 1),
+                              );
+                              if (pickedDate == null) {
+                                return;
+                              }
+                              final pickedTime = await showTimePicker(
+                                context: context,
+                                initialTime:
+                                    tempToTime ?? TimeOfDay.fromDateTime(now),
+                              );
+                              setModalState(() {
+                                tempToDate = pickedDate;
+                                tempToTime =
+                                    pickedTime ??
+                                    tempToTime ??
+                                    const TimeOfDay(hour: 23, minute: 59);
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              final month = DateTime.now();
+                              setModalState(() {
                                 tempFromDate = _monthStart(month);
                                 tempFromTime = const TimeOfDay(
                                   hour: 0,
@@ -741,77 +804,449 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                   hour: 23,
                                   minute: 59,
                                 );
-                                tempShowAuthors = false;
-                                tempCategoryIds
-                                  ..clear()
-                                  ..addAll(
-                                    appState.categories.map((c) => c.id),
-                                  );
-                                tempMethodIds
-                                  ..clear()
-                                  ..addAll(
-                                    appState.paymentMethods.map((m) => m.id),
-                                  );
-                                refresh();
-                              },
-                              child: const Text('Сбросить'),
-                            ),
+                              });
+                            },
+                            child: const Text('Сбросить'),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: FilledButton(
-                              onPressed: () {
-                                setState(() {
-                                  _queryController.text = tempQuery.text;
-                                  _filterType = tempType;
-                                  _fromDate = tempFromDate;
-                                  _fromTime = tempFromTime;
-                                  _toDate = tempToDate;
-                                  _toTime = tempToTime;
-                                  _showAuthors = tempShowAuthors;
-                                  if (tempFromDate == null ||
-                                      tempToDate == null) {
-                                    _setMonthFilter(DateTime.now());
-                                  } else if (_isFullMonthRange(
-                                    tempFromDate,
-                                    tempFromTime,
-                                    tempToDate,
-                                    tempToTime,
-                                  )) {
-                                    _selectedMonth = DateTime(
-                                      tempFromDate!.year,
-                                      tempFromDate!.month,
-                                    );
-                                    _useCustomRange = false;
-                                  } else {
-                                    _selectedMonth = DateTime(
-                                      tempFromDate!.year,
-                                      tempFromDate!.month,
-                                    );
-                                    _useCustomRange = true;
-                                  }
-                                  _selectedCategoryIds
-                                    ..clear()
-                                    ..addAll(tempCategoryIds);
-                                  _selectedMethodIds
-                                    ..clear()
-                                    ..addAll(tempMethodIds);
-                                });
-                                Navigator.of(context).pop();
-                              },
-                              child: const Text('Применить'),
-                            ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () {
+                              setState(() {
+                                _fromDate = tempFromDate;
+                                _fromTime = tempFromTime;
+                                _toDate = tempToDate;
+                                _toTime = tempToTime;
+                                if (tempFromDate == null ||
+                                    tempToDate == null) {
+                                  _setMonthFilter(DateTime.now());
+                                } else if (_isFullMonthRange(
+                                  tempFromDate,
+                                  tempFromTime,
+                                  tempToDate,
+                                  tempToTime,
+                                )) {
+                                  _selectedMonth = DateTime(
+                                    tempFromDate!.year,
+                                    tempFromDate!.month,
+                                  );
+                                  _useCustomRange = false;
+                                } else {
+                                  _selectedMonth = DateTime(
+                                    tempFromDate!.year,
+                                    tempFromDate!.month,
+                                  );
+                                  _useCustomRange = true;
+                                }
+                              });
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text('Применить'),
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             );
           },
         );
       },
+    );
+  }
+
+  Future<void> _openCategoryFilter(AppState appState) async {
+    final tempCategoryIds = <String>{..._selectedCategoryIds};
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface1,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Категории',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: appState.categories.map((category) {
+                        final isSelected = tempCategoryIds.contains(
+                          category.id,
+                        );
+                        return FilterChip(
+                          label: Text(category.name),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            setModalState(() {
+                              if (selected) {
+                                tempCategoryIds.add(category.id);
+                              } else {
+                                tempCategoryIds.remove(category.id);
+                              }
+                            });
+                          },
+                          selectedColor: AppColors.surface2,
+                          checkmarkColor: AppColors.accentIncome,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          visualDensity: VisualDensity.compact,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                          labelStyle: Theme.of(context).textTheme.bodySmall,
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              setModalState(() {
+                                tempCategoryIds
+                                  ..clear()
+                                  ..addAll(
+                                    appState.categories.map((c) => c.id),
+                                  );
+                              });
+                            },
+                            child: const Text('Сбросить'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () {
+                              setState(() {
+                                _selectedCategoryIds
+                                  ..clear()
+                                  ..addAll(tempCategoryIds);
+                              });
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text('Применить'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _openMethodFilter(AppState appState) async {
+    final tempMethodIds = <String>{..._selectedMethodIds};
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface1,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Способы оплаты',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: appState.paymentMethods.map((method) {
+                        final isSelected = tempMethodIds.contains(method.id);
+                        return FilterChip(
+                          label: Text(method.name),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            setModalState(() {
+                              if (selected) {
+                                tempMethodIds.add(method.id);
+                              } else {
+                                tempMethodIds.remove(method.id);
+                              }
+                            });
+                          },
+                          selectedColor: AppColors.surface2,
+                          checkmarkColor: AppColors.accentIncome,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          visualDensity: VisualDensity.compact,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                          labelStyle: Theme.of(context).textTheme.bodySmall,
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              setModalState(() {
+                                tempMethodIds
+                                  ..clear()
+                                  ..addAll(
+                                    appState.paymentMethods.map((m) => m.id),
+                                  );
+                              });
+                            },
+                            child: const Text('Сбросить'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () {
+                              setState(() {
+                                _selectedMethodIds
+                                  ..clear()
+                                  ..addAll(tempMethodIds);
+                              });
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text('Применить'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _openAuthorFilter() async {
+    var tempShowAuthors = _showAuthors;
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface1,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Автор операции',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SoftCard(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      child: SwitchListTile.adaptive(
+                        value: tempShowAuthors,
+                        onChanged: (value) {
+                          setModalState(() {
+                            tempShowAuthors = value;
+                          });
+                        },
+                        title: const Text('Показывать автора'),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              setModalState(() {
+                                tempShowAuthors = false;
+                              });
+                            },
+                            child: const Text('Сбросить'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () {
+                              setState(() {
+                                _showAuthors = tempShowAuthors;
+                              });
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text('Применить'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildFilterBar(AppState appState) {
+    final hasFilter = _isFilterActive(appState);
+    final categoriesAll =
+        _selectedCategoryIds.length == appState.categories.length;
+    final methodsAll =
+        _selectedMethodIds.length == appState.paymentMethods.length;
+    final queryActive = _queryController.text.trim().isNotEmpty;
+    final typeActive = _filterType != FilterType.all;
+    final monthActive =
+        _selectedMonth != null &&
+        !_isSameMonth(_selectedMonth!, DateTime.now());
+    final dateActive = _useCustomRange || monthActive;
+    final categoryActive = !categoriesAll;
+    final methodActive = !methodsAll;
+    final authorActive = appState.isFamilyMode && _showAuthors;
+    final categoryIconActive = _showCategoryIcon;
+    final paymentIconActive = _showPaymentIcon;
+
+    return Column(
+      children: [
+        Container(height: 1, color: AppColors.stroke),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _FilterPill(
+                  label: 'Итого',
+                  active: _showTotal,
+                  accentColor: AppColors.accentTotal,
+                  onTap: () {
+                    setState(() {
+                      _showTotal = !_showTotal;
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+                _FilterPill(
+                  label: 'Категория',
+                  active: categoryIconActive,
+                  onTap: () {
+                    setState(() {
+                      _showCategoryIcon = !_showCategoryIcon;
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+                _FilterPill(
+                  label: 'Оплата',
+                  active: paymentIconActive,
+                  onTap: () {
+                    setState(() {
+                      _showPaymentIcon = !_showPaymentIcon;
+                    });
+                  },
+                ),
+                const SizedBox(width: 12),
+                Container(width: 1, height: 24, color: AppColors.stroke),
+                const SizedBox(width: 12),
+                _FilterPill(
+                  label: 'Поиск',
+                  active: queryActive,
+                  onTap: _openSearchFilter,
+                ),
+                const SizedBox(width: 8),
+                _FilterPill(
+                  label: 'Тип',
+                  active: typeActive,
+                  onTap: _openTypeFilter,
+                ),
+                const SizedBox(width: 8),
+                _FilterPill(
+                  label: 'Период',
+                  active: dateActive,
+                  onTap: _openDateFilter,
+                ),
+                const SizedBox(width: 8),
+                _FilterPill(
+                  label: 'Категории',
+                  active: categoryActive,
+                  onTap: () => _openCategoryFilter(appState),
+                ),
+                const SizedBox(width: 8),
+                _FilterPill(
+                  label: 'Оплата',
+                  active: methodActive,
+                  onTap: () => _openMethodFilter(appState),
+                ),
+                if (appState.isFamilyMode) ...[
+                  const SizedBox(width: 8),
+                  _FilterPill(
+                    label: 'Автор',
+                    active: authorActive,
+                    onTap: _openAuthorFilter,
+                  ),
+                ],
+                const SizedBox(width: 8),
+                _FilterPill(
+                  label: 'Сброс',
+                  active: hasFilter,
+                  accentColor: AppColors.accentExpense,
+                  onTap: () => _resetFilters(appState),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Container(height: 1, color: AppColors.stroke),
+      ],
     );
   }
 
@@ -853,7 +1288,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   color: hasFilter
                       ? AppColors.accentIncome
                       : AppColors.textSecondary,
-                  onTap: () => _openFilterSheet(appState),
+                  onTap: () {
+                    setState(() {
+                      _showFilterBar = !_showFilterBar;
+                    });
+                  },
                 ),
                 const SizedBox(width: 10),
                 _ActionCircle(
@@ -885,87 +1324,49 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ),
               ],
             ),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: _showFilterBar
+                  ? _buildFilterBar(appState)
+                  : const SizedBox.shrink(),
+            ),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SoftCard(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 18,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: PopupMenuButton<DateTime>(
-                              onSelected: (month) {
-                                setState(() {
-                                  _setMonthFilter(month);
-                                });
-                              },
-                              itemBuilder: (context) {
-                                return _monthOptions()
-                                    .map(
-                                      (month) => PopupMenuItem<DateTime>(
-                                        value: month,
-                                        child: Text(_monthLabel(month)),
-                                      ),
-                                    )
-                                    .toList();
-                              },
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      _rangeLabel(),
-                                      textAlign: TextAlign.right,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleLarge
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  const Icon(
-                                    Icons.expand_more,
-                                    size: 20,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ],
-                              ),
+                    if (_showTotal) ...[
+                      SoftCard(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 18,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _SummaryItem(
+                              title: 'Доходы',
+                              amount: '+ ${_formatAmount(income, symbol)}',
+                              color: AppColors.accentIncome,
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Divider(color: AppColors.stroke, height: 1),
-                          const SizedBox(height: 10),
-                          _SummaryItem(
-                            title: 'Доходы',
-                            amount: '+ ${_formatAmount(income, symbol)}',
-                            color: AppColors.accentIncome,
-                          ),
-                          const SizedBox(height: 10),
-                          _SummaryItem(
-                            title: 'Расходы',
-                            amount: '- ${_formatAmount(expense, symbol)}',
-                            color: AppColors.accentExpense,
-                          ),
-                          const SizedBox(height: 10),
-                          _SummaryItem(
-                            title: 'Итого',
-                            amount: _formatAmount(balance, symbol),
-                            color: AppColors.accentTotal,
-                          ),
-                        ],
+                            const SizedBox(height: 10),
+                            _SummaryItem(
+                              title: 'Расходы',
+                              amount: '- ${_formatAmount(expense, symbol)}',
+                              color: AppColors.accentExpense,
+                            ),
+                            const SizedBox(height: 10),
+                            _SummaryItem(
+                              title: 'Итого',
+                              amount: _formatAmount(balance, symbol),
+                              color: AppColors.accentTotal,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
+                    ],
                     Expanded(
                       child: filteredTransactions.isEmpty
                           ? Center(
@@ -1048,6 +1449,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                         child: TransactionRow(
                                           entry: entry,
                                           symbol: symbol,
+                                          showCategoryIcon: _showCategoryIcon,
+                                          showPaymentIcon: _showPaymentIcon,
                                           authorName: showAuthors
                                               ? appState.memberName(
                                                   entry.createdByUserId,
@@ -1179,6 +1582,124 @@ class _BudgetChip extends StatelessWidget {
               Icons.expand_more,
               size: 16,
               color: AppColors.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterPill extends StatelessWidget {
+  const _FilterPill({
+    required this.label,
+    required this.active,
+    required this.onTap,
+    this.accentColor = AppColors.accentIncome,
+  });
+
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active ? accentColor : AppColors.textSecondary;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.surface2,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: active ? accentColor : AppColors.stroke),
+        ),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickChip extends StatelessWidget {
+  const _QuickChip({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.surface2,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.stroke),
+        ),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DateRow extends StatelessWidget {
+  const _DateRow({
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.schedule,
+              size: 16,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+            ),
+            const Spacer(),
+            Flexible(
+              child: Text(
+                value,
+                textAlign: TextAlign.right,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ],
         ),

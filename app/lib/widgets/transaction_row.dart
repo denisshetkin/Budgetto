@@ -8,11 +8,15 @@ class TransactionRow extends StatelessWidget {
     super.key,
     required this.entry,
     required this.symbol,
+    this.showCategoryIcon = true,
+    this.showPaymentIcon = true,
     this.authorName,
   });
 
   final TransactionEntry entry;
   final String symbol;
+  final bool showCategoryIcon;
+  final bool showPaymentIcon;
   final String? authorName;
 
   @override
@@ -24,41 +28,48 @@ class TransactionRow extends StatelessWidget {
     final note = (entry.note ?? '').trim();
     final description = note.isNotEmpty ? note : entry.categoryName;
     final author = (authorName ?? '').trim();
+    final icons = <Widget>[];
+
+    if (showCategoryIcon) {
+      icons.add(
+        Container(
+          height: 40,
+          width: 40,
+          decoration: BoxDecoration(
+            color: AppColors.surface2,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(entry.categoryIcon, color: entry.categoryColor, size: 20),
+        ),
+      );
+    }
+    if (showPaymentIcon) {
+      if (icons.isNotEmpty) {
+        icons.add(const SizedBox(width: 8));
+      }
+      icons.add(
+        Container(
+          height: 40,
+          width: 40,
+          decoration: BoxDecoration(
+            color: AppColors.surface2,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            entry.paymentMethod.icon,
+            size: 20,
+            color: entry.paymentMethod.color,
+          ),
+        ),
+      );
+    }
 
     return Row(
       children: [
-        Row(
-          children: [
-            Container(
-              height: 40,
-              width: 40,
-              decoration: BoxDecoration(
-                color: AppColors.surface2,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                entry.categoryIcon,
-                color: entry.categoryColor,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              height: 40,
-              width: 40,
-              decoration: BoxDecoration(
-                color: AppColors.surface2,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                entry.paymentMethod.icon,
-                size: 20,
-                color: entry.paymentMethod.color,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(width: 12),
+        if (icons.isNotEmpty) ...[
+          Row(children: icons),
+          const SizedBox(width: 12),
+        ],
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
