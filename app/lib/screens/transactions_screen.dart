@@ -40,6 +40,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   final TextEditingController _queryController = TextEditingController();
   bool _filtersInitialized = false;
   bool _showFilterBar = false;
+  bool _showDisplayBar = false;
 
   @override
   void initState() {
@@ -1166,24 +1167,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  Widget _buildFilterBar(AppState appState) {
-    final hasFilter = _isFilterActive(appState);
-    final categoriesAll =
-        _selectedCategoryIds.length == appState.categories.length;
-    final methodsAll =
-        _selectedMethodIds.length == appState.paymentMethods.length;
-    final queryActive = _queryController.text.trim().isNotEmpty;
-    final typeActive = _filterType != FilterType.all;
-    final monthActive =
-        _selectedMonth != null &&
-        !_isSameMonth(_selectedMonth!, DateTime.now());
-    final dateActive = _useCustomRange || monthActive;
-    final categoryActive = !categoriesAll;
-    final methodActive = !methodsAll;
-    final authorActive = appState.isFamilyMode && _showAuthors;
-    final categoryIconActive = _showCategoryIcon;
-    final paymentIconActive = _showPaymentIcon;
-
+  Widget _buildDisplayBar() {
     return Column(
       children: [
         Container(height: 1, color: AppColors.stroke),
@@ -1208,7 +1192,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 const SizedBox(width: 8),
                 _FilterPill(
                   label: 'Категория',
-                  active: categoryIconActive,
+                  active: _showCategoryIcon,
                   isDisplayToggle: true,
                   onTap: () {
                     setState(() {
@@ -1220,7 +1204,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 const SizedBox(width: 8),
                 _FilterPill(
                   label: 'Оплата',
-                  active: paymentIconActive,
+                  active: _showPaymentIcon,
                   isDisplayToggle: true,
                   onTap: () {
                     setState(() {
@@ -1229,9 +1213,39 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     _saveDisplayPrefs();
                   },
                 ),
-                const SizedBox(width: 12),
-                Container(width: 1, height: 24, color: AppColors.stroke),
-                const SizedBox(width: 12),
+              ],
+            ),
+          ),
+        ),
+        Container(height: 1, color: AppColors.stroke),
+      ],
+    );
+  }
+
+  Widget _buildFilterBar(AppState appState) {
+    final hasFilter = _isFilterActive(appState);
+    final categoriesAll =
+        _selectedCategoryIds.length == appState.categories.length;
+    final methodsAll =
+        _selectedMethodIds.length == appState.paymentMethods.length;
+    final queryActive = _queryController.text.trim().isNotEmpty;
+    final typeActive = _filterType != FilterType.all;
+    final monthActive =
+        _selectedMonth != null &&
+        !_isSameMonth(_selectedMonth!, DateTime.now());
+    final dateActive = _useCustomRange || monthActive;
+    final categoryActive = !categoriesAll;
+    final methodActive = !methodsAll;
+    final authorActive = appState.isFamilyMode && _showAuthors;
+    return Column(
+      children: [
+        Container(height: 1, color: AppColors.stroke),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
                 _FilterPill(
                   label: 'Поиск',
                   active: queryActive,
@@ -1331,16 +1345,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ),
                 const SizedBox(width: 10),
                 _ActionCircle(
-                  icon: Icons.remove,
-                  color: AppColors.accentExpense,
+                  icon: _showDisplayBar ? Icons.tune : Icons.tune_outlined,
+                  color: _showDisplayBar
+                      ? AppColors.accentIncome
+                      : AppColors.textSecondary,
                   onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const AddTransactionScreen(
-                          initialType: TransactionType.expense,
-                        ),
-                      ),
-                    );
+                    setState(() {
+                      _showDisplayBar = !_showDisplayBar;
+                    });
                   },
                 ),
                 const SizedBox(width: 10),
@@ -1358,6 +1370,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   },
                 ),
               ],
+            ),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: _showDisplayBar
+                  ? _buildDisplayBar()
+                  : const SizedBox.shrink(),
             ),
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
