@@ -36,7 +36,7 @@ ThemeData buildAppTheme() {
     bodyColor: AppColors.textPrimary,
     displayColor: AppColors.textPrimary,
   );
-  final scaledTextTheme = _bumpTextTheme(textTheme, 1.5);
+  final scaledTextTheme = _bumpTextTheme(textTheme, 2.5);
 
   return base.copyWith(
     scaffoldBackgroundColor: AppColors.background,

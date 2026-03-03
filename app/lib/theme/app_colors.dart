@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   static const background = Color(0xFF0B1220);
-  static const surface1 = Color(0xFF141C2F);
-  static const surface2 = Color(0xFF1A2440);
-  static const stroke = Color(0xFF202B4A);
+  static const surface1 = Color(0xFF16213A);
+  static const surface2 = Color(0xFF1E2B4C);
+  static const stroke = Color(0xFF2B3A5C);
 
   static const textPrimary = Color(0xFFE6EAF2);
-  static const textSecondary = Color(0xFFA8B0C2);
+  static const textSecondary = Color(0xFFF2F5FB);
 
   static const accentExpense = Color(0xFFFF6B6B);
   static const accentIncome = Color(0xFF6C8BF5);
