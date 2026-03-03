@@ -1,7 +1,13 @@
+import 'dart:io';
+
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:share_plus/share_plus.dart';
 
+import '../models/payment_method.dart';
 import '../models/transaction_entry.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
@@ -24,6 +30,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   static const _prefShowTotal = 'transactions_show_total';
   static const _prefShowCategoryIcon = 'transactions_show_category_icon';
   static const _prefShowPaymentIcon = 'transactions_show_payment_icon';
+  static const _prefShowAuthors = 'transactions_show_authors';
   FilterType _filterType = FilterType.all;
   final Set<String> _selectedCategoryIds = {};
   final Set<String> _selectedMethodIds = {};
@@ -157,6 +164,123 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Операция удалена')));
+    }
+  }
+
+  String _twoDigits(int value) => value.toString().padLeft(2, '0');
+
+  String _formatExportDate(DateTime date) {
+    return '${_twoDigits(date.day)}.${_twoDigits(date.month)}.${date.year} '
+        '${_twoDigits(date.hour)}:${_twoDigits(date.minute)}';
+  }
+
+  String _formatExportAmount(double amount) {
+    final fixed = amount.toStringAsFixed(2);
+    return fixed.replaceAll('.', ',');
+  }
+
+  String _csvCell(String value) {
+    final escaped = value.replaceAll('"', '""');
+    return '"$escaped"';
+  }
+
+  String _methodLabel(PaymentMethod method) {
+    return method.type == PaymentMethodType.cash ? 'Кеш' : 'Карта';
+  }
+
+  String _typeLabel(TransactionType type) {
+    return type == TransactionType.income ? 'Доход' : 'Расход';
+  }
+
+  Future<bool> _isPhysicalDevice() async {
+    if (!Platform.isIOS) {
+      return true;
+    }
+    final info = await DeviceInfoPlugin().iosInfo;
+    return info.isPhysicalDevice;
+  }
+
+  Future<void> _exportCsv(AppState appState) async {
+    final source = _sorted(appState.transactions);
+    final filtered = _applyFilters(source);
+    if (filtered.isEmpty) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Нет операций для экспорта')));
+      return;
+    }
+
+    final buffer = StringBuffer();
+    buffer.writeln(
+      [
+        'ID',
+        'Дата',
+        'Кто',
+        'Метод',
+        'Категория',
+        'Описание',
+        'Тип',
+        'Сумма',
+      ].map(_csvCell).join(';'),
+    );
+
+    for (var i = 0; i < filtered.length; i++) {
+      final entry = filtered[i];
+      final author = appState.memberName(entry.createdByUserId) ?? '';
+      buffer.writeln(
+        [
+          '${i + 1}',
+          _formatExportDate(entry.date),
+          author,
+          _methodLabel(entry.paymentMethod),
+          entry.categoryName,
+          entry.note ?? '',
+          _typeLabel(entry.type),
+          _formatExportAmount(entry.amount),
+        ].map(_csvCell).join(';'),
+      );
+    }
+
+    final dir = await getApplicationDocumentsDirectory();
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final file = File('${dir.path}/budgetto-export-$timestamp.csv');
+    await file.writeAsString(buffer.toString(), flush: true);
+
+    if (!mounted) {
+      return;
+    }
+    final isPhysicalDevice = await _isPhysicalDevice();
+    if (!mounted) {
+      return;
+    }
+    if (Platform.isIOS && !isPhysicalDevice) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Экспорт доступен на устройстве. Файл сохранен: ${file.path}',
+          ),
+        ),
+      );
+      return;
+    }
+    try {
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: 'Экспорт операций Budgetto',
+      );
+    } catch (error) {
+      debugPrint('Export share failed: $error');
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Файл сохранен: ${file.path}'),
+        ),
+      );
     }
   }
 
@@ -407,7 +531,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         _selectedCategoryIds.length == appState.categories.length;
     final methodsAll =
         _selectedMethodIds.length == appState.paymentMethods.length;
-    final showAuthors = appState.isFamilyMode && _showAuthors;
     final monthActive =
         _selectedMonth != null &&
         !_isSameMonth(_selectedMonth!, DateTime.now());
@@ -417,8 +540,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         (monthOnly ? false : (_fromDate != null || _toDate != null)) ||
         monthActive ||
         !categoriesAll ||
-        !methodsAll ||
-        showAuthors;
+        !methodsAll;
   }
 
   void _resetFilters(AppState appState) {
@@ -426,7 +548,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       _queryController.clear();
       _filterType = FilterType.all;
       _setMonthFilter(DateTime.now());
-      _showAuthors = false;
       _selectedCategoryIds
         ..clear()
         ..addAll(appState.categories.map((category) => category.id));
@@ -445,6 +566,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       _showTotal = prefs.getBool(_prefShowTotal) ?? false;
       _showCategoryIcon = prefs.getBool(_prefShowCategoryIcon) ?? false;
       _showPaymentIcon = prefs.getBool(_prefShowPaymentIcon) ?? false;
+      _showAuthors = prefs.getBool(_prefShowAuthors) ?? false;
     });
   }
 
@@ -453,6 +575,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     await prefs.setBool(_prefShowTotal, _showTotal);
     await prefs.setBool(_prefShowCategoryIcon, _showCategoryIcon);
     await prefs.setBool(_prefShowPaymentIcon, _showPaymentIcon);
+    await prefs.setBool(_prefShowAuthors, _showAuthors);
   }
 
   Future<void> _openSearchFilter() async {
@@ -914,34 +1037,56 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     ),
                     const SizedBox(height: 12),
                     Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
+                      spacing: 10,
+                      runSpacing: 10,
                       children: appState.categories.map((category) {
                         final isSelected = tempCategoryIds.contains(
                           category.id,
                         );
-                        return FilterChip(
-                          label: Text(category.name),
-                          selected: isSelected,
-                          onSelected: (selected) {
+                        return GestureDetector(
+                          onTap: () {
                             setModalState(() {
-                              if (selected) {
-                                tempCategoryIds.add(category.id);
-                              } else {
+                              if (isSelected) {
                                 tempCategoryIds.remove(category.id);
+                              } else {
+                                tempCategoryIds.add(category.id);
                               }
                             });
                           },
-                          selectedColor: AppColors.surface2,
-                          checkmarkColor: AppColors.accentIncome,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppColors.surface2
+                                  : AppColors.surface1,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isSelected
+                                    ? AppColors.accentTotal
+                                    : AppColors.stroke,
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  category.icon,
+                                  color: category.color,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  category.name,
+                                  style:
+                                      Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
                           ),
-                          visualDensity: VisualDensity.compact,
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                          labelStyle: Theme.of(context).textTheme.bodySmall,
                         );
                       }).toList(),
                     ),
@@ -1015,32 +1160,54 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     ),
                     const SizedBox(height: 12),
                     Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
+                      spacing: 10,
+                      runSpacing: 10,
                       children: appState.paymentMethods.map((method) {
                         final isSelected = tempMethodIds.contains(method.id);
-                        return FilterChip(
-                          label: Text(method.name),
-                          selected: isSelected,
-                          onSelected: (selected) {
+                        return GestureDetector(
+                          onTap: () {
                             setModalState(() {
-                              if (selected) {
-                                tempMethodIds.add(method.id);
-                              } else {
+                              if (isSelected) {
                                 tempMethodIds.remove(method.id);
+                              } else {
+                                tempMethodIds.add(method.id);
                               }
                             });
                           },
-                          selectedColor: AppColors.surface2,
-                          checkmarkColor: AppColors.accentIncome,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppColors.surface2
+                                  : AppColors.surface1,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isSelected
+                                    ? AppColors.accentTotal
+                                    : AppColors.stroke,
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  method.icon,
+                                  color: method.color,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  method.name,
+                                  style:
+                                      Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
                           ),
-                          visualDensity: VisualDensity.compact,
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                          labelStyle: Theme.of(context).textTheme.bodySmall,
                         );
                       }).toList(),
                     ),
@@ -1087,137 +1254,80 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  Future<void> _openAuthorFilter() async {
-    var tempShowAuthors = _showAuthors;
-    await showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surface1,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Автор операции',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SoftCard(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      child: SwitchListTile.adaptive(
-                        value: tempShowAuthors,
-                        onChanged: (value) {
-                          setModalState(() {
-                            tempShowAuthors = value;
-                          });
-                        },
-                        title: const Text('Показывать автора'),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () {
-                              setModalState(() {
-                                tempShowAuthors = false;
-                              });
-                            },
-                            child: const Text('Сбросить'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton(
-                            onPressed: () {
-                              setState(() {
-                                _showAuthors = tempShowAuthors;
-                              });
-                              Navigator.of(context).pop();
-                            },
-                            child: const Text('Применить'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildDisplayBar() {
+  Widget _buildDisplayBar(AppState appState) {
+    final barLine = AppColors.stroke;
+    final barBackground = AppColors.surface1;
+    final pillAccent = AppColors.chipBlue;
     return Column(
       children: [
-        Container(height: 1, color: AppColors.stroke),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _FilterPill(
-                  label: 'Итого',
-                  active: _showTotal,
-                  accentColor: AppColors.accentTotal,
-                  isDisplayToggle: true,
-                  onTap: () {
-                    setState(() {
-                      _showTotal = !_showTotal;
-                    });
-                    _saveDisplayPrefs();
-                  },
-                ),
-                const SizedBox(width: 8),
-                _FilterPill(
-                  label: 'Категория',
-                  active: _showCategoryIcon,
-                  isDisplayToggle: true,
-                  onTap: () {
-                    setState(() {
-                      _showCategoryIcon = !_showCategoryIcon;
-                    });
-                    _saveDisplayPrefs();
-                  },
-                ),
-                const SizedBox(width: 8),
-                _FilterPill(
-                  label: 'Оплата',
-                  active: _showPaymentIcon,
-                  isDisplayToggle: true,
-                  onTap: () {
-                    setState(() {
-                      _showPaymentIcon = !_showPaymentIcon;
-                    });
-                    _saveDisplayPrefs();
-                  },
-                ),
-              ],
+        Container(width: double.infinity, height: 1, color: barLine),
+        Container(
+          width: double.infinity,
+          color: barBackground,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              child: Row(
+                children: [
+                  _FilterPill(
+                    label: 'Итого',
+                    active: _showTotal,
+                    accentColor: pillAccent,
+                    onTap: () {
+                      setState(() {
+                        _showTotal = !_showTotal;
+                      });
+                      _saveDisplayPrefs();
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterPill(
+                    label: 'Категория',
+                    active: _showCategoryIcon,
+                    accentColor: pillAccent,
+                    onTap: () {
+                      setState(() {
+                        _showCategoryIcon = !_showCategoryIcon;
+                      });
+                      _saveDisplayPrefs();
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterPill(
+                    label: 'Оплата',
+                    active: _showPaymentIcon,
+                    accentColor: pillAccent,
+                    onTap: () {
+                      setState(() {
+                        _showPaymentIcon = !_showPaymentIcon;
+                      });
+                      _saveDisplayPrefs();
+                    },
+                  ),
+                  if (appState.isFamilyMode) ...[
+                    const SizedBox(width: 8),
+                    _FilterPill(
+                      label: 'Автор',
+                      active: _showAuthors,
+                      accentColor: pillAccent,
+                      onTap: () {
+                        setState(() {
+                          _showAuthors = !_showAuthors;
+                        });
+                        _saveDisplayPrefs();
+                      },
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
         ),
-        Container(height: 1, color: AppColors.stroke),
+        Container(width: double.infinity, height: 1, color: barLine),
       ],
     );
   }
@@ -1236,65 +1346,77 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final dateActive = _useCustomRange || monthActive;
     final categoryActive = !categoriesAll;
     final methodActive = !methodsAll;
-    final authorActive = appState.isFamilyMode && _showAuthors;
+    final barLine = AppColors.stroke;
+    final barBackground = AppColors.surface1;
+    final pillAccent = AppColors.chipBlue;
     return Column(
       children: [
-        Container(height: 1, color: AppColors.stroke),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _FilterPill(
-                  label: 'Поиск',
-                  active: queryActive,
-                  onTap: _openSearchFilter,
-                ),
-                const SizedBox(width: 8),
-                _FilterPill(
-                  label: 'Тип',
-                  active: typeActive,
-                  onTap: _openTypeFilter,
-                ),
-                const SizedBox(width: 8),
-                _FilterPill(
-                  label: 'Период',
-                  active: dateActive,
-                  onTap: _openDateFilter,
-                ),
-                const SizedBox(width: 8),
-                _FilterPill(
-                  label: 'Категории',
-                  active: categoryActive,
-                  onTap: () => _openCategoryFilter(appState),
-                ),
-                const SizedBox(width: 8),
-                _FilterPill(
-                  label: 'Оплата',
-                  active: methodActive,
-                  onTap: () => _openMethodFilter(appState),
-                ),
-                if (appState.isFamilyMode) ...[
+        Container(width: double.infinity, height: 1, color: barLine),
+        Container(
+          width: double.infinity,
+          color: barBackground,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: [
+                  _FilterPill(
+                    label: 'Поиск',
+                    active: queryActive,
+                    accentColor: pillAccent,
+                    onTap: _openSearchFilter,
+                  ),
                   const SizedBox(width: 8),
                   _FilterPill(
-                    label: 'Автор',
-                    active: authorActive,
-                    onTap: _openAuthorFilter,
+                    label: 'Тип',
+                    active: typeActive,
+                    accentColor: pillAccent,
+                    onTap: _openTypeFilter,
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterPill(
+                    label: 'Период',
+                    active: dateActive,
+                    accentColor: pillAccent,
+                    onTap: _openDateFilter,
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterPill(
+                    label: 'Категории',
+                    active: categoryActive,
+                    accentColor: pillAccent,
+                    onTap: () => _openCategoryFilter(appState),
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterPill(
+                    label: 'Оплата',
+                    active: methodActive,
+                    accentColor: pillAccent,
+                    onTap: () => _openMethodFilter(appState),
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterPill(
+                    label: '',
+                    active: false,
+                    accentColor: pillAccent,
+                    icon: Icons.ios_share,
+                    onTap: () => _exportCsv(appState),
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterPill(
+                    label: 'Сброс',
+                    active: hasFilter,
+                    accentColor: pillAccent,
+                    onTap: () => _resetFilters(appState),
                   ),
                 ],
-                const SizedBox(width: 8),
-                _FilterPill(
-                  label: 'Сброс',
-                  active: hasFilter,
-                  accentColor: AppColors.accentExpense,
-                  onTap: () => _resetFilters(appState),
-                ),
-              ],
+              ),
             ),
           ),
         ),
-        Container(height: 1, color: AppColors.stroke),
+        Container(width: double.infinity, height: 1, color: barLine),
       ],
     );
   }
@@ -1331,6 +1453,21 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               ),
               actions: [
                 _ActionCircle(
+                  icon: _showDisplayBar ? Icons.tune : Icons.tune_outlined,
+                  color: _showDisplayBar
+                      ? AppColors.accentIncome
+                      : AppColors.textSecondary,
+                  onTap: () {
+                    setState(() {
+                      _showDisplayBar = !_showDisplayBar;
+                      if (_showDisplayBar) {
+                        _showFilterBar = false;
+                      }
+                    });
+                  },
+                ),
+                const SizedBox(width: 10),
+                _ActionCircle(
                   icon: _showFilterBar
                       ? Icons.filter_alt
                       : Icons.filter_alt_outlined,
@@ -1340,25 +1477,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   onTap: () {
                     setState(() {
                       _showFilterBar = !_showFilterBar;
+                      if (_showFilterBar) {
+                        _showDisplayBar = false;
+                      }
                     });
                   },
                 ),
                 const SizedBox(width: 10),
-                _ActionCircle(
-                  icon: _showDisplayBar ? Icons.tune : Icons.tune_outlined,
-                  color: _showDisplayBar
-                      ? AppColors.accentIncome
-                      : AppColors.textSecondary,
-                  onTap: () {
-                    setState(() {
-                      _showDisplayBar = !_showDisplayBar;
-                    });
-                  },
-                ),
-                const SizedBox(width: 10),
-                _ActionCircle(
-                  icon: Icons.add,
-                  color: AppColors.accentIncome,
+                _AddCircle(
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
@@ -1374,14 +1500,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
               child: _showDisplayBar
-                  ? _buildDisplayBar()
-                  : const SizedBox.shrink(),
-            ),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: _showFilterBar
-                  ? _buildFilterBar(appState)
-                  : const SizedBox.shrink(),
+                  ? _buildDisplayBar(appState)
+                  : (_showFilterBar
+                      ? _buildFilterBar(appState)
+                      : const SizedBox.shrink()),
             ),
             Expanded(
               child: Padding(
@@ -1579,14 +1701,14 @@ class _ActionCircle extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
       child: Container(
-        height: 36,
-        width: 36,
+        height: 38,
+        width: 38,
         decoration: BoxDecoration(
           color: AppColors.surface2,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: AppColors.stroke, width: 1),
         ),
-        child: Icon(icon, color: color, size: 20),
+        child: Icon(icon, color: color, size: 21),
       ),
     );
   }
@@ -1649,24 +1771,19 @@ class _FilterPill extends StatelessWidget {
     required this.active,
     required this.onTap,
     this.accentColor = AppColors.accentIncome,
-    this.isDisplayToggle = false,
+    this.icon,
   });
 
   final String label;
   final bool active;
   final VoidCallback onTap;
   final Color accentColor;
-  final bool isDisplayToggle;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
-    final color = active
-        ? (isDisplayToggle ? AppColors.textPrimary : accentColor)
-        : AppColors.textSecondary;
-    final backgroundColor = isDisplayToggle
-        ? (active ? accentColor.withOpacity(0.18) : AppColors.surface1)
-        : AppColors.surface2;
-    final radius = isDisplayToggle ? 10.0 : 18.0;
+    final radius = 18.0;
+    final backgroundColor = active ? AppColors.surface2 : AppColors.surface1;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(radius),
@@ -1677,15 +1794,60 @@ class _FilterPill extends StatelessWidget {
           borderRadius: BorderRadius.circular(radius),
           border: Border.all(
             color: active ? accentColor : AppColors.stroke,
-            width: isDisplayToggle ? 1.5 : 1,
+            width: 1,
           ),
         ),
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: color,
-            fontWeight: FontWeight.w600,
-          ),
+        child: icon == null
+            ? Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              )
+            : (label.isEmpty
+                ? Icon(icon, size: 16, color: AppColors.textPrimary)
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, size: 16, color: AppColors.textPrimary),
+                      const SizedBox(width: 6),
+                      Text(
+                        label,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  )),
+      ),
+    );
+  }
+}
+
+class _AddCircle extends StatelessWidget {
+  const _AddCircle({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        height: 42,
+        width: 42,
+        decoration: BoxDecoration(
+          color: AppColors.surface2,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.accentIncome, width: 2.0),
+        ),
+        child: const Icon(
+          Icons.add,
+          size: 24,
+          color: AppColors.accentIncome,
         ),
       ),
     );

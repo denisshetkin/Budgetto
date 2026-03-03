@@ -11,8 +11,10 @@ class AppColors {
 
   static const accentExpense = Color(0xFFFF6B6B);
   static const accentIncome = Color(0xFF6C8BF5);
+  static const chipBlue = Color(0xFF3E6CFF);
   static const accentNeutral = Color(0xFF5C6B86);
   static const accentTotal = Color(0xFFF2D16B);
+  static const accentDisplay = Color(0xFF7EDB6A);
 
   static const categoryPalette = <Color>[
     Color(0xFFFF8C8C),
