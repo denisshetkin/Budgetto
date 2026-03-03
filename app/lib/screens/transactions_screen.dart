@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/transaction_entry.dart';
 import '../state/app_state.dart';
@@ -20,6 +21,9 @@ class TransactionsScreen extends StatefulWidget {
 }
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
+  static const _prefShowTotal = 'transactions_show_total';
+  static const _prefShowCategoryIcon = 'transactions_show_category_icon';
+  static const _prefShowPaymentIcon = 'transactions_show_payment_icon';
   FilterType _filterType = FilterType.all;
   final Set<String> _selectedCategoryIds = {};
   final Set<String> _selectedMethodIds = {};
@@ -36,6 +40,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   final TextEditingController _queryController = TextEditingController();
   bool _filtersInitialized = false;
   bool _showFilterBar = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDisplayPrefs();
+  }
 
   Future<void> _openBudgetPicker(AppState appState) async {
     final families = appState.availableFamilies;
@@ -423,6 +433,25 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         ..clear()
         ..addAll(appState.paymentMethods.map((method) => method.id));
     });
+  }
+
+  Future<void> _loadDisplayPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _showTotal = prefs.getBool(_prefShowTotal) ?? false;
+      _showCategoryIcon = prefs.getBool(_prefShowCategoryIcon) ?? false;
+      _showPaymentIcon = prefs.getBool(_prefShowPaymentIcon) ?? false;
+    });
+  }
+
+  Future<void> _saveDisplayPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefShowTotal, _showTotal);
+    await prefs.setBool(_prefShowCategoryIcon, _showCategoryIcon);
+    await prefs.setBool(_prefShowPaymentIcon, _showPaymentIcon);
   }
 
   Future<void> _openSearchFilter() async {
@@ -1168,30 +1197,36 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   label: 'Итого',
                   active: _showTotal,
                   accentColor: AppColors.accentTotal,
+                  isDisplayToggle: true,
                   onTap: () {
                     setState(() {
                       _showTotal = !_showTotal;
                     });
+                    _saveDisplayPrefs();
                   },
                 ),
                 const SizedBox(width: 8),
                 _FilterPill(
                   label: 'Категория',
                   active: categoryIconActive,
+                  isDisplayToggle: true,
                   onTap: () {
                     setState(() {
                       _showCategoryIcon = !_showCategoryIcon;
                     });
+                    _saveDisplayPrefs();
                   },
                 ),
                 const SizedBox(width: 8),
                 _FilterPill(
                   label: 'Оплата',
                   active: paymentIconActive,
+                  isDisplayToggle: true,
                   onTap: () {
                     setState(() {
                       _showPaymentIcon = !_showPaymentIcon;
                     });
+                    _saveDisplayPrefs();
                   },
                 ),
                 const SizedBox(width: 12),
@@ -1282,10 +1317,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               ),
               actions: [
                 _ActionCircle(
-                  icon: hasFilter
+                  icon: _showFilterBar
                       ? Icons.filter_alt
                       : Icons.filter_alt_outlined,
-                  color: hasFilter
+                  color: (_showFilterBar || hasFilter)
                       ? AppColors.accentIncome
                       : AppColors.textSecondary,
                   onTap: () {
@@ -1596,25 +1631,36 @@ class _FilterPill extends StatelessWidget {
     required this.active,
     required this.onTap,
     this.accentColor = AppColors.accentIncome,
+    this.isDisplayToggle = false,
   });
 
   final String label;
   final bool active;
   final VoidCallback onTap;
   final Color accentColor;
+  final bool isDisplayToggle;
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? accentColor : AppColors.textSecondary;
+    final color = active
+        ? (isDisplayToggle ? AppColors.textPrimary : accentColor)
+        : AppColors.textSecondary;
+    final backgroundColor = isDisplayToggle
+        ? (active ? accentColor.withOpacity(0.18) : AppColors.surface1)
+        : AppColors.surface2;
+    final radius = isDisplayToggle ? 10.0 : 18.0;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(radius),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.surface2,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: active ? accentColor : AppColors.stroke),
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(radius),
+          border: Border.all(
+            color: active ? accentColor : AppColors.stroke,
+            width: isDisplayToggle ? 1.5 : 1,
+          ),
         ),
         child: Text(
           label,
