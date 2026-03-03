@@ -31,6 +31,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   static const _prefShowCategoryIcon = 'transactions_show_category_icon';
   static const _prefShowPaymentIcon = 'transactions_show_payment_icon';
   static const _prefShowAuthors = 'transactions_show_authors';
+  static const _prefGroupByDate = 'transactions_group_by_date';
   FilterType _filterType = FilterType.all;
   final Set<String> _selectedCategoryIds = {};
   final Set<String> _selectedMethodIds = {};
@@ -42,6 +43,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   bool _showCategoryIcon = false;
   bool _showPaymentIcon = false;
   bool _showTotal = false;
+  bool _groupByDate = false;
   DateTime? _selectedMonth;
   bool _useCustomRange = false;
   final TextEditingController _queryController = TextEditingController();
@@ -169,9 +171,29 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   String _twoDigits(int value) => value.toString().padLeft(2, '0');
 
+  static const List<String> _monthShortEn = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+
   String _formatExportDate(DateTime date) {
     return '${_twoDigits(date.day)}.${_twoDigits(date.month)}.${date.year} '
         '${_twoDigits(date.hour)}:${_twoDigits(date.minute)}';
+  }
+
+  String _formatGroupDate(DateTime date) {
+    final month = _monthShortEn[date.month - 1];
+    return '${date.day} $month ${date.year}';
   }
 
   String _formatExportAmount(double amount) {
@@ -567,6 +589,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       _showCategoryIcon = prefs.getBool(_prefShowCategoryIcon) ?? false;
       _showPaymentIcon = prefs.getBool(_prefShowPaymentIcon) ?? false;
       _showAuthors = prefs.getBool(_prefShowAuthors) ?? false;
+      _groupByDate = prefs.getBool(_prefGroupByDate) ?? false;
     });
   }
 
@@ -576,6 +599,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     await prefs.setBool(_prefShowCategoryIcon, _showCategoryIcon);
     await prefs.setBool(_prefShowPaymentIcon, _showPaymentIcon);
     await prefs.setBool(_prefShowAuthors, _showAuthors);
+    await prefs.setBool(_prefGroupByDate, _groupByDate);
   }
 
   Future<void> _openSearchFilter() async {
@@ -1322,6 +1346,18 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       },
                     ),
                   ],
+                  const SizedBox(width: 8),
+                  _FilterPill(
+                    label: 'По датам',
+                    active: _groupByDate,
+                    accentColor: pillAccent,
+                    onTap: () {
+                      setState(() {
+                        _groupByDate = !_groupByDate;
+                      });
+                      _saveDisplayPrefs();
+                    },
+                  ),
                 ],
               ),
             ),
@@ -1421,6 +1457,112 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
+  List<Object> _groupedItems(List<TransactionEntry> entries) {
+    final items = <Object>[];
+    DateTime? currentDay;
+    for (final entry in entries) {
+      final day = DateTime(entry.date.year, entry.date.month, entry.date.day);
+      if (currentDay == null || day != currentDay) {
+        items.add(day);
+        currentDay = day;
+      }
+      items.add(entry);
+    }
+    return items;
+  }
+
+  Widget _buildDateHeader(DateTime day) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _formatGroupDate(day),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(height: 1, color: AppColors.stroke),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTransactionTile({
+    required AppState appState,
+    required TransactionEntry entry,
+    required String symbol,
+    required bool showAuthors,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Slidable(
+        key: ValueKey(entry.id),
+        endActionPane: ActionPane(
+          motion: const DrawerMotion(),
+          extentRatio: 0.26,
+          children: [
+            CustomSlidableAction(
+              onPressed: (_) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => AddTransactionScreen(
+                      initialType: entry.type,
+                      initialEntry: entry,
+                    ),
+                  ),
+                );
+              },
+              backgroundColor: Colors.transparent,
+              autoClose: false,
+              child: const Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  padding: EdgeInsets.only(right: 0),
+                  child: SlideActionIcon(
+                    icon: Icons.edit,
+                    color: AppColors.accentIncome,
+                  ),
+                ),
+              ),
+            ),
+            CustomSlidableAction(
+              onPressed: (_) => _confirmDelete(context, appState, entry),
+              backgroundColor: Colors.transparent,
+              autoClose: false,
+              child: const Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  padding: EdgeInsets.only(right: 0),
+                  child: SlideActionIcon(
+                    icon: Icons.delete,
+                    color: AppColors.accentExpense,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        child: GestureDetector(
+          onLongPress: () => _openActionsSheet(context, appState, entry),
+          child: SoftCard(
+            child: TransactionRow(
+              entry: entry,
+              symbol: symbol,
+              showCategoryIcon: _showCategoryIcon,
+              showPaymentIcon: _showPaymentIcon,
+              authorName:
+                  showAuthors ? appState.memberName(entry.createdByUserId) : null,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
@@ -1439,6 +1581,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final hasFilter = _isFilterActive(appState);
     final showAuthors = appState.isFamilyMode && _showAuthors;
     final emptyLabel = hasFilter ? 'Ничего не найдено' : 'Пока нет операций';
+    final groupedItems =
+        _groupByDate ? _groupedItems(filteredTransactions) : const <Object>[];
 
     return Scaffold(
       body: SafeArea(
@@ -1552,91 +1696,40 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               ),
                             )
                           : SlidableAutoCloseBehavior(
-                              child: ListView.separated(
-                                itemCount: filteredTransactions.length,
-                                separatorBuilder: (_, index) =>
-                                    const SizedBox(height: 12),
-                                itemBuilder: (context, index) {
-                                  final entry = filteredTransactions[index];
-                                  return Slidable(
-                                    key: ValueKey(entry.id),
-                                    endActionPane: ActionPane(
-                                      motion: const DrawerMotion(),
-                                      extentRatio: 0.26,
-                                      children: [
-                                        CustomSlidableAction(
-                                          onPressed: (_) {
-                                            Navigator.of(context).push(
-                                              MaterialPageRoute(
-                                                builder: (_) =>
-                                                    AddTransactionScreen(
-                                                      initialType: entry.type,
-                                                      initialEntry: entry,
-                                                    ),
-                                              ),
-                                            );
-                                          },
-                                          backgroundColor: Colors.transparent,
-                                          autoClose: false,
-                                          child: const Align(
-                                            alignment: Alignment.centerRight,
-                                            child: Padding(
-                                              padding: EdgeInsets.only(
-                                                right: 0,
-                                              ),
-                                              child: SlideActionIcon(
-                                                icon: Icons.edit,
-                                                color: AppColors.accentIncome,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        CustomSlidableAction(
-                                          onPressed: (_) => _confirmDelete(
-                                            context,
-                                            appState,
-                                            entry,
-                                          ),
-                                          backgroundColor: Colors.transparent,
-                                          autoClose: false,
-                                          child: const Align(
-                                            alignment: Alignment.centerRight,
-                                            child: Padding(
-                                              padding: EdgeInsets.only(
-                                                right: 0,
-                                              ),
-                                              child: SlideActionIcon(
-                                                icon: Icons.delete,
-                                                color: AppColors.accentExpense,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    child: GestureDetector(
-                                      onLongPress: () => _openActionsSheet(
-                                        context,
-                                        appState,
-                                        entry,
-                                      ),
-                                      child: SoftCard(
-                                        child: TransactionRow(
+                              child: _groupByDate
+                                  ? ListView.builder(
+                                      itemCount: groupedItems.length,
+                                      itemBuilder: (context, index) {
+                                        final item = groupedItems[index];
+                                        if (item is DateTime) {
+                                          return _buildDateHeader(item);
+                                        }
+                                        if (item is TransactionEntry) {
+                                          return _buildTransactionTile(
+                                            appState: appState,
+                                            entry: item,
+                                            symbol: symbol,
+                                            showAuthors: showAuthors,
+                                          );
+                                        }
+                                        return const SizedBox.shrink();
+                                      },
+                                    )
+                                  : ListView.separated(
+                                      itemCount: filteredTransactions.length,
+                                      separatorBuilder: (_, index) =>
+                                          const SizedBox(height: 12),
+                                      itemBuilder: (context, index) {
+                                        final entry =
+                                            filteredTransactions[index];
+                                        return _buildTransactionTile(
+                                          appState: appState,
                                           entry: entry,
                                           symbol: symbol,
-                                          showCategoryIcon: _showCategoryIcon,
-                                          showPaymentIcon: _showPaymentIcon,
-                                          authorName: showAuthors
-                                              ? appState.memberName(
-                                                  entry.createdByUserId,
-                                                )
-                                              : null,
-                                        ),
-                                      ),
+                                          showAuthors: showAuthors,
+                                        );
+                                      },
                                     ),
-                                  );
-                                },
-                              ),
                             ),
                     ),
                   ],
