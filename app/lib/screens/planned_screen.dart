@@ -60,8 +60,8 @@ class PlannedScreen extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Удалить план?'),
-          content: const Text('Уверен, что хочешь удалить этот план?'),
+          title: const Text('Удалить платеж?'),
+          content: const Text('Уверен, что хочешь удалить этот платеж?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -83,7 +83,7 @@ class PlannedScreen extends StatelessWidget {
       appState.removePlanned(entry.id);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('План удален')));
+      ).showSnackBar(const SnackBar(content: Text('Платеж удален')));
     }
   }
 
@@ -105,7 +105,7 @@ class PlannedScreen extends StatelessWidget {
         return AlertDialog(
           title: const Text('Добавить в операции?'),
           content: Text(
-            'Создать операцию из плана «$description» на сумму $amountLabel?',
+            'Создать операцию из платежа «$description» на сумму $amountLabel?',
           ),
           actions: [
             TextButton(
@@ -156,7 +156,7 @@ class PlannedScreen extends StatelessWidget {
         child: Column(
           children: [
             AppHeader(
-              title: 'Планируемые',
+              title: 'Регулярные платежи',
               actions: [
                 IconButton(
                   onPressed: () => _openAddPlanned(context, appState),
@@ -170,7 +170,7 @@ class PlannedScreen extends StatelessWidget {
                 child: entries.isEmpty
                     ? Center(
                         child: Text(
-                          'Пока нет запланированных расходов',
+                          'Пока нет регулярных платежей',
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(color: AppColors.textSecondary),
                           textAlign: TextAlign.center,
@@ -556,7 +556,9 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.initialEntry == null ? 'Новый план' : 'Редактировать план',
+          widget.initialEntry == null
+              ? 'Новый регулярный платеж'
+              : 'Редактировать платеж',
         ),
         backgroundColor: AppColors.surface1,
         surfaceTintColor: Colors.transparent,

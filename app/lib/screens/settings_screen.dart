@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'cards_screen.dart';
 import 'categories_screen.dart';
+import 'reminders_screen.dart';
 import 'tags_screen.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
@@ -32,6 +33,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _openPaymentMethods(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => const CardsScreen()),
+    );
+  }
+
+  void _openReminders(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const RemindersScreen()),
     );
   }
 
@@ -179,6 +186,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           borderRadius: BorderRadius.circular(16),
                           child: const _SettingsRow(
                             title: 'Способы оплаты',
+                            trailing: Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SoftCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Планирование',
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 12),
+                        InkWell(
+                          onTap: () => _openReminders(context),
+                          borderRadius: BorderRadius.circular(16),
+                          child: const _SettingsRow(
+                            title: 'Напоминания',
                             trailing: Icon(
                               Icons.chevron_right_rounded,
                               color: AppColors.textSecondary,

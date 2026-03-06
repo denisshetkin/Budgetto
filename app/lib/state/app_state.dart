@@ -12,6 +12,7 @@ import '../models/category_entry.dart';
 import '../models/family_group.dart';
 import '../models/payment_method.dart';
 import '../models/planned_entry.dart';
+import '../models/reminder_entry.dart';
 import '../models/tag_entry.dart';
 import '../models/transaction_entry.dart';
 import '../models/user_profile.dart';
@@ -28,6 +29,7 @@ class AppState extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _categoriesSub;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _plannedSub;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _remindersSub;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _tagsSub;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _methodsSub;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _transactionsSub;
@@ -39,6 +41,7 @@ class AppState extends ChangeNotifier {
   String? _currencyCode;
   final List<TransactionEntry> _transactions = [];
   final List<PlannedEntry> _plannedEntries = [];
+  final List<ReminderEntry> _reminders = [];
   final List<PaymentMethod> _paymentMethods = [];
   final List<CategoryEntry> _categories = [];
   final List<TagEntry> _tags = [];
@@ -46,6 +49,7 @@ class AppState extends ChangeNotifier {
   final Map<String, String> _memberNames = {};
   final List<FamilyGroup> _availableFamilies = [];
   final Set<int> _scheduledPlannedNotifications = {};
+  final Set<int> _scheduledReminderNotifications = {};
   UserProfile _currentUser = const UserProfile(id: 'local', name: '');
   FamilyGroup? _family;
   bool _syncEnabled = false;
@@ -63,6 +67,7 @@ class AppState extends ChangeNotifier {
 
   List<TransactionEntry> get transactions => List.unmodifiable(_transactions);
   List<PlannedEntry> get plannedEntries => List.unmodifiable(_plannedEntries);
+  List<ReminderEntry> get reminders => List.unmodifiable(_reminders);
   List<PaymentMethod> get paymentMethods => List.unmodifiable(_paymentMethods);
   List<CategoryEntry> get categories => List.unmodifiable(_categories);
   List<TagEntry> get tags => List.unmodifiable(_tags);
@@ -144,6 +149,7 @@ class AppState extends ChangeNotifier {
     _currencyCode = null;
     _transactions.clear();
     _plannedEntries.clear();
+    _reminders.clear();
     _paymentMethods.clear();
     _categories.clear();
     _tags.clear();
@@ -722,6 +728,39 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  void addReminder(ReminderEntry entry) {
+    _reminders.add(entry);
+    notifyListeners();
+    _saveReminderRemote(entry);
+    unawaited(_scheduleReminderNotification(entry));
+  }
+
+  void updateReminder(ReminderEntry entry) {
+    final index = _reminders.indexWhere((item) => item.id == entry.id);
+    if (index == -1) {
+      return;
+    }
+    final previous = _reminders[index];
+    _reminders[index] = entry;
+    notifyListeners();
+    _saveReminderRemote(entry);
+    _syncReminderNotificationUpdate(previous, entry);
+  }
+
+  void removeReminder(String id) {
+    final index = _reminders.indexWhere((entry) => entry.id == id);
+    ReminderEntry? removed;
+    if (index != -1) {
+      removed = _reminders[index];
+      _reminders.removeAt(index);
+    }
+    notifyListeners();
+    _deleteReminderRemote(id);
+    if (removed != null) {
+      unawaited(_cancelReminderNotification(removed));
+    }
+  }
+
   bool _shouldNotifyPlanned(PlannedEntry entry) {
     if (!entry.notify) {
       return false;
@@ -751,7 +790,7 @@ class AppState extends ChangeNotifier {
     final id = entry.notificationId!;
     await LocalNotifications.instance.schedulePlanned(
       id: id,
-      title: 'Запланированный расход',
+      title: 'Регулярный платеж',
       body: _plannedNotificationBody(entry),
       scheduledAt: entry.scheduledAt!,
     );
@@ -830,6 +869,164 @@ class AppState extends ChangeNotifier {
       await _cancelPlannedNotification(entry);
     }
     _scheduledPlannedNotifications.clear();
+  }
+
+  bool _shouldNotifyReminder(ReminderEntry entry) {
+    if (!entry.enabled) {
+      return false;
+    }
+    if (entry.notificationId == null) {
+      return false;
+    }
+    return _nextReminderDate(entry, DateTime.now()) != null;
+  }
+
+  String _reminderNotificationBody(ReminderEntry entry) {
+    final comment = (entry.comment ?? '').trim();
+    if (comment.isNotEmpty) {
+      return comment;
+    }
+    return reminderFrequencyLabel(entry.frequency);
+  }
+
+  DateTime? _nextReminderDate(ReminderEntry entry, DateTime now) {
+    final start = entry.startsAt;
+    if (entry.frequency == ReminderFrequency.once) {
+      return start.isAfter(now) ? start : null;
+    }
+    if (start.isAfter(now)) {
+      return start;
+    }
+
+    switch (entry.frequency) {
+      case ReminderFrequency.daily:
+      case ReminderFrequency.weekly:
+      case ReminderFrequency.biweekly:
+      case ReminderFrequency.fourWeeks:
+        final stepDays = switch (entry.frequency) {
+          ReminderFrequency.daily => 1,
+          ReminderFrequency.weekly => 7,
+          ReminderFrequency.biweekly => 14,
+          ReminderFrequency.fourWeeks => 28,
+          _ => 1,
+        };
+        final diffSeconds = now.difference(start).inSeconds;
+        final stepSeconds = Duration(days: stepDays).inSeconds;
+        final steps = (diffSeconds / stepSeconds).floor() + 1;
+        return start.add(Duration(days: stepDays * steps));
+      case ReminderFrequency.monthly:
+      case ReminderFrequency.everyTwoMonths:
+      case ReminderFrequency.quarterly:
+      case ReminderFrequency.halfYear:
+      case ReminderFrequency.yearly:
+        final stepMonths = switch (entry.frequency) {
+          ReminderFrequency.monthly => 1,
+          ReminderFrequency.everyTwoMonths => 2,
+          ReminderFrequency.quarterly => 3,
+          ReminderFrequency.halfYear => 6,
+          ReminderFrequency.yearly => 12,
+          _ => 1,
+        };
+        final diffMonths =
+            (now.year - start.year) * 12 + (now.month - start.month);
+        final steps = (diffMonths / stepMonths).floor();
+        var candidate = _addMonthsClamped(start, steps * stepMonths);
+        if (!candidate.isAfter(now)) {
+          candidate = _addMonthsClamped(candidate, stepMonths);
+        }
+        return candidate;
+      case ReminderFrequency.once:
+        return start.isAfter(now) ? start : null;
+    }
+  }
+
+  DateTime _addMonthsClamped(DateTime date, int months) {
+    final totalMonths = date.month - 1 + months;
+    final year = date.year + totalMonths ~/ 12;
+    final month = totalMonths % 12 + 1;
+    final lastDay = DateTime(year, month + 1, 0).day;
+    final day = date.day > lastDay ? lastDay : date.day;
+    return DateTime(year, month, day, date.hour, date.minute);
+  }
+
+  Future<void> _scheduleReminderNotification(ReminderEntry entry) async {
+    if (!_shouldNotifyReminder(entry)) {
+      return;
+    }
+    final scheduledAt = _nextReminderDate(entry, DateTime.now());
+    if (scheduledAt == null) {
+      return;
+    }
+    final id = entry.notificationId!;
+    await LocalNotifications.instance.scheduleReminder(
+      id: id,
+      title: entry.title,
+      body: _reminderNotificationBody(entry),
+      scheduledAt: scheduledAt,
+    );
+    _scheduledReminderNotifications.add(id);
+  }
+
+  Future<void> _cancelReminderNotification(ReminderEntry entry) async {
+    final id = entry.notificationId;
+    if (id == null) {
+      return;
+    }
+    await LocalNotifications.instance.cancel(id);
+    _scheduledReminderNotifications.remove(id);
+  }
+
+  void _syncReminderNotificationUpdate(
+    ReminderEntry previous,
+    ReminderEntry current,
+  ) {
+    final prevShould = _shouldNotifyReminder(previous);
+    final currShould = _shouldNotifyReminder(current);
+    if (!prevShould && !currShould) {
+      return;
+    }
+    if (prevShould) {
+      unawaited(_cancelReminderNotification(previous));
+    }
+    if (currShould) {
+      unawaited(_scheduleReminderNotification(current));
+    }
+  }
+
+  void _syncReminderNotifications(
+    List<ReminderEntry> previous,
+    List<ReminderEntry> current,
+  ) {
+    final prevMap = {
+      for (final entry in previous) entry.id: entry,
+    };
+    final currentMap = {
+      for (final entry in current) entry.id: entry,
+    };
+
+    for (final entry in previous) {
+      if (!currentMap.containsKey(entry.id)) {
+        unawaited(_cancelReminderNotification(entry));
+      }
+    }
+
+    for (final entry in current) {
+      final before = prevMap[entry.id];
+      if (before == null) {
+        unawaited(_scheduleReminderNotification(entry));
+      } else {
+        _syncReminderNotificationUpdate(before, entry);
+      }
+    }
+  }
+
+  Future<void> _cancelReminderNotifications(
+    Iterable<ReminderEntry> entries,
+  ) async {
+    for (final entry in entries) {
+      await _cancelReminderNotification(entry);
+    }
+    _scheduledReminderNotifications.clear();
   }
 
   String currencySymbol() {
@@ -1021,6 +1218,7 @@ class AppState extends ChangeNotifier {
     _syncEnabled = true;
     _transactions.clear();
     _plannedEntries.clear();
+    _reminders.clear();
     _categories.clear();
     _paymentMethods.clear();
     _tags.clear();
@@ -1102,6 +1300,22 @@ class AppState extends ChangeNotifier {
           notifyListeners();
         });
 
+    _remindersSub = _db
+        .collection('budgets')
+        .doc(budgetId)
+        .collection('reminders')
+        .orderBy('order')
+        .snapshots()
+        .listen((snap) {
+          final previous = List<ReminderEntry>.from(_reminders);
+          final list = snap.docs.map(_reminderFromDoc).toList();
+          _reminders
+            ..clear()
+            ..addAll(list);
+          _syncReminderNotifications(previous, list);
+          notifyListeners();
+        });
+
     _methodsSub = _db
         .collection('budgets')
         .doc(budgetId)
@@ -1162,8 +1376,10 @@ class AppState extends ChangeNotifier {
 
   Future<void> _cancelSync() async {
     await _cancelPlannedNotifications(_plannedEntries);
+    await _cancelReminderNotifications(_reminders);
     await _categoriesSub?.cancel();
     await _plannedSub?.cancel();
+    await _remindersSub?.cancel();
     await _tagsSub?.cancel();
     await _methodsSub?.cancel();
     await _transactionsSub?.cancel();
@@ -1171,6 +1387,7 @@ class AppState extends ChangeNotifier {
     await _tokenRefreshSub?.cancel();
     _categoriesSub = null;
     _plannedSub = null;
+    _remindersSub = null;
     _tagsSub = null;
     _methodsSub = null;
     _transactionsSub = null;
@@ -1336,6 +1553,19 @@ class AppState extends ChangeNotifier {
       }
     }
 
+    final remindersRef =
+        _db.collection('budgets').doc(budgetId).collection('reminders');
+    final remindersSnap = await remindersRef.limit(1).get();
+    if (remindersSnap.docs.isEmpty) {
+      for (var i = 0; i < _reminders.length; i++) {
+        final entry = _reminders[i];
+        await remindersRef.doc(entry.id).set({
+          ..._reminderToMap(entry),
+          'order': i,
+        });
+      }
+    }
+
     final methodRef = _db
         .collection('budgets')
         .doc(budgetId)
@@ -1425,6 +1655,34 @@ class AppState extends ChangeNotifier {
     );
   }
 
+  ReminderEntry _reminderFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data()!;
+    final createdAt =
+        (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+    final startsAt =
+        (data['startsAt'] as Timestamp?)?.toDate() ?? createdAt;
+    final frequency = _reminderFrequencyFromString(
+      data['frequency'] as String?,
+    );
+    return ReminderEntry(
+      id: doc.id,
+      title: data['title'] as String? ?? '',
+      frequency: frequency,
+      startsAt: startsAt,
+      createdAt: createdAt,
+      comment: data['comment'] as String?,
+      enabled: data['enabled'] as bool? ?? true,
+      notificationId: (data['notificationId'] as num?)?.toInt(),
+    );
+  }
+
+  ReminderFrequency _reminderFrequencyFromString(String? raw) {
+    return ReminderFrequency.values.firstWhere(
+      (item) => item.name == raw,
+      orElse: () => ReminderFrequency.once,
+    );
+  }
+
   PaymentMethod _methodFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
     return PaymentMethod(
@@ -1511,6 +1769,18 @@ class AppState extends ChangeNotifier {
           ? null
           : Timestamp.fromDate(entry.scheduledAt!),
       'notify': entry.notify,
+      'notificationId': entry.notificationId,
+    };
+  }
+
+  Map<String, dynamic> _reminderToMap(ReminderEntry entry) {
+    return {
+      'title': entry.title,
+      'frequency': entry.frequency.name,
+      'startsAt': Timestamp.fromDate(entry.startsAt),
+      'createdAt': Timestamp.fromDate(entry.createdAt),
+      'comment': entry.comment,
+      'enabled': entry.enabled,
       'notificationId': entry.notificationId,
     };
   }
@@ -1678,6 +1948,33 @@ class AppState extends ChangeNotifier {
         .collection('budgets')
         .doc(_budgetId)
         .collection('planned')
+        .doc(id)
+        .delete();
+  }
+
+  Future<void> _saveReminderRemote(ReminderEntry entry) async {
+    if (!_syncEnabled || _budgetId == null) {
+      return;
+    }
+    await _db
+        .collection('budgets')
+        .doc(_budgetId)
+        .collection('reminders')
+        .doc(entry.id)
+        .set({
+          ..._reminderToMap(entry),
+          'order': _reminders.indexWhere((item) => item.id == entry.id),
+        }, SetOptions(merge: true));
+  }
+
+  Future<void> _deleteReminderRemote(String id) async {
+    if (!_syncEnabled || _budgetId == null) {
+      return;
+    }
+    await _db
+        .collection('budgets')
+        .doc(_budgetId)
+        .collection('reminders')
         .doc(id)
         .delete();
   }

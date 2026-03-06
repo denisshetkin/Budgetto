@@ -65,8 +65,38 @@ class LocalNotifications {
     const details = NotificationDetails(
       android: AndroidNotificationDetails(
         'planned_reminders',
-        'Планируемые расходы',
-        channelDescription: 'Напоминания о запланированных тратах',
+        'Регулярные платежи',
+        channelDescription: 'Напоминания о регулярных платежах',
+        importance: Importance.defaultImportance,
+        priority: Priority.defaultPriority,
+      ),
+      iOS: DarwinNotificationDetails(),
+    );
+
+    await _plugin.zonedSchedule(
+      id,
+      title,
+      body,
+      tz.TZDateTime.from(scheduledAt, tz.local),
+      details,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
+  }
+
+  Future<void> scheduleReminder({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime scheduledAt,
+  }) async {
+    await initialize();
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'custom_reminders',
+        'Напоминания',
+        channelDescription: 'Напоминания о важных делах',
         importance: Importance.defaultImportance,
         priority: Priority.defaultPriority,
       ),

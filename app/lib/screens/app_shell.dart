@@ -75,7 +75,7 @@ class _AppShellState extends State<AppShell> {
             NavigationDestination(
               icon: Icon(Icons.event_note_outlined),
               selectedIcon: Icon(Icons.event_note),
-              label: 'План',
+              label: 'Регулярные платежи',
             ),
             NavigationDestination(
               icon: Icon(Icons.account_balance_wallet_outlined),
