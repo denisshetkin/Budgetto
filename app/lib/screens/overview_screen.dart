@@ -11,6 +11,8 @@ import '../widgets/soft_card.dart';
 
 enum OverviewRange { day, week, month, year, period }
 
+enum OverviewChart { pie, bars }
+
 class OverviewScreen extends StatefulWidget {
   const OverviewScreen({super.key});
 
@@ -22,6 +24,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
   OverviewRange _range = OverviewRange.month;
   DateTimeRange? _customRange;
   TransactionType _type = TransactionType.expense;
+  OverviewChart _chart = OverviewChart.pie;
 
   Future<void> _pickCustomRange() async {
     final now = DateTime.now();
@@ -258,36 +261,97 @@ class _OverviewScreenState extends State<OverviewScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Center(
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              OverviewPieChart(
-                                slices: slices,
-                                emptyColor: AppColors.surface2,
-                                strokeColor: AppColors.stroke,
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: SegmentedButton<OverviewChart>(
+                            showSelectedIcon: false,
+                            style: ButtonStyle(
+                              visualDensity: VisualDensity.compact,
+                              padding: WidgetStatePropertyAll(
+                                const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 4,
+                                ),
                               ),
-                              Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'Итого',
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                          color: AppColors.textSecondary,
-                                        ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _formatAmount(total, symbol),
-                                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                          fontWeight: FontWeight.w700,
-                                          color: accent,
-                                        ),
-                                  ),
-                                ],
+                              minimumSize:
+                                  WidgetStatePropertyAll(const Size(32, 28)),
+                              backgroundColor:
+                                  WidgetStateProperty.resolveWith((states) {
+                                if (states.contains(WidgetState.selected)) {
+                                  return AppColors.surface2;
+                                }
+                                return Colors.transparent;
+                              }),
+                              side: WidgetStatePropertyAll(
+                                BorderSide(color: AppColors.stroke, width: 1),
+                              ),
+                              shape: WidgetStatePropertyAll(
+                                RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                            segments: const [
+                              ButtonSegment(
+                                value: OverviewChart.pie,
+                                label: Icon(Icons.pie_chart_outline, size: 16),
+                              ),
+                              ButtonSegment(
+                                value: OverviewChart.bars,
+                                label: Icon(Icons.bar_chart, size: 16),
                               ),
                             ],
+                            selected: {_chart},
+                            onSelectionChanged: (selection) {
+                              setState(() {
+                                _chart = selection.first;
+                              });
+                            },
                           ),
+                        ),
+                        const SizedBox(height: 8),
+                        Center(
+                          child: _chart == OverviewChart.pie
+                              ? Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    OverviewPieChart(
+                                      slices: slices,
+                                      emptyColor: AppColors.surface2,
+                                      strokeColor: AppColors.stroke,
+                                    ),
+                                    Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          'Итого',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                color: AppColors.textSecondary,
+                                              ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          _formatAmount(total, symbol),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleLarge
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w700,
+                                                color: accent,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                )
+                              : OverviewBarChart(
+                                  slices: slices,
+                                  emptyColor: AppColors.surface2,
+                                  strokeColor: AppColors.stroke,
+                                ),
                         ),
                         const SizedBox(height: 16),
                         if (slices.isEmpty)
@@ -429,6 +493,97 @@ class OverviewPieChart extends StatelessWidget {
         slices: slices,
         emptyColor: emptyColor,
         strokeColor: strokeColor,
+      ),
+    );
+  }
+}
+
+class OverviewBarChart extends StatelessWidget {
+  const OverviewBarChart({
+    super.key,
+    required this.slices,
+    required this.emptyColor,
+    required this.strokeColor,
+  });
+
+  final List<_OverviewSlice> slices;
+  final Color emptyColor;
+  final Color strokeColor;
+
+  @override
+  Widget build(BuildContext context) {
+    const height = 220.0;
+    final bars = slices.isEmpty
+        ? const <_OverviewSlice>[
+            _OverviewSlice(
+              id: 'empty_1',
+              name: '',
+              amount: 1,
+              color: Color(0x00000000),
+              icon: Icons.circle,
+              percent: 0.6,
+            ),
+            _OverviewSlice(
+              id: 'empty_2',
+              name: '',
+              amount: 1,
+              color: Color(0x00000000),
+              icon: Icons.circle,
+              percent: 0.4,
+            ),
+            _OverviewSlice(
+              id: 'empty_3',
+              name: '',
+              amount: 1,
+              color: Color(0x00000000),
+              icon: Icons.circle,
+              percent: 0.8,
+            ),
+            _OverviewSlice(
+              id: 'empty_4',
+              name: '',
+              amount: 1,
+              color: Color(0x00000000),
+              icon: Icons.circle,
+              percent: 0.5,
+            ),
+          ]
+        : slices.take(6).toList();
+
+    final maxPercent =
+        bars.map((bar) => bar.percent).fold<double>(0, (a, b) => a > b ? a : b);
+    final normalizedMax = maxPercent == 0 ? 1.0 : maxPercent;
+
+    return SizedBox(
+      height: height,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: strokeColor, width: 1),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              for (var i = 0; i < bars.length; i++) ...[
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Container(
+                      height: (bars[i].percent / normalizedMax) * (height - 32),
+                      decoration: BoxDecoration(
+                        color: slices.isEmpty ? emptyColor : bars[i].color,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+                if (i != bars.length - 1) const SizedBox(width: 10),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import 'payment_method.dart';
 import 'tag_entry.dart';
+import 'transaction_entry.dart';
 
 class PlannedEntry {
   const PlannedEntry({
     required this.id,
+    required this.type,
     required this.amount,
     required this.categoryId,
     required this.categoryName,
@@ -21,6 +23,7 @@ class PlannedEntry {
   });
 
   final String id;
+  final TransactionType type;
   final double amount;
   final String categoryId;
   final String categoryName;

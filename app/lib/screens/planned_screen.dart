@@ -62,8 +62,8 @@ class PlannedScreen extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Удалить платеж?'),
-          content: const Text('Уверен, что хочешь удалить этот платеж?'),
+          title: const Text('Удалить запись?'),
+          content: const Text('Уверен, что хочешь удалить эту запись?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -107,14 +107,14 @@ class PlannedScreen extends StatelessWidget {
         return AlertDialog(
           title: const Text('Добавить в операции?'),
           content: Text(
-            'Создать операцию из платежа «$description» на сумму $amountLabel?',
+            'Создать операцию из записи «$description» на сумму $amountLabel?',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
               child: const Text('Отмена'),
             ),
-            TextButton(
+            FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
               child: const Text('Добавить'),
             ),
@@ -130,7 +130,7 @@ class PlannedScreen extends StatelessWidget {
     final now = DateTime.now();
     final transaction = TransactionEntry(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      type: TransactionType.expense,
+      type: entry.type,
       amount: entry.amount,
       categoryId: entry.categoryId,
       categoryName: entry.categoryName,
@@ -217,7 +217,7 @@ class PlannedScreen extends StatelessWidget {
         child: Column(
           children: [
             AppHeader(
-              title: 'Регулярные платежи',
+              title: 'Регулярные',
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
               leading: Icon(
                 Icons.event_note,
@@ -237,7 +237,7 @@ class PlannedScreen extends StatelessWidget {
                 child: entries.isEmpty
                     ? Center(
                         child: Text(
-                          'Пока нет регулярных платежей',
+                          'Пока нет регулярных',
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(color: AppColors.textSecondary),
                           textAlign: TextAlign.center,
@@ -377,19 +377,44 @@ class PlannedScreen extends StatelessWidget {
                                               final label = symbol.isEmpty
                                                   ? raw
                                                   : '$raw $symbol';
+                                              final isIncome = entry.type ==
+                                                  TransactionType.income;
                                               return Text(
-                                                label,
+                                                '${isIncome ? '+' : '-'} $label',
                                                 style: Theme.of(context)
                                                     .textTheme
                                                     .bodyLarge
                                                     ?.copyWith(
-                                                      color: AppColors
-                                                          .accentExpense,
+                                                      color: isIncome
+                                                          ? AppColors
+                                                              .accentIncome
+                                                          : AppColors
+                                                              .accentExpense,
                                                       fontWeight:
                                                           FontWeight.w600,
                                                     ),
                                               );
                                             },
+                                          ),
+                                          const SizedBox(width: 8),
+                                          IconButton(
+                                            onPressed: () => _addToTransactions(
+                                              context,
+                                              appState,
+                                              entry,
+                                            ),
+                                            icon: Icon(
+                                              Icons.add_circle_outline,
+                                              color: AppColors.accentIncome,
+                                            ),
+                                            iconSize: 22,
+                                            padding: EdgeInsets.zero,
+                                            constraints:
+                                                const BoxConstraints.tightFor(
+                                              width: 34,
+                                              height: 34,
+                                            ),
+                                            tooltip: 'Добавить в операции',
                                           ),
                                         ],
                                       ),
@@ -433,6 +458,7 @@ class _AddPlannedScreen extends StatefulWidget {
 class _AddPlannedScreenState extends State<_AddPlannedScreen> {
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
+  TransactionType _type = TransactionType.expense;
   _CategoryItem? _selectedCategory;
   _PaymentItem? _selectedMethod;
   Set<String> _selectedTagIds = {};
@@ -452,6 +478,7 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
     final entry = widget.initialEntry;
 
     if (entry != null) {
+      _type = entry.type;
       final category = appState.categories
           .where((item) => item.id == entry.categoryId)
           .cast<_CategoryItem?>()
@@ -479,6 +506,7 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
       _notify = entry.notify;
       _notificationId = entry.notificationId;
     } else {
+      _type = TransactionType.expense;
       _selectedCategory = appState.categories.isNotEmpty
           ? appState.categories.first
           : null;
@@ -591,6 +619,7 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
       id:
           widget.initialEntry?.id ??
           'plan_${DateTime.now().millisecondsSinceEpoch}',
+      type: _type,
       amount: amount,
       categoryId: _selectedCategory!.id,
       categoryName: _selectedCategory!.name,
@@ -625,15 +654,17 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
     final categories = appState.categories;
     final methods = appState.paymentMethods;
     final tags = appState.tags;
-    final accent = AppColors.accentExpense;
+    final accent = _type == TransactionType.expense
+        ? AppColors.accentExpense
+        : AppColors.accentIncome;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
           widget.initialEntry == null
-              ? 'Новый регулярный платеж'
-              : 'Редактировать платеж',
+              ? 'Новая регулярная запись'
+              : 'Редактировать запись',
         ),
         backgroundColor: AppColors.surface1,
         surfaceTintColor: Colors.transparent,
@@ -668,6 +699,40 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              SegmentedButton<TransactionType>(
+                showSelectedIcon: false,
+                style: ButtonStyle(
+                  backgroundColor:
+                      WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return accent.withOpacity(0.22);
+                    }
+                    return AppColors.surface1;
+                  }),
+                  textStyle: WidgetStatePropertyAll(
+                    Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ),
+                segments: const [
+                  ButtonSegment(
+                    value: TransactionType.expense,
+                    label: Text('Расход'),
+                  ),
+                  ButtonSegment(
+                    value: TransactionType.income,
+                    label: Text('Доход'),
+                  ),
+                ],
+                selected: {_type},
+                onSelectionChanged: (selection) {
+                  setState(() {
+                    _type = selection.first;
+                  });
+                },
+              ),
+              const SizedBox(height: 12),
               SoftCard(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(

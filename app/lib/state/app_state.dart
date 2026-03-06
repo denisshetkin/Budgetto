@@ -382,6 +382,7 @@ class AppState extends ChangeNotifier {
       if (entry.paymentMethod.id == id) {
         final updatedEntry = PlannedEntry(
           id: entry.id,
+          type: entry.type,
           amount: entry.amount,
           categoryId: entry.categoryId,
           categoryName: entry.categoryName,
@@ -491,6 +492,7 @@ class AppState extends ChangeNotifier {
       if (entry.categoryId == id) {
         final updatedEntry = PlannedEntry(
           id: entry.id,
+          type: entry.type,
           amount: entry.amount,
           categoryId: updated.id,
           categoryName: updated.name,
@@ -609,6 +611,7 @@ class AppState extends ChangeNotifier {
       if (changed) {
         final updatedEntry = PlannedEntry(
           id: entry.id,
+          type: entry.type,
           amount: entry.amount,
           categoryId: entry.categoryId,
           categoryName: entry.categoryName,
@@ -671,6 +674,7 @@ class AppState extends ChangeNotifier {
       if (updatedTags.length != entry.tags.length) {
         final updatedEntry = PlannedEntry(
           id: entry.id,
+          type: entry.type,
           amount: entry.amount,
           categoryId: entry.categoryId,
           categoryName: entry.categoryName,
@@ -796,7 +800,8 @@ class AppState extends ChangeNotifier {
     final description = (entry.note ?? '').trim().isNotEmpty
         ? entry.note!.trim()
         : entry.categoryName;
-    return '$description • $amountLabel';
+    final sign = entry.type == TransactionType.income ? '+' : '-';
+    return '$description • $sign $amountLabel';
   }
 
   Future<void> _schedulePlannedNotification(PlannedEntry entry) async {
@@ -806,7 +811,7 @@ class AppState extends ChangeNotifier {
     final id = entry.notificationId!;
     await LocalNotifications.instance.schedulePlanned(
       id: id,
-      title: 'Регулярный платеж',
+      title: 'Регулярная запись',
       body: _plannedNotificationBody(entry),
       scheduledAt: entry.scheduledAt!,
     );
@@ -1660,6 +1665,7 @@ class AppState extends ChangeNotifier {
     final notificationId = (data['notificationId'] as num?)?.toInt();
     return PlannedEntry(
       id: doc.id,
+      type: _transactionTypeFromString(data['type'] as String?),
       amount: (data['amount'] as num?)?.toDouble() ?? 0,
       categoryId: data['categoryId'] as String? ?? '',
       categoryName: data['categoryName'] as String? ?? '',
@@ -1774,6 +1780,7 @@ class AppState extends ChangeNotifier {
 
   Map<String, dynamic> _plannedToMap(PlannedEntry entry) {
     return {
+      'type': entry.type.name,
       'amount': entry.amount,
       'categoryId': entry.categoryId,
       'categoryName': entry.categoryName,
