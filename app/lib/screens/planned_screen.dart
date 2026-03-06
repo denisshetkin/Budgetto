@@ -1,0 +1,767 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import '../models/category_entry.dart';
+import '../models/payment_method.dart';
+import '../models/planned_entry.dart';
+import '../models/tag_entry.dart';
+import '../models/transaction_entry.dart';
+import '../state/app_state.dart';
+import '../theme/app_colors.dart';
+import '../widgets/app_header.dart';
+import '../widgets/soft_card.dart';
+
+typedef _CategoryItem = CategoryEntry;
+
+typedef _PaymentItem = PaymentMethod;
+
+typedef _TagItem = TagEntry;
+
+class PlannedScreen extends StatelessWidget {
+  const PlannedScreen({super.key});
+
+  void _openAddPlanned(
+    BuildContext context,
+    AppState appState, {
+    PlannedEntry? entry,
+  }) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => _AddPlannedScreen(
+          initialEntry: entry,
+          onSave: (planned) {
+            if (entry == null) {
+              appState.addPlanned(planned);
+            } else {
+              appState.updatePlanned(planned);
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    AppState appState,
+    PlannedEntry entry,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Удалить план?'),
+          content: const Text('Уверен, что хочешь удалить этот план?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Отмена'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Удалить'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true) {
+      if (!context.mounted) {
+        return;
+      }
+      appState.removePlanned(entry.id);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('План удален')));
+    }
+  }
+
+  Future<void> _addToTransactions(
+    BuildContext context,
+    AppState appState,
+    PlannedEntry entry,
+  ) async {
+    final symbol = appState.currencySymbol();
+    final raw = entry.amount % 1 == 0
+        ? entry.amount.toStringAsFixed(0)
+        : entry.amount.toStringAsFixed(2);
+    final amountLabel = symbol.isEmpty ? raw : '$raw $symbol';
+    final description =
+        (entry.note ?? '').trim().isNotEmpty ? entry.note!.trim() : entry.categoryName;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Добавить в операции?'),
+          content: Text(
+            'Создать операцию из плана «$description» на сумму $amountLabel?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Отмена'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Добавить'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final transaction = TransactionEntry(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      type: TransactionType.expense,
+      amount: entry.amount,
+      categoryId: entry.categoryId,
+      categoryName: entry.categoryName,
+      categoryIcon: entry.categoryIcon,
+      categoryColor: entry.categoryColor,
+      date: now,
+      paymentMethod: entry.paymentMethod,
+      tags: entry.tags,
+      note: entry.note,
+      createdByUserId: appState.currentUser.id,
+    );
+    appState.addTransaction(transaction);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Добавлено в операции')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = AppStateScope.of(context);
+    final entries = appState.plannedEntries;
+
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            AppHeader(
+              title: 'Планируемые',
+              actions: [
+                IconButton(
+                  onPressed: () => _openAddPlanned(context, appState),
+                  icon: const Icon(Icons.add),
+                ),
+              ],
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: entries.isEmpty
+                    ? Center(
+                        child: Text(
+                          'Пока нет запланированных расходов',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.textSecondary),
+                          textAlign: TextAlign.center,
+                        ),
+                      )
+                    : ListView.separated(
+                        itemCount: entries.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final entry = entries[index];
+                          return SoftCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      height: 32,
+                                      width: 32,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.surface2,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Icon(
+                                        entry.categoryIcon,
+                                        color: entry.categoryColor,
+                                        size: 18,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            (entry.note ?? '').trim().isNotEmpty
+                                                ? entry.note!
+                                                : entry.categoryName,
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.bodyLarge,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            entry.paymentMethod.name,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.copyWith(
+                                                  color:
+                                                      AppColors.textSecondary,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Builder(
+                                      builder: (context) {
+                                        final symbol = appState.currencySymbol();
+                                        final raw = entry.amount % 1 == 0
+                                            ? entry.amount.toStringAsFixed(0)
+                                            : entry.amount.toStringAsFixed(2);
+                                        final label = symbol.isEmpty
+                                            ? raw
+                                            : '$raw $symbol';
+                                        return Text(
+                                          label,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyLarge
+                                              ?.copyWith(
+                                                color: AppColors.accentExpense,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(width: 8),
+                                    IconButton(
+                                      onPressed: () =>
+                                          _addToTransactions(context, appState, entry),
+                                      icon: const Icon(
+                                        Icons.add_circle_outline,
+                                        color: AppColors.accentIncome,
+                                      ),
+                                      iconSize: 22,
+                                      padding: EdgeInsets.zero,
+                                      constraints:
+                                          const BoxConstraints.tightFor(
+                                            width: 34,
+                                            height: 34,
+                                          ),
+                                      tooltip: 'Добавить в операции',
+                                    ),
+                                    IconButton(
+                                      onPressed: () => _openAddPlanned(
+                                        context,
+                                        appState,
+                                        entry: entry,
+                                      ),
+                                      icon: const Icon(
+                                        Icons.edit,
+                                        color: AppColors.accentIncome,
+                                      ),
+                                      iconSize: 22,
+                                      padding: EdgeInsets.zero,
+                                      constraints:
+                                          const BoxConstraints.tightFor(
+                                            width: 34,
+                                            height: 34,
+                                          ),
+                                      tooltip: 'Редактировать',
+                                    ),
+                                    IconButton(
+                                      onPressed: () =>
+                                          _confirmDelete(context, appState, entry),
+                                      icon: const Icon(
+                                        Icons.delete,
+                                        color: AppColors.accentExpense,
+                                      ),
+                                      iconSize: 22,
+                                      padding: EdgeInsets.zero,
+                                      constraints:
+                                          const BoxConstraints.tightFor(
+                                            width: 34,
+                                            height: 34,
+                                          ),
+                                      tooltip: 'Удалить',
+                                    ),
+                                  ],
+                                ),
+                                if (entry.tags.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 6,
+                                    runSpacing: 6,
+                                    children: entry.tags
+                                        .map((tag) => _TagChip(tag: tag))
+                                        .toList(),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AddPlannedScreen extends StatefulWidget {
+  const _AddPlannedScreen({required this.onSave, this.initialEntry});
+
+  final PlannedEntry? initialEntry;
+  final void Function(PlannedEntry entry) onSave;
+
+  @override
+  State<_AddPlannedScreen> createState() => _AddPlannedScreenState();
+}
+
+class _AddPlannedScreenState extends State<_AddPlannedScreen> {
+  final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _noteController = TextEditingController();
+  _CategoryItem? _selectedCategory;
+  _PaymentItem? _selectedMethod;
+  Set<String> _selectedTagIds = {};
+  bool _initialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialized) {
+      return;
+    }
+
+    final appState = AppStateScope.of(context);
+    final entry = widget.initialEntry;
+
+    if (entry != null) {
+      final category = appState.categories
+          .where((item) => item.id == entry.categoryId)
+          .cast<_CategoryItem?>()
+          .firstWhere((item) => item != null, orElse: () => null);
+      _selectedCategory =
+          category ??
+          (appState.categories.isNotEmpty ? appState.categories.first : null);
+
+      final method = appState.paymentMethods
+          .where((item) => item.id == entry.paymentMethod.id)
+          .cast<_PaymentItem?>()
+          .firstWhere((item) => item != null, orElse: () => null);
+      _selectedMethod =
+          method ??
+          (appState.paymentMethods.isNotEmpty
+              ? appState.paymentMethods.first
+              : null);
+
+      _amountController.text = entry.amount % 1 == 0
+          ? entry.amount.toStringAsFixed(0)
+          : entry.amount.toStringAsFixed(2);
+      _noteController.text = entry.note ?? '';
+      _selectedTagIds = entry.tags.map((tag) => tag.id).toSet();
+    } else {
+      _selectedCategory = appState.categories.isNotEmpty
+          ? appState.categories.first
+          : null;
+      _selectedMethod = appState.paymentMethods.isNotEmpty
+          ? appState.paymentMethods.first
+          : null;
+      _selectedTagIds = {};
+    }
+
+    _initialized = true;
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final appState = AppStateScope.of(context);
+    final raw = _amountController.text.trim().replaceAll(',', '.');
+    final amount = double.tryParse(raw);
+    if (amount == null || amount <= 0) {
+      _showError('Введите сумму больше 0');
+      return;
+    }
+
+    if (_selectedCategory == null) {
+      _showError('Выберите категорию');
+      return;
+    }
+
+    if (_selectedMethod == null) {
+      _showError('Выберите способ оплаты');
+      return;
+    }
+
+    final entry = PlannedEntry(
+      id:
+          widget.initialEntry?.id ??
+          'plan_${DateTime.now().millisecondsSinceEpoch}',
+      amount: amount,
+      categoryId: _selectedCategory!.id,
+      categoryName: _selectedCategory!.name,
+      categoryIcon: _selectedCategory!.icon,
+      categoryColor: _selectedCategory!.color,
+      paymentMethod: _selectedMethod!,
+      createdAt: widget.initialEntry?.createdAt ?? DateTime.now(),
+      tags: appState.tags
+          .where((tag) => _selectedTagIds.contains(tag.id))
+          .toList(),
+      note: _noteController.text.trim().isEmpty
+          ? null
+          : _noteController.text.trim(),
+    );
+
+    widget.onSave(entry);
+    Navigator.of(context).pop();
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = AppStateScope.of(context);
+    final categories = appState.categories;
+    final methods = appState.paymentMethods;
+    final tags = appState.tags;
+    final accent = AppColors.accentExpense;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          widget.initialEntry == null ? 'Новый план' : 'Редактировать план',
+        ),
+        backgroundColor: AppColors.surface1,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(height: 1, color: AppColors.stroke),
+        ),
+        actions: [
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(
+              Icons.close_rounded,
+              color: AppColors.accentExpense,
+            ),
+            iconSize: 36,
+            tooltip: 'Отмена',
+          ),
+          IconButton(
+            onPressed: _save,
+            icon: const Icon(Icons.check_rounded, color: Color(0xFF9AD27A)),
+            iconSize: 36,
+            tooltip: 'Сохранить',
+          ),
+          const SizedBox(width: 6),
+        ],
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + bottomInset),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SoftCard(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 120,
+                    child: Text(
+                      'Сумма',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surface2.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: accent, width: 1.4),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: TextField(
+                        controller: _amountController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'[0-9.,]'),
+                          ),
+                        ],
+                        textAlign: TextAlign.left,
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                        decoration: const InputDecoration(
+                          hintText: '0',
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(vertical: 8),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            SoftCard(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 120,
+                    child: Text(
+                      'Описание',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surface2.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: accent, width: 1.4),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: TextField(
+                        controller: _noteController,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          hintText: 'Например, коммуналка',
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(vertical: 8),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Оплата',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: methods.map((method) {
+                final isSelected = _selectedMethod?.id == method.id;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedMethod = method;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppColors.surface2 : AppColors.surface1,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected ? accent : AppColors.stroke,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(method.icon, color: method.color, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          method.name,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Категория',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: categories.map((category) {
+                final isSelected = _selectedCategory?.id == category.id;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedCategory = category;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppColors.surface2 : AppColors.surface1,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected ? accent : AppColors.stroke,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(category.icon, color: category.color, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          category.name,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Теги',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            if (tags.isEmpty)
+              Text(
+                'Теги пока не добавлены',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              )
+            else
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: tags.map((tag) {
+                  final isSelected = _selectedTagIds.contains(tag.id);
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (isSelected) {
+                          _selectedTagIds.remove(tag.id);
+                        } else {
+                          _selectedTagIds.add(tag.id);
+                        }
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.surface2 : AppColors.surface1,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isSelected ? accent : AppColors.stroke,
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.tag, color: tag.color, size: 18),
+                          const SizedBox(width: 8),
+                          Text(
+                            tag.name,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TagChip extends StatelessWidget {
+  const _TagChip({required this.tag});
+
+  final _TagItem tag;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.surface2,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.stroke, width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.tag, color: tag.color, size: 14),
+          const SizedBox(width: 4),
+          Text(
+            tag.name,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.textSecondary,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

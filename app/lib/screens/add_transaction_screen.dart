@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../models/category_entry.dart';
 import '../models/payment_method.dart';
+import '../models/tag_entry.dart';
 import '../models/transaction_entry.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
@@ -11,6 +12,8 @@ import '../widgets/soft_card.dart';
 typedef _CategoryItem = CategoryEntry;
 
 typedef _PaymentItem = PaymentMethod;
+
+typedef _TagItem = TagEntry;
 
 class AddTransactionScreen extends StatefulWidget {
   const AddTransactionScreen({
@@ -34,6 +37,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   );
   _CategoryItem? _selectedCategory;
   _PaymentItem? _selectedMethod;
+  Set<String> _selectedTagIds = {};
   bool _initialized = false;
 
   final TextEditingController _amountController = TextEditingController();
@@ -72,6 +76,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           ? entry.amount.toStringAsFixed(0)
           : entry.amount.toStringAsFixed(2);
       _noteController.text = entry.note ?? '';
+      _selectedTagIds = entry.tags.map((tag) => tag.id).toSet();
     } else {
       _selectedCategory = appState.categories.isNotEmpty
           ? appState.categories.first
@@ -79,6 +84,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _selectedMethod = appState.paymentMethods.isNotEmpty
           ? appState.paymentMethods.first
           : null;
+      _selectedTagIds = {};
     }
 
     _initialized = true;
@@ -159,6 +165,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       categoryColor: _selectedCategory!.color,
       date: dateTime,
       paymentMethod: _selectedMethod!,
+      tags: appState.tags
+          .where((tag) => _selectedTagIds.contains(tag.id))
+          .toList(),
       note: _noteController.text.trim().isEmpty
           ? null
           : _noteController.text.trim(),
@@ -192,6 +201,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
     final categories = appState.categories;
     final methods = appState.paymentMethods;
+    final tags = appState.tags;
 
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
@@ -526,6 +536,67 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   );
                 }).toList(),
               ),
+              const SizedBox(height: 16),
+              Text(
+                'Теги',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+              if (tags.isEmpty)
+                Text(
+                  'Теги пока не добавлены',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                )
+              else
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: tags.map((tag) {
+                    final isSelected = _selectedTagIds.contains(tag.id);
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (isSelected) {
+                            _selectedTagIds.remove(tag.id);
+                          } else {
+                            _selectedTagIds.add(tag.id);
+                          }
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppColors.surface2
+                              : AppColors.surface1,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isSelected ? accent : AppColors.stroke,
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.tag, color: tag.color, size: 18),
+                            const SizedBox(width: 8),
+                            Text(
+                              tag.name,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
             ],
           ),
         ),

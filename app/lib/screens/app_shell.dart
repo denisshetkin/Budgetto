@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../models/transaction_entry.dart';
 import '../theme/app_colors.dart';
+import 'add_transaction_screen.dart';
 import 'budgets_screen.dart';
-import 'cards_screen.dart';
-import 'categories_screen.dart';
+import 'planned_screen.dart';
 import 'settings_screen.dart';
 import 'transactions_screen.dart';
 
@@ -19,16 +20,37 @@ class _AppShellState extends State<AppShell> {
 
   final List<Widget> _screens = const [
     TransactionsScreen(),
-    CategoriesScreen(),
-    CardsScreen(),
+    PlannedScreen(),
     BudgetsScreen(),
     SettingsScreen(),
   ];
+
+  void _openAddTransaction() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const AddTransactionScreen(
+          initialType: TransactionType.expense,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _screens),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _openAddTransaction,
+        backgroundColor: AppColors.surface2,
+        foregroundColor: AppColors.accentIncome,
+        shape: CircleBorder(
+          side: BorderSide(color: AppColors.accentIncome, width: 2),
+        ),
+        elevation: 2,
+        heroTag: 'global_add_transaction',
+        child: const Icon(Icons.add, size: 24),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: AppColors.surface1,
@@ -51,14 +73,9 @@ class _AppShellState extends State<AppShell> {
               label: 'Операции',
             ),
             NavigationDestination(
-              icon: Icon(Icons.grid_view_outlined),
-              selectedIcon: Icon(Icons.grid_view),
-              label: 'Категории',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.credit_card_outlined),
-              selectedIcon: Icon(Icons.credit_card),
-              label: 'Карты',
+              icon: Icon(Icons.event_note_outlined),
+              selectedIcon: Icon(Icons.event_note),
+              label: 'План',
             ),
             NavigationDestination(
               icon: Icon(Icons.account_balance_wallet_outlined),

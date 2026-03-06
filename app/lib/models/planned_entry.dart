@@ -3,34 +3,28 @@ import 'package:flutter/material.dart';
 import 'payment_method.dart';
 import 'tag_entry.dart';
 
-enum TransactionType { expense, income }
-
-class TransactionEntry {
-  const TransactionEntry({
+class PlannedEntry {
+  const PlannedEntry({
     required this.id,
-    required this.type,
     required this.amount,
     required this.categoryId,
     required this.categoryName,
     required this.categoryIcon,
     required this.categoryColor,
-    required this.date,
     required this.paymentMethod,
+    required this.createdAt,
     this.tags = const [],
     this.note,
-    this.createdByUserId,
   });
 
   final String id;
-  final TransactionType type;
   final double amount;
   final String categoryId;
   final String categoryName;
   final IconData categoryIcon;
   final Color categoryColor;
-  final DateTime date;
   final PaymentMethod paymentMethod;
+  final DateTime createdAt;
   final List<TagEntry> tags;
   final String? note;
-  final String? createdByUserId;
 }

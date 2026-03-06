@@ -80,6 +80,7 @@ class CategoriesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
     final categories = appState.categories;
+    final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
       body: SafeArea(
@@ -87,6 +88,12 @@ class CategoriesScreen extends StatelessWidget {
           children: [
             AppHeader(
               title: 'Категории',
+              leading: canPop
+                  ? IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.arrow_back),
+                    )
+                  : null,
               actions: [
                 IconButton(
                   onPressed: () => _openAddCategory(context, appState),

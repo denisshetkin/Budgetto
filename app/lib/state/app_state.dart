@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import '../models/category_entry.dart';
 import '../models/family_group.dart';
 import '../models/payment_method.dart';
+import '../models/planned_entry.dart';
+import '../models/tag_entry.dart';
 import '../models/transaction_entry.dart';
 import '../models/user_profile.dart';
 
@@ -20,6 +22,8 @@ class AppState extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _categoriesSub;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _plannedSub;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _tagsSub;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _methodsSub;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _transactionsSub;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _budgetSub;
@@ -28,8 +32,10 @@ class AppState extends ChangeNotifier {
   bool _initialized = false;
   String? _currencyCode;
   final List<TransactionEntry> _transactions = [];
+  final List<PlannedEntry> _plannedEntries = [];
   final List<PaymentMethod> _paymentMethods = [];
   final List<CategoryEntry> _categories = [];
+  final List<TagEntry> _tags = [];
   final List<UserProfile> _familyMembers = [];
   final Map<String, String> _memberNames = {};
   final List<FamilyGroup> _availableFamilies = [];
@@ -45,8 +51,10 @@ class AppState extends ChangeNotifier {
   bool get syncEnabled => _syncEnabled;
 
   List<TransactionEntry> get transactions => List.unmodifiable(_transactions);
+  List<PlannedEntry> get plannedEntries => List.unmodifiable(_plannedEntries);
   List<PaymentMethod> get paymentMethods => List.unmodifiable(_paymentMethods);
   List<CategoryEntry> get categories => List.unmodifiable(_categories);
+  List<TagEntry> get tags => List.unmodifiable(_tags);
   List<UserProfile> get familyMembers => List.unmodifiable(_familyMembers);
   List<FamilyGroup> get availableFamilies =>
       List.unmodifiable(_availableFamilies);
@@ -112,8 +120,10 @@ class AppState extends ChangeNotifier {
     _syncEnabled = false;
     _currencyCode = null;
     _transactions.clear();
+    _plannedEntries.clear();
     _paymentMethods.clear();
     _categories.clear();
+    _tags.clear();
     _familyMembers.clear();
     _memberNames.clear();
     _availableFamilies.clear();
@@ -314,8 +324,27 @@ class AppState extends ChangeNotifier {
           categoryColor: entry.categoryColor,
           date: entry.date,
           paymentMethod: updated,
+          tags: entry.tags,
           note: entry.note,
           createdByUserId: entry.createdByUserId,
+        );
+      }
+    }
+
+    for (var i = 0; i < _plannedEntries.length; i++) {
+      final entry = _plannedEntries[i];
+      if (entry.paymentMethod.id == id) {
+        _plannedEntries[i] = PlannedEntry(
+          id: entry.id,
+          amount: entry.amount,
+          categoryId: entry.categoryId,
+          categoryName: entry.categoryName,
+          categoryIcon: entry.categoryIcon,
+          categoryColor: entry.categoryColor,
+          paymentMethod: updated,
+          createdAt: entry.createdAt,
+          tags: entry.tags,
+          note: entry.note,
         );
       }
     }
@@ -323,6 +352,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     _savePaymentMethodRemote(updated);
     _updateTransactionsForMethod(updated);
+    _updatePlannedForMethod(updated);
   }
 
   void removeCard(String id) {
@@ -398,8 +428,27 @@ class AppState extends ChangeNotifier {
           categoryColor: updated.color,
           date: entry.date,
           paymentMethod: entry.paymentMethod,
+          tags: entry.tags,
           note: entry.note,
           createdByUserId: entry.createdByUserId,
+        );
+      }
+    }
+
+    for (var i = 0; i < _plannedEntries.length; i++) {
+      final entry = _plannedEntries[i];
+      if (entry.categoryId == id) {
+        _plannedEntries[i] = PlannedEntry(
+          id: entry.id,
+          amount: entry.amount,
+          categoryId: updated.id,
+          categoryName: updated.name,
+          categoryIcon: updated.icon,
+          categoryColor: updated.color,
+          paymentMethod: entry.paymentMethod,
+          createdAt: entry.createdAt,
+          tags: entry.tags,
+          note: entry.note,
         );
       }
     }
@@ -407,6 +456,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     _saveCategoryRemote(updated);
     _updateTransactionsForCategory(updated);
+    _updatePlannedForCategory(updated);
   }
 
   void removeCategory(String id) {
@@ -429,6 +479,192 @@ class AppState extends ChangeNotifier {
     _categories.insert(newIndex, item);
     notifyListeners();
     _persistCategoryOrder();
+  }
+
+  void addTag({
+    required String name,
+    required IconData icon,
+    required Color color,
+  }) {
+    final id = 'tag_${DateTime.now().millisecondsSinceEpoch}';
+    _tags.add(TagEntry(id: id, name: name, icon: icon, color: color));
+    notifyListeners();
+    _saveTagRemote(_tags.last);
+  }
+
+  void updateTag({
+    required String id,
+    required String name,
+    required IconData icon,
+    required Color color,
+  }) {
+    final index = _tags.indexWhere((tag) => tag.id == id);
+    if (index == -1) {
+      return;
+    }
+
+    final updated = TagEntry(id: id, name: name, icon: icon, color: color);
+    _tags[index] = updated;
+
+    for (var i = 0; i < _transactions.length; i++) {
+      final entry = _transactions[i];
+      if (entry.tags.isEmpty) {
+        continue;
+      }
+      var changed = false;
+      final updatedTags = entry.tags.map((tag) {
+        if (tag.id != id) {
+          return tag;
+        }
+        changed = true;
+        return updated;
+      }).toList();
+      if (changed) {
+        _transactions[i] = TransactionEntry(
+          id: entry.id,
+          type: entry.type,
+          amount: entry.amount,
+          categoryId: entry.categoryId,
+          categoryName: entry.categoryName,
+          categoryIcon: entry.categoryIcon,
+          categoryColor: entry.categoryColor,
+          date: entry.date,
+          paymentMethod: entry.paymentMethod,
+          tags: updatedTags,
+          note: entry.note,
+          createdByUserId: entry.createdByUserId,
+        );
+      }
+    }
+
+    for (var i = 0; i < _plannedEntries.length; i++) {
+      final entry = _plannedEntries[i];
+      if (entry.tags.isEmpty) {
+        continue;
+      }
+      var changed = false;
+      final updatedTags = entry.tags.map((tag) {
+        if (tag.id != id) {
+          return tag;
+        }
+        changed = true;
+        return updated;
+      }).toList();
+      if (changed) {
+        _plannedEntries[i] = PlannedEntry(
+          id: entry.id,
+          amount: entry.amount,
+          categoryId: entry.categoryId,
+          categoryName: entry.categoryName,
+          categoryIcon: entry.categoryIcon,
+          categoryColor: entry.categoryColor,
+          paymentMethod: entry.paymentMethod,
+          createdAt: entry.createdAt,
+          tags: updatedTags,
+          note: entry.note,
+        );
+      }
+    }
+
+    notifyListeners();
+    _saveTagRemote(updated);
+    _updateTransactionsForTag(updated);
+    _updatePlannedForTag(updated);
+  }
+
+  void removeTag(String id) {
+    _tags.removeWhere((tag) => tag.id == id);
+
+    for (var i = 0; i < _transactions.length; i++) {
+      final entry = _transactions[i];
+      if (entry.tags.isEmpty) {
+        continue;
+      }
+      final updatedTags =
+          entry.tags.where((tag) => tag.id != id).toList();
+      if (updatedTags.length != entry.tags.length) {
+        _transactions[i] = TransactionEntry(
+          id: entry.id,
+          type: entry.type,
+          amount: entry.amount,
+          categoryId: entry.categoryId,
+          categoryName: entry.categoryName,
+          categoryIcon: entry.categoryIcon,
+          categoryColor: entry.categoryColor,
+          date: entry.date,
+          paymentMethod: entry.paymentMethod,
+          tags: updatedTags,
+          note: entry.note,
+          createdByUserId: entry.createdByUserId,
+        );
+      }
+    }
+
+    for (var i = 0; i < _plannedEntries.length; i++) {
+      final entry = _plannedEntries[i];
+      if (entry.tags.isEmpty) {
+        continue;
+      }
+      final updatedTags =
+          entry.tags.where((tag) => tag.id != id).toList();
+      if (updatedTags.length != entry.tags.length) {
+        _plannedEntries[i] = PlannedEntry(
+          id: entry.id,
+          amount: entry.amount,
+          categoryId: entry.categoryId,
+          categoryName: entry.categoryName,
+          categoryIcon: entry.categoryIcon,
+          categoryColor: entry.categoryColor,
+          paymentMethod: entry.paymentMethod,
+          createdAt: entry.createdAt,
+          tags: updatedTags,
+          note: entry.note,
+        );
+      }
+    }
+
+    notifyListeners();
+    _deleteTagRemote(id);
+    _removeTagFromTransactionsRemote(id);
+    _removeTagFromPlannedRemote(id);
+  }
+
+  void reorderTag(int oldIndex, int newIndex) {
+    if (oldIndex < 0 || oldIndex >= _tags.length) {
+      return;
+    }
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
+    }
+    if (newIndex < 0 || newIndex >= _tags.length) {
+      return;
+    }
+    final item = _tags.removeAt(oldIndex);
+    _tags.insert(newIndex, item);
+    notifyListeners();
+    _persistTagOrder();
+  }
+
+  void addPlanned(PlannedEntry entry) {
+    _plannedEntries.add(entry);
+    notifyListeners();
+    _savePlannedRemote(entry);
+  }
+
+  void updatePlanned(PlannedEntry entry) {
+    final index = _plannedEntries.indexWhere((item) => item.id == entry.id);
+    if (index == -1) {
+      return;
+    }
+    _plannedEntries[index] = entry;
+    notifyListeners();
+    _savePlannedRemote(entry);
+  }
+
+  void removePlanned(String id) {
+    _plannedEntries.removeWhere((entry) => entry.id == id);
+    notifyListeners();
+    _deletePlannedRemote(id);
   }
 
   String currencySymbol() {
@@ -610,8 +846,10 @@ class AppState extends ChangeNotifier {
     _budgetId = budgetId;
     _syncEnabled = true;
     _transactions.clear();
+    _plannedEntries.clear();
     _categories.clear();
     _paymentMethods.clear();
+    _tags.clear();
     _seedDefaults();
     notifyListeners();
 
@@ -652,6 +890,34 @@ class AppState extends ChangeNotifier {
         .listen((snap) {
           final list = snap.docs.map(_categoryFromDoc).toList();
           _categories
+            ..clear()
+            ..addAll(list);
+          notifyListeners();
+        });
+
+    _tagsSub = _db
+        .collection('budgets')
+        .doc(budgetId)
+        .collection('tags')
+        .orderBy('order')
+        .snapshots()
+        .listen((snap) {
+          final list = snap.docs.map(_tagFromDoc).toList();
+          _tags
+            ..clear()
+            ..addAll(list);
+          notifyListeners();
+        });
+
+    _plannedSub = _db
+        .collection('budgets')
+        .doc(budgetId)
+        .collection('planned')
+        .orderBy('order')
+        .snapshots()
+        .listen((snap) {
+          final list = snap.docs.map(_plannedFromDoc).toList();
+          _plannedEntries
             ..clear()
             ..addAll(list);
           notifyListeners();
@@ -717,10 +983,14 @@ class AppState extends ChangeNotifier {
 
   Future<void> _cancelSync() async {
     await _categoriesSub?.cancel();
+    await _plannedSub?.cancel();
+    await _tagsSub?.cancel();
     await _methodsSub?.cancel();
     await _transactionsSub?.cancel();
     await _budgetSub?.cancel();
     _categoriesSub = null;
+    _plannedSub = null;
+    _tagsSub = null;
     _methodsSub = null;
     _transactionsSub = null;
     _budgetSub = null;
@@ -784,6 +1054,34 @@ class AppState extends ChangeNotifier {
       }
     }
 
+    final tagRef =
+        _db.collection('budgets').doc(budgetId).collection('tags');
+    final tagSnap = await tagRef.limit(1).get();
+    if (tagSnap.docs.isEmpty) {
+      for (var i = 0; i < _tags.length; i++) {
+        final tag = _tags[i];
+        await tagRef.doc(tag.id).set({
+          'name': tag.name,
+          'icon': _iconToMap(tag.icon),
+          'color': tag.color.value,
+          'order': i,
+        });
+      }
+    }
+
+    final plannedRef =
+        _db.collection('budgets').doc(budgetId).collection('planned');
+    final plannedSnap = await plannedRef.limit(1).get();
+    if (plannedSnap.docs.isEmpty) {
+      for (var i = 0; i < _plannedEntries.length; i++) {
+        final entry = _plannedEntries[i];
+        await plannedRef.doc(entry.id).set({
+          ..._plannedToMap(entry),
+          'order': i,
+        });
+      }
+    }
+
     final methodRef = _db
         .collection('budgets')
         .doc(budgetId)
@@ -826,6 +1124,47 @@ class AppState extends ChangeNotifier {
     );
   }
 
+  TagEntry _tagFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data()!;
+    return TagEntry(
+      id: doc.id,
+      name: data['name'] as String? ?? '',
+      icon: _iconFromMap(data['icon'] as Map<String, dynamic>?),
+      color: Color(
+        (data['color'] as num?)?.toInt() ?? _categoryPalette.first.value,
+      ),
+    );
+  }
+
+  PlannedEntry _plannedFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data()!;
+    final method = PaymentMethod(
+      id: data['paymentMethodId'] as String? ?? 'cash',
+      name: data['paymentMethodName'] as String? ?? 'Наличные',
+      type: _methodTypeFromString(data['paymentMethodType'] as String?),
+      icon: _iconFromMap(data['paymentMethodIcon'] as Map<String, dynamic>?),
+      color: Color((data['paymentMethodColor'] as num?)?.toInt() ?? 0xFF9AD27A),
+    );
+    final tags = _tagsFromMapList(data['tags'] as List<dynamic>?);
+    final createdAt =
+        (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+    return PlannedEntry(
+      id: doc.id,
+      amount: (data['amount'] as num?)?.toDouble() ?? 0,
+      categoryId: data['categoryId'] as String? ?? '',
+      categoryName: data['categoryName'] as String? ?? '',
+      categoryIcon: _iconFromMap(data['categoryIcon'] as Map<String, dynamic>?),
+      categoryColor: Color(
+        (data['categoryColor'] as num?)?.toInt() ??
+            _categoryPalette.first.value,
+      ),
+      paymentMethod: method,
+      createdAt: createdAt,
+      tags: tags,
+      note: data['note'] as String?,
+    );
+  }
+
   PaymentMethod _methodFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
     return PaymentMethod(
@@ -851,6 +1190,7 @@ class AppState extends ChangeNotifier {
       icon: _iconFromMap(data['paymentMethodIcon'] as Map<String, dynamic>?),
       color: Color((data['paymentMethodColor'] as num?)?.toInt() ?? 0xFF9AD27A),
     );
+    final tags = _tagsFromMapList(data['tags'] as List<dynamic>?);
     return TransactionEntry(
       id: doc.id,
       type: _transactionTypeFromString(data['type'] as String?),
@@ -864,6 +1204,7 @@ class AppState extends ChangeNotifier {
       ),
       date: (data['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
       paymentMethod: method,
+      tags: tags,
       note: data['note'] as String?,
       createdByUserId: createdByUserId,
     );
@@ -883,8 +1224,29 @@ class AppState extends ChangeNotifier {
       'paymentMethodType': entry.paymentMethod.type.name,
       'paymentMethodIcon': _iconToMap(entry.paymentMethod.icon),
       'paymentMethodColor': entry.paymentMethod.color.value,
+      'tagIds': entry.tags.map((tag) => tag.id).toList(),
+      'tags': entry.tags.map(_tagToMap).toList(),
       'note': entry.note,
       'createdByUserId': entry.createdByUserId,
+    };
+  }
+
+  Map<String, dynamic> _plannedToMap(PlannedEntry entry) {
+    return {
+      'amount': entry.amount,
+      'categoryId': entry.categoryId,
+      'categoryName': entry.categoryName,
+      'categoryIcon': _iconToMap(entry.categoryIcon),
+      'categoryColor': entry.categoryColor.value,
+      'paymentMethodId': entry.paymentMethod.id,
+      'paymentMethodName': entry.paymentMethod.name,
+      'paymentMethodType': entry.paymentMethod.type.name,
+      'paymentMethodIcon': _iconToMap(entry.paymentMethod.icon),
+      'paymentMethodColor': entry.paymentMethod.color.value,
+      'tagIds': entry.tags.map((tag) => tag.id).toList(),
+      'tags': entry.tags.map(_tagToMap).toList(),
+      'note': entry.note,
+      'createdAt': Timestamp.fromDate(entry.createdAt),
     };
   }
 
@@ -905,6 +1267,41 @@ class AppState extends ChangeNotifier {
       fontFamily: map['family'] as String? ?? 'MaterialIcons',
       fontPackage: map['package'] as String?,
     );
+  }
+
+  Map<String, dynamic> _tagToMap(TagEntry tag) {
+    return {
+      'id': tag.id,
+      'name': tag.name,
+      'icon': _iconToMap(tag.icon),
+      'color': tag.color.value,
+    };
+  }
+
+  TagEntry _tagFromMap(Map<String, dynamic> map) {
+    return TagEntry(
+      id: map['id'] as String? ?? '',
+      name: map['name'] as String? ?? '',
+      icon: _iconFromMap(map['icon'] as Map<String, dynamic>?),
+      color: Color(
+        (map['color'] as num?)?.toInt() ?? _categoryPalette.first.value,
+      ),
+    );
+  }
+
+  List<TagEntry> _tagsFromMapList(List<dynamic>? raw) {
+    if (raw == null) {
+      return [];
+    }
+    final tags = <TagEntry>[];
+    for (final item in raw) {
+      if (item is Map<String, dynamic>) {
+        tags.add(_tagFromMap(item));
+      } else if (item is Map) {
+        tags.add(_tagFromMap(Map<String, dynamic>.from(item)));
+      }
+    }
+    return tags;
   }
 
   TransactionType _transactionTypeFromString(String? raw) {
@@ -960,6 +1357,62 @@ class AppState extends ChangeNotifier {
         .collection('budgets')
         .doc(_budgetId)
         .collection('categories')
+        .doc(id)
+        .delete();
+  }
+
+  Future<void> _saveTagRemote(TagEntry tag) async {
+    if (!_syncEnabled || _budgetId == null) {
+      return;
+    }
+    await _db
+        .collection('budgets')
+        .doc(_budgetId)
+        .collection('tags')
+        .doc(tag.id)
+        .set({
+          'name': tag.name,
+          'icon': _iconToMap(tag.icon),
+          'color': tag.color.value,
+          'order': _tags.indexWhere((item) => item.id == tag.id),
+        }, SetOptions(merge: true));
+  }
+
+  Future<void> _deleteTagRemote(String id) async {
+    if (!_syncEnabled || _budgetId == null) {
+      return;
+    }
+    await _db
+        .collection('budgets')
+        .doc(_budgetId)
+        .collection('tags')
+        .doc(id)
+        .delete();
+  }
+
+  Future<void> _savePlannedRemote(PlannedEntry entry) async {
+    if (!_syncEnabled || _budgetId == null) {
+      return;
+    }
+    await _db
+        .collection('budgets')
+        .doc(_budgetId)
+        .collection('planned')
+        .doc(entry.id)
+        .set({
+          ..._plannedToMap(entry),
+          'order': _plannedEntries.indexWhere((item) => item.id == entry.id),
+        }, SetOptions(merge: true));
+  }
+
+  Future<void> _deletePlannedRemote(String id) async {
+    if (!_syncEnabled || _budgetId == null) {
+      return;
+    }
+    await _db
+        .collection('budgets')
+        .doc(_budgetId)
+        .collection('planned')
         .doc(id)
         .delete();
   }
@@ -1035,6 +1488,20 @@ class AppState extends ChangeNotifier {
     await batch.commit();
   }
 
+  Future<void> _persistTagOrder() async {
+    if (!_syncEnabled || _budgetId == null) {
+      return;
+    }
+    final batch = _db.batch();
+    for (var i = 0; i < _tags.length; i++) {
+      final tag = _tags[i];
+      final ref =
+          _db.collection('budgets').doc(_budgetId).collection('tags').doc(tag.id);
+      batch.set(ref, {'order': i}, SetOptions(merge: true));
+    }
+    await batch.commit();
+  }
+
   Future<void> _persistMethodOrder() async {
     if (!_syncEnabled || _budgetId == null) {
       return;
@@ -1073,6 +1540,125 @@ class AppState extends ChangeNotifier {
     await batch.commit();
   }
 
+  Future<void> _updatePlannedForCategory(CategoryEntry category) async {
+    if (!_syncEnabled || _budgetId == null) {
+      return;
+    }
+    final query = await _db
+        .collection('budgets')
+        .doc(_budgetId)
+        .collection('planned')
+        .where('categoryId', isEqualTo: category.id)
+        .get();
+    final batch = _db.batch();
+    for (final doc in query.docs) {
+      batch.set(doc.reference, {
+        'categoryName': category.name,
+        'categoryIcon': _iconToMap(category.icon),
+        'categoryColor': category.color.value,
+      }, SetOptions(merge: true));
+    }
+    await batch.commit();
+  }
+
+  Future<void> _updateTransactionsForTag(TagEntry tag) async {
+    if (!_syncEnabled || _budgetId == null) {
+      return;
+    }
+    final query = await _db
+        .collection('budgets')
+        .doc(_budgetId)
+        .collection('transactions')
+        .where('tagIds', arrayContains: tag.id)
+        .get();
+    final batch = _db.batch();
+    for (final doc in query.docs) {
+      final data = doc.data();
+      final tags = _tagsFromMapList(data['tags'] as List<dynamic>?);
+      final updatedTags = tags
+          .map((entry) => entry.id == tag.id ? tag : entry)
+          .toList();
+      batch.set(doc.reference, {
+        'tags': updatedTags.map(_tagToMap).toList(),
+        'tagIds': updatedTags.map((entry) => entry.id).toList(),
+      }, SetOptions(merge: true));
+    }
+    await batch.commit();
+  }
+
+  Future<void> _updatePlannedForTag(TagEntry tag) async {
+    if (!_syncEnabled || _budgetId == null) {
+      return;
+    }
+    final query = await _db
+        .collection('budgets')
+        .doc(_budgetId)
+        .collection('planned')
+        .where('tagIds', arrayContains: tag.id)
+        .get();
+    final batch = _db.batch();
+    for (final doc in query.docs) {
+      final data = doc.data();
+      final tags = _tagsFromMapList(data['tags'] as List<dynamic>?);
+      final updatedTags = tags
+          .map((entry) => entry.id == tag.id ? tag : entry)
+          .toList();
+      batch.set(doc.reference, {
+        'tags': updatedTags.map(_tagToMap).toList(),
+        'tagIds': updatedTags.map((entry) => entry.id).toList(),
+      }, SetOptions(merge: true));
+    }
+    await batch.commit();
+  }
+
+  Future<void> _removeTagFromTransactionsRemote(String tagId) async {
+    if (!_syncEnabled || _budgetId == null) {
+      return;
+    }
+    final query = await _db
+        .collection('budgets')
+        .doc(_budgetId)
+        .collection('transactions')
+        .where('tagIds', arrayContains: tagId)
+        .get();
+    final batch = _db.batch();
+    for (final doc in query.docs) {
+      final data = doc.data();
+      final tags = _tagsFromMapList(data['tags'] as List<dynamic>?);
+      final updatedTags =
+          tags.where((entry) => entry.id != tagId).toList();
+      batch.set(doc.reference, {
+        'tags': updatedTags.map(_tagToMap).toList(),
+        'tagIds': updatedTags.map((entry) => entry.id).toList(),
+      }, SetOptions(merge: true));
+    }
+    await batch.commit();
+  }
+
+  Future<void> _removeTagFromPlannedRemote(String tagId) async {
+    if (!_syncEnabled || _budgetId == null) {
+      return;
+    }
+    final query = await _db
+        .collection('budgets')
+        .doc(_budgetId)
+        .collection('planned')
+        .where('tagIds', arrayContains: tagId)
+        .get();
+    final batch = _db.batch();
+    for (final doc in query.docs) {
+      final data = doc.data();
+      final tags = _tagsFromMapList(data['tags'] as List<dynamic>?);
+      final updatedTags =
+          tags.where((entry) => entry.id != tagId).toList();
+      batch.set(doc.reference, {
+        'tags': updatedTags.map(_tagToMap).toList(),
+        'tagIds': updatedTags.map((entry) => entry.id).toList(),
+      }, SetOptions(merge: true));
+    }
+    await batch.commit();
+  }
+
   Future<void> _updateTransactionsForMethod(PaymentMethod method) async {
     if (!_syncEnabled || _budgetId == null) {
       return;
@@ -1081,6 +1667,28 @@ class AppState extends ChangeNotifier {
         .collection('budgets')
         .doc(_budgetId)
         .collection('transactions')
+        .where('paymentMethodId', isEqualTo: method.id)
+        .get();
+    final batch = _db.batch();
+    for (final doc in query.docs) {
+      batch.set(doc.reference, {
+        'paymentMethodName': method.name,
+        'paymentMethodType': method.type.name,
+        'paymentMethodIcon': _iconToMap(method.icon),
+        'paymentMethodColor': method.color.value,
+      }, SetOptions(merge: true));
+    }
+    await batch.commit();
+  }
+
+  Future<void> _updatePlannedForMethod(PaymentMethod method) async {
+    if (!_syncEnabled || _budgetId == null) {
+      return;
+    }
+    final query = await _db
+        .collection('budgets')
+        .doc(_budgetId)
+        .collection('planned')
         .where('paymentMethodId', isEqualTo: method.id)
         .get();
     final batch = _db.batch();
@@ -1190,6 +1798,45 @@ class AppState extends ChangeNotifier {
         name: 'Прочее',
         icon: Icons.more_horiz,
         color: _categoryPalette[9],
+      ),
+    ]);
+
+    _tags.addAll([
+      TagEntry(
+        id: 'tag_work',
+        name: 'Работа',
+        icon: Icons.tag,
+        color: _categoryPalette[0],
+      ),
+      TagEntry(
+        id: 'tag_home',
+        name: 'Дом',
+        icon: Icons.tag,
+        color: _categoryPalette[1],
+      ),
+      TagEntry(
+        id: 'tag_travel',
+        name: 'Путешествия',
+        icon: Icons.tag,
+        color: _categoryPalette[2],
+      ),
+      TagEntry(
+        id: 'tag_family',
+        name: 'Семья',
+        icon: Icons.tag,
+        color: _categoryPalette[3],
+      ),
+      TagEntry(
+        id: 'tag_fun',
+        name: 'Развлечения',
+        icon: Icons.tag,
+        color: _categoryPalette[4],
+      ),
+      TagEntry(
+        id: 'tag_food',
+        name: 'Еда вне дома',
+        icon: Icons.tag,
+        color: _categoryPalette[5],
       ),
     ]);
   }

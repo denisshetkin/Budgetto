@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'cards_screen.dart';
+import 'categories_screen.dart';
+import 'tags_screen.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_header.dart';
@@ -14,6 +17,24 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  void _openCategories(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const CategoriesScreen()),
+    );
+  }
+
+  void _openTags(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const TagsScreen()),
+    );
+  }
+
+  void _openPaymentMethods(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const CardsScreen()),
+    );
+  }
+
   void _openCurrencyPicker(BuildContext context, AppState appState) {
     showModalBottomSheet(
       context: context,
@@ -119,6 +140,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
+                  SoftCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Справочники',
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 12),
+                        InkWell(
+                          onTap: () => _openCategories(context),
+                          borderRadius: BorderRadius.circular(16),
+                          child: const _SettingsRow(
+                            title: 'Категории',
+                            trailing: Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        InkWell(
+                          onTap: () => _openTags(context),
+                          borderRadius: BorderRadius.circular(16),
+                          child: const _SettingsRow(
+                            title: 'Теги',
+                            trailing: Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        InkWell(
+                          onTap: () => _openPaymentMethods(context),
+                          borderRadius: BorderRadius.circular(16),
+                          child: const _SettingsRow(
+                            title: 'Способы оплаты',
+                            trailing: Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   SoftCard(
                     child: Column(
                       children: [

@@ -1289,7 +1289,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           width: double.infinity,
           color: barBackground,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
+            padding: const EdgeInsets.fromLTRB(28, 12, 16, 10),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               physics: const AlwaysScrollableScrollPhysics(
@@ -1392,7 +1392,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           width: double.infinity,
           color: barBackground,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
+            padding: const EdgeInsets.fromLTRB(28, 12, 16, 10),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
@@ -1625,18 +1625,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         _showDisplayBar = false;
                       }
                     });
-                  },
-                ),
-                const SizedBox(width: 10),
-                _AddCircle(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const AddTransactionScreen(
-                          initialType: TransactionType.income,
-                        ),
-                      ),
-                    );
                   },
                 ),
               ],
@@ -1914,34 +1902,6 @@ class _FilterPill extends StatelessWidget {
                       ),
                     ],
                   )),
-      ),
-    );
-  }
-}
-
-class _AddCircle extends StatelessWidget {
-  const _AddCircle({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        height: 42,
-        width: 42,
-        decoration: BoxDecoration(
-          color: AppColors.surface2,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.accentIncome, width: 2.0),
-        ),
-        child: const Icon(
-          Icons.add,
-          size: 24,
-          color: AppColors.accentIncome,
-        ),
       ),
     );
   }
