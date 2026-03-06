@@ -15,6 +15,9 @@ class PlannedEntry {
     required this.createdAt,
     this.tags = const [],
     this.note,
+    this.scheduledAt,
+    this.notify = false,
+    this.notificationId,
   });
 
   final String id;
@@ -27,4 +30,7 @@ class PlannedEntry {
   final DateTime createdAt;
   final List<TagEntry> tags;
   final String? note;
+  final DateTime? scheduledAt;
+  final bool notify;
+  final int? notificationId;
 }

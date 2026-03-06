@@ -189,6 +189,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
+                  if (appState.isFamilyMode) ...[
+                    SoftCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Уведомления',
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Операции семьи',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium,
+                                ),
+                              ),
+                              Switch(
+                                value: appState.familyNotificationsEnabled,
+                                onChanged: (value) {
+                                  appState.setFamilyNotificationsEnabled(value);
+                                },
+                              ),
+                            ],
+                          ),
+                          Text(
+                            'Получать уведомления, когда участники семьи добавляют расходы',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   SoftCard(
                     child: Column(
                       children: [

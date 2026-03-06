@@ -1,8 +1,12 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/category_entry.dart';
 import '../models/family_group.dart';
@@ -11,6 +15,7 @@ import '../models/planned_entry.dart';
 import '../models/tag_entry.dart';
 import '../models/transaction_entry.dart';
 import '../models/user_profile.dart';
+import '../services/local_notifications.dart';
 
 enum PeriodFilter { week, month }
 
@@ -28,6 +33,7 @@ class AppState extends ChangeNotifier {
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _transactionsSub;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _budgetSub;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _familiesSub;
+  StreamSubscription<String>? _tokenRefreshSub;
   String? _budgetId;
   bool _initialized = false;
   String? _currencyCode;
@@ -39,9 +45,13 @@ class AppState extends ChangeNotifier {
   final List<UserProfile> _familyMembers = [];
   final Map<String, String> _memberNames = {};
   final List<FamilyGroup> _availableFamilies = [];
+  final Set<int> _scheduledPlannedNotifications = {};
   UserProfile _currentUser = const UserProfile(id: 'local', name: '');
   FamilyGroup? _family;
   bool _syncEnabled = false;
+  bool _familyNotificationsEnabled = true;
+
+  static const _prefFcmToken = 'fcm_last_token';
 
   bool get isReady => _initialized;
   String? get currencyCode => _currencyCode;
@@ -49,6 +59,7 @@ class AppState extends ChangeNotifier {
   FamilyGroup? get family => _family;
   bool get isFamilyMode => _family != null;
   bool get syncEnabled => _syncEnabled;
+  bool get familyNotificationsEnabled => _familyNotificationsEnabled;
 
   List<TransactionEntry> get transactions => List.unmodifiable(_transactions);
   List<PlannedEntry> get plannedEntries => List.unmodifiable(_plannedEntries);
@@ -101,6 +112,18 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setFamilyNotificationsEnabled(bool value) async {
+    if (_familyNotificationsEnabled == value) {
+      return;
+    }
+    _familyNotificationsEnabled = value;
+    notifyListeners();
+    await _updateUserField({'notifyFamilyTransactions': value});
+    if (value && isFamilyMode) {
+      await _ensureMessagingReady(requestPermission: true);
+    }
+  }
+
   Future<void> resetAccount() async {
     final user = _auth.currentUser;
     if (user != null && _family != null && _budgetId != null) {
@@ -127,6 +150,7 @@ class AppState extends ChangeNotifier {
     _familyMembers.clear();
     _memberNames.clear();
     _availableFamilies.clear();
+    _familyNotificationsEnabled = true;
     _currentUser = const UserProfile(id: 'local', name: '');
     _initialized = false;
     notifyListeners();
@@ -334,7 +358,7 @@ class AppState extends ChangeNotifier {
     for (var i = 0; i < _plannedEntries.length; i++) {
       final entry = _plannedEntries[i];
       if (entry.paymentMethod.id == id) {
-        _plannedEntries[i] = PlannedEntry(
+        final updatedEntry = PlannedEntry(
           id: entry.id,
           amount: entry.amount,
           categoryId: entry.categoryId,
@@ -345,7 +369,12 @@ class AppState extends ChangeNotifier {
           createdAt: entry.createdAt,
           tags: entry.tags,
           note: entry.note,
+          scheduledAt: entry.scheduledAt,
+          notify: entry.notify,
+          notificationId: entry.notificationId,
         );
+        _plannedEntries[i] = updatedEntry;
+        _syncPlannedNotificationUpdate(entry, updatedEntry);
       }
     }
 
@@ -438,7 +467,7 @@ class AppState extends ChangeNotifier {
     for (var i = 0; i < _plannedEntries.length; i++) {
       final entry = _plannedEntries[i];
       if (entry.categoryId == id) {
-        _plannedEntries[i] = PlannedEntry(
+        final updatedEntry = PlannedEntry(
           id: entry.id,
           amount: entry.amount,
           categoryId: updated.id,
@@ -449,7 +478,12 @@ class AppState extends ChangeNotifier {
           createdAt: entry.createdAt,
           tags: entry.tags,
           note: entry.note,
+          scheduledAt: entry.scheduledAt,
+          notify: entry.notify,
+          notificationId: entry.notificationId,
         );
+        _plannedEntries[i] = updatedEntry;
+        _syncPlannedNotificationUpdate(entry, updatedEntry);
       }
     }
 
@@ -551,7 +585,7 @@ class AppState extends ChangeNotifier {
         return updated;
       }).toList();
       if (changed) {
-        _plannedEntries[i] = PlannedEntry(
+        final updatedEntry = PlannedEntry(
           id: entry.id,
           amount: entry.amount,
           categoryId: entry.categoryId,
@@ -562,7 +596,12 @@ class AppState extends ChangeNotifier {
           createdAt: entry.createdAt,
           tags: updatedTags,
           note: entry.note,
+          scheduledAt: entry.scheduledAt,
+          notify: entry.notify,
+          notificationId: entry.notificationId,
         );
+        _plannedEntries[i] = updatedEntry;
+        _syncPlannedNotificationUpdate(entry, updatedEntry);
       }
     }
 
@@ -608,7 +647,7 @@ class AppState extends ChangeNotifier {
       final updatedTags =
           entry.tags.where((tag) => tag.id != id).toList();
       if (updatedTags.length != entry.tags.length) {
-        _plannedEntries[i] = PlannedEntry(
+        final updatedEntry = PlannedEntry(
           id: entry.id,
           amount: entry.amount,
           categoryId: entry.categoryId,
@@ -619,7 +658,12 @@ class AppState extends ChangeNotifier {
           createdAt: entry.createdAt,
           tags: updatedTags,
           note: entry.note,
+          scheduledAt: entry.scheduledAt,
+          notify: entry.notify,
+          notificationId: entry.notificationId,
         );
+        _plannedEntries[i] = updatedEntry;
+        _syncPlannedNotificationUpdate(entry, updatedEntry);
       }
     }
 
@@ -649,6 +693,7 @@ class AppState extends ChangeNotifier {
     _plannedEntries.add(entry);
     notifyListeners();
     _savePlannedRemote(entry);
+    unawaited(_schedulePlannedNotification(entry));
   }
 
   void updatePlanned(PlannedEntry entry) {
@@ -656,15 +701,135 @@ class AppState extends ChangeNotifier {
     if (index == -1) {
       return;
     }
+    final previous = _plannedEntries[index];
     _plannedEntries[index] = entry;
     notifyListeners();
     _savePlannedRemote(entry);
+    _syncPlannedNotificationUpdate(previous, entry);
   }
 
   void removePlanned(String id) {
-    _plannedEntries.removeWhere((entry) => entry.id == id);
+    final index = _plannedEntries.indexWhere((entry) => entry.id == id);
+    PlannedEntry? removed;
+    if (index != -1) {
+      removed = _plannedEntries[index];
+      _plannedEntries.removeAt(index);
+    }
     notifyListeners();
     _deletePlannedRemote(id);
+    if (removed != null) {
+      unawaited(_cancelPlannedNotification(removed));
+    }
+  }
+
+  bool _shouldNotifyPlanned(PlannedEntry entry) {
+    if (!entry.notify) {
+      return false;
+    }
+    if (entry.scheduledAt == null || entry.notificationId == null) {
+      return false;
+    }
+    return entry.scheduledAt!.isAfter(DateTime.now());
+  }
+
+  String _plannedNotificationBody(PlannedEntry entry) {
+    final symbol = currencySymbol();
+    final raw = entry.amount % 1 == 0
+        ? entry.amount.toStringAsFixed(0)
+        : entry.amount.toStringAsFixed(2);
+    final amountLabel = symbol.isEmpty ? raw : '$raw $symbol';
+    final description = (entry.note ?? '').trim().isNotEmpty
+        ? entry.note!.trim()
+        : entry.categoryName;
+    return '$description • $amountLabel';
+  }
+
+  Future<void> _schedulePlannedNotification(PlannedEntry entry) async {
+    if (!_shouldNotifyPlanned(entry)) {
+      return;
+    }
+    final id = entry.notificationId!;
+    await LocalNotifications.instance.schedulePlanned(
+      id: id,
+      title: 'Запланированный расход',
+      body: _plannedNotificationBody(entry),
+      scheduledAt: entry.scheduledAt!,
+    );
+    _scheduledPlannedNotifications.add(id);
+  }
+
+  Future<void> _cancelPlannedNotification(PlannedEntry entry) async {
+    final id = entry.notificationId;
+    if (id == null) {
+      return;
+    }
+    await LocalNotifications.instance.cancel(id);
+    _scheduledPlannedNotifications.remove(id);
+  }
+
+  void _syncPlannedNotificationUpdate(
+    PlannedEntry previous,
+    PlannedEntry current,
+  ) {
+    final prevShould = _shouldNotifyPlanned(previous);
+    final currShould = _shouldNotifyPlanned(current);
+    if (!prevShould && !currShould) {
+      return;
+    }
+    if (prevShould && !currShould) {
+      unawaited(_cancelPlannedNotification(previous));
+      return;
+    }
+    if (!prevShould && currShould) {
+      unawaited(_schedulePlannedNotification(current));
+      return;
+    }
+    final shouldReschedule =
+        previous.notificationId != current.notificationId ||
+        previous.scheduledAt != current.scheduledAt ||
+        previous.amount != current.amount ||
+        previous.categoryName != current.categoryName ||
+        previous.note != current.note;
+    if (shouldReschedule) {
+      unawaited(_cancelPlannedNotification(previous));
+      unawaited(_schedulePlannedNotification(current));
+    }
+  }
+
+  void _syncPlannedNotifications(
+    List<PlannedEntry> previous,
+    List<PlannedEntry> current,
+  ) {
+    final prevMap = {
+      for (final entry in previous) entry.id: entry,
+    };
+    final currentMap = {
+      for (final entry in current) entry.id: entry,
+    };
+
+    for (final entry in previous) {
+      if (!currentMap.containsKey(entry.id)) {
+        unawaited(_cancelPlannedNotification(entry));
+      }
+    }
+
+    for (final entry in current) {
+      final before = prevMap[entry.id];
+      if (before == null) {
+        unawaited(_schedulePlannedNotification(entry));
+      } else {
+        _syncPlannedNotificationUpdate(before, entry);
+      }
+    }
+  }
+
+  Future<void> _cancelPlannedNotifications(
+    Iterable<PlannedEntry> entries,
+  ) async {
+    for (final entry in entries) {
+      await _cancelPlannedNotification(entry);
+    }
+    _scheduledPlannedNotifications.clear();
   }
 
   String currencySymbol() {
@@ -730,6 +895,11 @@ class AppState extends ChangeNotifier {
     final data = userSnap.data();
     final currentBudgetId = data?['currentBudgetId'] as String?;
     final currentBudgetType = data?['currentBudgetType'] as String?;
+    final notifyFamily = data?['notifyFamilyTransactions'] as bool?;
+    _familyNotificationsEnabled = notifyFamily ?? true;
+    if (notifyFamily == null) {
+      await _updateUserField({'notifyFamilyTransactions': true});
+    }
     final personalId = await _ensurePersonalBudget(user);
 
     var budgetId = personalId;
@@ -757,6 +927,9 @@ class AppState extends ChangeNotifier {
     }
 
     await _startSync(budgetId);
+    if (_familyNotificationsEnabled) {
+      await _ensureMessagingReady(requestPermission: false);
+    }
     _initialized = true;
     notifyListeners();
   }
@@ -808,6 +981,7 @@ class AppState extends ChangeNotifier {
       await ref.set({
         'name': _currentUser.name,
         'provider': _currentUser.provider,
+        'notifyFamilyTransactions': true,
         'createdAt': FieldValue.serverTimestamp(),
       });
     }
@@ -876,6 +1050,9 @@ class AppState extends ChangeNotifier {
         _familyMembers.clear();
         _memberNames.clear();
       }
+      if (type == 'family' && _familyNotificationsEnabled) {
+        _ensureMessagingReady(requestPermission: false);
+      }
       notifyListeners();
     });
 
@@ -916,10 +1093,12 @@ class AppState extends ChangeNotifier {
         .orderBy('order')
         .snapshots()
         .listen((snap) {
+          final previous = List<PlannedEntry>.from(_plannedEntries);
           final list = snap.docs.map(_plannedFromDoc).toList();
           _plannedEntries
             ..clear()
             ..addAll(list);
+          _syncPlannedNotifications(previous, list);
           notifyListeners();
         });
 
@@ -982,18 +1161,93 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> _cancelSync() async {
+    await _cancelPlannedNotifications(_plannedEntries);
     await _categoriesSub?.cancel();
     await _plannedSub?.cancel();
     await _tagsSub?.cancel();
     await _methodsSub?.cancel();
     await _transactionsSub?.cancel();
     await _budgetSub?.cancel();
+    await _tokenRefreshSub?.cancel();
     _categoriesSub = null;
     _plannedSub = null;
     _tagsSub = null;
     _methodsSub = null;
     _transactionsSub = null;
     _budgetSub = null;
+    _tokenRefreshSub = null;
+  }
+
+  Future<void> _ensureMessagingReady({required bool requestPermission}) async {
+    if (_currentUser.id == 'local') {
+      return;
+    }
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      final isPhysical = await _isPhysicalDevice();
+      if (!isPhysical) {
+        return;
+      }
+    }
+    final messaging = FirebaseMessaging.instance;
+    if (requestPermission) {
+      final settings = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      if (settings.authorizationStatus == AuthorizationStatus.denied) {
+        return;
+      }
+    }
+    await messaging.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+    await messaging.setAutoInitEnabled(true);
+    try {
+      final token = await messaging.getToken();
+      await _storeFcmToken(token);
+      _tokenRefreshSub ??= messaging.onTokenRefresh.listen(_storeFcmToken);
+    } catch (_) {
+      return;
+    }
+  }
+
+  Future<bool> _isPhysicalDevice() async {
+    if (kIsWeb) {
+      return true;
+    }
+    final deviceInfo = DeviceInfoPlugin();
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      final iosInfo = await deviceInfo.iosInfo;
+      return iosInfo.isPhysicalDevice;
+    }
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      final androidInfo = await deviceInfo.androidInfo;
+      return androidInfo.isPhysicalDevice;
+    }
+    return true;
+  }
+
+  Future<void> _storeFcmToken(String? token) async {
+    if (token == null || token.isEmpty || _currentUser.id == 'local') {
+      return;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final lastToken = prefs.getString(_prefFcmToken);
+    if (lastToken == token) {
+      return;
+    }
+    await _updateUserField({
+      'fcmTokens': FieldValue.arrayUnion([token]),
+    });
+    if (lastToken != null && lastToken.isNotEmpty) {
+      await _updateUserField({
+        'fcmTokens': FieldValue.arrayRemove([lastToken]),
+      });
+    }
+    await prefs.setString(_prefFcmToken, token);
   }
 
   Future<void> _loadFamilyMembers(List<String> memberIds) async {
@@ -1148,6 +1402,9 @@ class AppState extends ChangeNotifier {
     final tags = _tagsFromMapList(data['tags'] as List<dynamic>?);
     final createdAt =
         (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+    final scheduledAt = (data['scheduledAt'] as Timestamp?)?.toDate();
+    final notify = data['notify'] as bool? ?? false;
+    final notificationId = (data['notificationId'] as num?)?.toInt();
     return PlannedEntry(
       id: doc.id,
       amount: (data['amount'] as num?)?.toDouble() ?? 0,
@@ -1162,6 +1419,9 @@ class AppState extends ChangeNotifier {
       createdAt: createdAt,
       tags: tags,
       note: data['note'] as String?,
+      scheduledAt: scheduledAt,
+      notify: notify,
+      notificationId: notificationId,
     );
   }
 
@@ -1247,6 +1507,11 @@ class AppState extends ChangeNotifier {
       'tags': entry.tags.map(_tagToMap).toList(),
       'note': entry.note,
       'createdAt': Timestamp.fromDate(entry.createdAt),
+      'scheduledAt': entry.scheduledAt == null
+          ? null
+          : Timestamp.fromDate(entry.scheduledAt!),
+      'notify': entry.notify,
+      'notificationId': entry.notificationId,
     };
   }
 
@@ -1964,6 +2229,12 @@ class AppState extends ChangeNotifier {
         .toRadixString(36)
         .toUpperCase();
     return raw.length > 6 ? raw.substring(raw.length - 6) : raw.padLeft(6, '0');
+  }
+
+  @override
+  void dispose() {
+    _tokenRefreshSub?.cancel();
+    super.dispose();
   }
 }
 

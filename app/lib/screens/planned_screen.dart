@@ -8,6 +8,7 @@ import '../models/tag_entry.dart';
 import '../models/transaction_entry.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
+import '../services/local_notifications.dart';
 import '../widgets/app_header.dart';
 import '../widgets/soft_card.dart';
 
@@ -16,6 +17,15 @@ typedef _CategoryItem = CategoryEntry;
 typedef _PaymentItem = PaymentMethod;
 
 typedef _TagItem = TagEntry;
+
+String _formatPlannedDate(DateTime value) {
+  final day = value.day.toString().padLeft(2, '0');
+  final month = value.month.toString().padLeft(2, '0');
+  final year = value.year.toString();
+  final hour = value.hour.toString().padLeft(2, '0');
+  final minute = value.minute.toString().padLeft(2, '0');
+  return '$day.$month.$year, $hour:$minute';
+}
 
 class PlannedScreen extends StatelessWidget {
   const PlannedScreen({super.key});
@@ -217,6 +227,21 @@ class PlannedScreen extends StatelessWidget {
                                                       AppColors.textSecondary,
                                                 ),
                                           ),
+                                          if (entry.scheduledAt != null) ...[
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              entry.notify
+                                                  ? 'Напоминание: ${_formatPlannedDate(entry.scheduledAt!)}'
+                                                  : 'Дата: ${_formatPlannedDate(entry.scheduledAt!)}',
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.copyWith(
+                                                    color:
+                                                        AppColors.textSecondary,
+                                                  ),
+                                            ),
+                                          ],
                                         ],
                                       ),
                                     ),
@@ -336,6 +361,9 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
   _CategoryItem? _selectedCategory;
   _PaymentItem? _selectedMethod;
   Set<String> _selectedTagIds = {};
+  DateTime? _scheduledAt;
+  bool _notify = false;
+  int? _notificationId;
   bool _initialized = false;
 
   @override
@@ -372,6 +400,9 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
           : entry.amount.toStringAsFixed(2);
       _noteController.text = entry.note ?? '';
       _selectedTagIds = entry.tags.map((tag) => tag.id).toSet();
+      _scheduledAt = entry.scheduledAt;
+      _notify = entry.notify;
+      _notificationId = entry.notificationId;
     } else {
       _selectedCategory = appState.categories.isNotEmpty
           ? appState.categories.first
@@ -380,6 +411,9 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
           ? appState.paymentMethods.first
           : null;
       _selectedTagIds = {};
+      _scheduledAt = null;
+      _notify = false;
+      _notificationId = null;
     }
 
     _initialized = true;
@@ -392,7 +426,58 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
     super.dispose();
   }
 
-  void _save() {
+  Future<void> _pickScheduledAt() async {
+    final now = DateTime.now();
+    final initialDate = _scheduledAt ?? now;
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 5),
+    );
+    if (date == null) {
+      return;
+    }
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_scheduledAt ?? now),
+    );
+    if (time == null) {
+      return;
+    }
+    setState(() {
+      _scheduledAt = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
+    });
+  }
+
+  String _formatScheduledAt(DateTime value) {
+    final day = value.day.toString().padLeft(2, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final year = value.year.toString();
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$day.$month.$year, $hour:$minute';
+  }
+
+  Future<bool> _ensureNotificationsAllowed() async {
+    final granted = await LocalNotifications.instance.requestPermissions();
+    if (!granted) {
+      _showError('Разрешите уведомления в настройках устройства');
+    }
+    return granted;
+  }
+
+  int _generateNotificationId() {
+    return DateTime.now().microsecondsSinceEpoch.remainder(1 << 31);
+  }
+
+  Future<void> _save() async {
     final appState = AppStateScope.of(context);
     final raw = _amountController.text.trim().replaceAll(',', '.');
     final amount = double.tryParse(raw);
@@ -409,6 +494,22 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
     if (_selectedMethod == null) {
       _showError('Выберите способ оплаты');
       return;
+    }
+
+    if (_notify) {
+      if (_scheduledAt == null) {
+        _showError('Выберите дату и время');
+        return;
+      }
+      if (_scheduledAt!.isBefore(DateTime.now())) {
+        _showError('Выберите время в будущем');
+        return;
+      }
+      final allowed = await _ensureNotificationsAllowed();
+      if (!allowed) {
+        return;
+      }
+      _notificationId ??= _generateNotificationId();
     }
 
     final entry = PlannedEntry(
@@ -428,6 +529,9 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
       note: _noteController.text.trim().isEmpty
           ? null
           : _noteController.text.trim(),
+      scheduledAt: _scheduledAt,
+      notify: _notify,
+      notificationId: _notify ? _notificationId : null,
     );
 
     widget.onSave(entry);
@@ -569,6 +673,87 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
                         ),
                       ),
                     ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            SoftCard(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 120,
+                    child: Text(
+                      'Когда',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: _pickScheduledAt,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surface2.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: accent,
+                            width: 1.2,
+                          ),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        child: Text(
+                          _scheduledAt == null
+                              ? 'Выбрать дату и время'
+                              : _formatScheduledAt(_scheduledAt!),
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            SoftCard(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Напомнить',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Switch(
+                    value: _notify,
+                    onChanged: (value) async {
+                      if (value) {
+                        if (_scheduledAt == null) {
+                          await _pickScheduledAt();
+                          if (_scheduledAt == null) {
+                            return;
+                          }
+                        }
+                        final allowed = await _ensureNotificationsAllowed();
+                        if (!allowed) {
+                          return;
+                        }
+                        _notificationId ??= _generateNotificationId();
+                      }
+                      setState(() {
+                        _notify = value;
+                      });
+                    },
                   ),
                 ],
               ),
