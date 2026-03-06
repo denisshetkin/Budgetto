@@ -6,6 +6,7 @@ import '../models/transaction_entry.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_header.dart';
+import '../widgets/gradient_icon.dart';
 import '../widgets/soft_card.dart';
 
 enum OverviewRange { day, week, month, year, period }
@@ -93,88 +94,170 @@ class _OverviewScreenState extends State<OverviewScreen> {
     final slices = _buildSlices(appState.transactions, range, _type, accent);
     final total = slices.fold<double>(0, (sum, slice) => sum + slice.amount);
     final rangeLabel = _formatRange(range);
+    const horizontalInset = 12.0;
 
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            const AppHeader(title: 'Обзор'),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  SegmentedButton<OverviewRange>(
-                    segments: const [
-                      ButtonSegment(value: OverviewRange.day, label: Text('День')),
-                      ButtonSegment(value: OverviewRange.week, label: Text('Неделя')),
-                      ButtonSegment(value: OverviewRange.month, label: Text('Месяц')),
-                      ButtonSegment(value: OverviewRange.year, label: Text('Год')),
-                      ButtonSegment(value: OverviewRange.period, label: Text('Период')),
-                    ],
-                    selected: {_range},
-                    onSelectionChanged: (selection) {
-                      final next = selection.first;
-                      setState(() {
-                        _range = next;
-                      });
-                      if (next == OverviewRange.period) {
-                        _pickCustomRange();
+            AppHeader(
+              title: 'Обзор',
+              padding: const EdgeInsets.fromLTRB(horizontalInset, 12, horizontalInset, 8),
+              leading: GradientIcon(
+                icon: Icons.pie_chart,
+                size: 32,
+                colors: [
+                  AppColors.accentIncome,
+                  AppColors.accentTotal,
+                  AppColors.accentExpense,
+                ],
+              ),
+              actions: [
+                SegmentedButton<TransactionType>(
+                  showSelectedIcon: false,
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return accent.withOpacity(0.22);
                       }
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  InkWell(
-                    onTap: _range == OverviewRange.period ? _pickCustomRange : null,
-                    borderRadius: BorderRadius.circular(16),
-                    child: SoftCard(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      child: Row(
-                        children: [
-                          Icon(Icons.date_range_outlined, size: 20),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              rangeLabel,
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
+                      return AppColors.surface1;
+                    }),
+                    textStyle: WidgetStatePropertyAll(
+                      Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w600,
                           ),
-                          if (_range == OverviewRange.period)
-                            Icon(
-                              Icons.chevron_right_rounded,
-                              color: AppColors.textSecondary,
-                            ),
-                        ],
+                    ),
+                    padding: WidgetStatePropertyAll(
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    ),
+                    minimumSize: WidgetStatePropertyAll(const Size(0, 36)),
+                    shape: WidgetStatePropertyAll(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
+                    side: WidgetStatePropertyAll(
+                      BorderSide(color: AppColors.stroke),
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  SegmentedButton<TransactionType>(
-                    segments: const [
-                      ButtonSegment(value: TransactionType.expense, label: Text('Расходы')),
-                      ButtonSegment(value: TransactionType.income, label: Text('Доходы')),
+                  segments: const [
+                    ButtonSegment(
+                      value: TransactionType.expense,
+                      label: Text('Расходы'),
+                    ),
+                    ButtonSegment(
+                      value: TransactionType.income,
+                      label: Text('Доходы'),
+                    ),
+                  ],
+                  selected: {_type},
+                  onSelectionChanged: (selection) {
+                    setState(() {
+                      _type = selection.first;
+                    });
+                  },
+                ),
+              ],
+            ),
+            Expanded(
+              child: ListView(
+                padding:
+                    const EdgeInsets.fromLTRB(horizontalInset, 12, horizontalInset, 20),
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: InkWell(
+                          onTap:
+                              _range == OverviewRange.period ? _pickCustomRange : null,
+                          borderRadius: BorderRadius.circular(16),
+                          child: SoftCard(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.date_range_outlined, size: 18),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    rangeLabel,
+                                    style: Theme.of(context).textTheme.bodyMedium,
+                                  ),
+                                ),
+                                if (_range == OverviewRange.period)
+                                  Icon(
+                                    Icons.chevron_right_rounded,
+                                    color: AppColors.textSecondary,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: SoftCard(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<OverviewRange>(
+                              value: _range,
+                              isDense: true,
+                              icon: const Icon(
+                                Icons.expand_more_rounded,
+                                size: 18,
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: OverviewRange.day,
+                                  child: Text('День'),
+                                ),
+                                DropdownMenuItem(
+                                  value: OverviewRange.week,
+                                  child: Text('Неделя'),
+                                ),
+                                DropdownMenuItem(
+                                  value: OverviewRange.month,
+                                  child: Text('Месяц'),
+                                ),
+                                DropdownMenuItem(
+                                  value: OverviewRange.year,
+                                  child: Text('Год'),
+                                ),
+                                DropdownMenuItem(
+                                  value: OverviewRange.period,
+                                  child: Text('Период'),
+                                ),
+                              ],
+                              onChanged: (next) {
+                                if (next == null) {
+                                  return;
+                                }
+                                setState(() {
+                                  _range = next;
+                                });
+                                if (next == OverviewRange.period) {
+                                  _pickCustomRange();
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
-                    selected: {_type},
-                    onSelectionChanged: (selection) {
-                      setState(() {
-                        _type = selection.first;
-                      });
-                    },
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
                   SoftCard(
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          _type == TransactionType.expense
-                              ? 'Структура расходов'
-                              : 'Структура доходов',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                        const SizedBox(height: 16),
                         Center(
                           child: Stack(
                             alignment: Alignment.center,
@@ -225,6 +308,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
                                       amount: _formatAmount(slice.amount, symbol),
                                       percent: slice.percent,
                                       color: slice.color,
+                                      icon: slice.icon,
                                     ),
                                   ),
                                 )
@@ -264,6 +348,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
           name: entry.categoryName,
           amount: entry.amount,
           color: baseColor,
+          icon: entry.categoryIcon,
         );
       } else {
         totals[entry.categoryId] = existing.copyWith(
@@ -406,12 +491,14 @@ class _CategoryRow extends StatelessWidget {
     required this.amount,
     required this.percent,
     required this.color,
+    required this.icon,
   });
 
   final String title;
   final String amount;
   final double percent;
   final Color color;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -419,9 +506,14 @@ class _CategoryRow extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: AppColors.surface2,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.stroke, width: 1),
+          ),
+          child: Icon(icon, color: color, size: 16),
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -454,6 +546,7 @@ class _OverviewSlice {
     required this.name,
     required this.amount,
     required this.color,
+    required this.icon,
     this.percent = 0,
   });
 
@@ -461,6 +554,7 @@ class _OverviewSlice {
   final String name;
   final double amount;
   final Color color;
+  final IconData icon;
   final double percent;
 
   _OverviewSlice copyWith({double? amount, double? percent}) {
@@ -469,6 +563,7 @@ class _OverviewSlice {
       name: name,
       amount: amount ?? this.amount,
       color: color,
+      icon: icon,
       percent: percent ?? this.percent,
     );
   }

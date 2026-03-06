@@ -1289,7 +1289,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           width: double.infinity,
           color: barBackground,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(28, 12, 16, 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               physics: const AlwaysScrollableScrollPhysics(
@@ -1392,7 +1392,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           width: double.infinity,
           color: barBackground,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(28, 12, 16, 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
@@ -1473,7 +1473,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   Widget _buildDateHeader(DateTime day) {
     return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 10),
+      padding: const EdgeInsets.only(top: 6, bottom: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1498,7 +1498,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     required bool showAuthors,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Slidable(
         key: ValueKey(entry.id),
         endActionPane: ActionPane(
@@ -1547,8 +1547,19 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           ],
         ),
         child: GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => AddTransactionScreen(
+                  initialType: entry.type,
+                  initialEntry: entry,
+                ),
+              ),
+            );
+          },
           onLongPress: () => _openActionsSheet(context, appState, entry),
           child: SoftCard(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: TransactionRow(
               entry: entry,
               symbol: symbol,
@@ -1589,43 +1600,18 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         child: Column(
           children: [
             AppHeader(
-              title: '',
-              leading: _BudgetChip(
-                label: budgetLabel,
-                icon: budgetIcon,
-                onTap: () => _openBudgetPicker(appState),
+              title: 'Операции',
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+              leading: Icon(
+                Icons.swap_horiz,
+                size: 32,
+                color: AppColors.accentExpense,
               ),
               actions: [
-                _ActionCircle(
-                  icon: _showDisplayBar ? Icons.tune : Icons.tune_outlined,
-                  color: _showDisplayBar
-                      ? AppColors.accentIncome
-                      : AppColors.textSecondary,
-                  onTap: () {
-                    setState(() {
-                      _showDisplayBar = !_showDisplayBar;
-                      if (_showDisplayBar) {
-                        _showFilterBar = false;
-                      }
-                    });
-                  },
-                ),
-                const SizedBox(width: 10),
-                _ActionCircle(
-                  icon: _showFilterBar
-                      ? Icons.filter_alt
-                      : Icons.filter_alt_outlined,
-                  color: (_showFilterBar || hasFilter)
-                      ? AppColors.accentIncome
-                      : AppColors.textSecondary,
-                  onTap: () {
-                    setState(() {
-                      _showFilterBar = !_showFilterBar;
-                      if (_showFilterBar) {
-                        _showDisplayBar = false;
-                      }
-                    });
-                  },
+                _BudgetChip(
+                  label: budgetLabel,
+                  icon: budgetIcon,
+                  onTap: () => _openBudgetPicker(appState),
                 ),
               ],
             ),
@@ -1638,90 +1624,140 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       : const SizedBox.shrink()),
             ),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (_showTotal) ...[
-                      SoftCard(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 18,
+              child: Stack(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_showTotal) ...[
+                          SoftCard(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 18,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _SummaryItem(
+                                  title: 'Доходы',
+                                  amount: '+ ${_formatAmount(income, symbol)}',
+                                  color: AppColors.accentIncome,
+                                ),
+                                const SizedBox(height: 10),
+                                _SummaryItem(
+                                  title: 'Расходы',
+                                  amount: '- ${_formatAmount(expense, symbol)}',
+                                  color: AppColors.accentExpense,
+                                ),
+                                const SizedBox(height: 10),
+                                _SummaryItem(
+                                  title: 'Итого',
+                                  amount: _formatAmount(balance, symbol),
+                                  color: AppColors.accentTotal,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                        Expanded(
+                          child: filteredTransactions.isEmpty
+                              ? Center(
+                                  child: Text(
+                                    emptyLabel,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: AppColors.textSecondary,
+                                        ),
+                                  ),
+                                )
+                              : SlidableAutoCloseBehavior(
+                                  child: _groupByDate
+                                      ? ListView.builder(
+                                          itemCount: groupedItems.length,
+                                          itemBuilder: (context, index) {
+                                            final item = groupedItems[index];
+                                            if (item is DateTime) {
+                                              return _buildDateHeader(item);
+                                            }
+                                            if (item is TransactionEntry) {
+                                              return _buildTransactionTile(
+                                                appState: appState,
+                                                entry: item,
+                                                symbol: symbol,
+                                                showAuthors: showAuthors,
+                                              );
+                                            }
+                                            return const SizedBox.shrink();
+                                          },
+                                        )
+                                      : ListView.separated(
+                                          itemCount:
+                                              filteredTransactions.length,
+                                          separatorBuilder: (_, index) =>
+                                              const SizedBox.shrink(),
+                                          itemBuilder: (context, index) {
+                                            final entry =
+                                                filteredTransactions[index];
+                                            return _buildTransactionTile(
+                                              appState: appState,
+                                              entry: entry,
+                                              symbol: symbol,
+                                              showAuthors: showAuthors,
+                                            );
+                                          },
+                                        ),
+                                ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _SummaryItem(
-                              title: 'Доходы',
-                              amount: '+ ${_formatAmount(income, symbol)}',
-                              color: AppColors.accentIncome,
-                            ),
-                            const SizedBox(height: 10),
-                            _SummaryItem(
-                              title: 'Расходы',
-                              amount: '- ${_formatAmount(expense, symbol)}',
-                              color: AppColors.accentExpense,
-                            ),
-                            const SizedBox(height: 10),
-                            _SummaryItem(
-                              title: 'Итого',
-                              amount: _formatAmount(balance, symbol),
-                              color: AppColors.accentTotal,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                    Expanded(
-                      child: filteredTransactions.isEmpty
-                          ? Center(
-                              child: Text(
-                                emptyLabel,
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(color: AppColors.textSecondary),
-                              ),
-                            )
-                          : SlidableAutoCloseBehavior(
-                              child: _groupByDate
-                                  ? ListView.builder(
-                                      itemCount: groupedItems.length,
-                                      itemBuilder: (context, index) {
-                                        final item = groupedItems[index];
-                                        if (item is DateTime) {
-                                          return _buildDateHeader(item);
-                                        }
-                                        if (item is TransactionEntry) {
-                                          return _buildTransactionTile(
-                                            appState: appState,
-                                            entry: item,
-                                            symbol: symbol,
-                                            showAuthors: showAuthors,
-                                          );
-                                        }
-                                        return const SizedBox.shrink();
-                                      },
-                                    )
-                                  : ListView.separated(
-                                      itemCount: filteredTransactions.length,
-                                      separatorBuilder: (_, index) =>
-                                          const SizedBox(height: 12),
-                                      itemBuilder: (context, index) {
-                                        final entry =
-                                            filteredTransactions[index];
-                                        return _buildTransactionTile(
-                                          appState: appState,
-                                          entry: entry,
-                                          symbol: symbol,
-                                          showAuthors: showAuthors,
-                                        );
-                                      },
-                                    ),
-                            ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  Positioned(
+                    right: 80,
+                    bottom: MediaQuery.of(context).padding.bottom + 16,
+                    child: Row(
+                      children: [
+                        _ActionCircle(
+                          icon: _showDisplayBar
+                              ? Icons.tune
+                              : Icons.tune_outlined,
+                          color: _showDisplayBar
+                              ? AppColors.accentIncome
+                              : AppColors.textSecondary,
+                          onTap: () {
+                            setState(() {
+                              _showDisplayBar = !_showDisplayBar;
+                              if (_showDisplayBar) {
+                                _showFilterBar = false;
+                              }
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 10),
+                        _ActionCircle(
+                          icon: _showFilterBar
+                              ? Icons.filter_alt
+                              : Icons.filter_alt_outlined,
+                          color: (_showFilterBar || hasFilter)
+                              ? AppColors.accentIncome
+                              : AppColors.textSecondary,
+                          onTap: () {
+                            setState(() {
+                              _showFilterBar = !_showFilterBar;
+                              if (_showFilterBar) {
+                                _showDisplayBar = false;
+                              }
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -1812,7 +1848,7 @@ class _BudgetChip extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
           color: AppColors.surface2,
           borderRadius: BorderRadius.circular(16),

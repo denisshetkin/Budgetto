@@ -8,18 +8,22 @@ class AppHeader extends StatelessWidget {
     required this.title,
     this.leading,
     this.actions = const [],
+    this.padding,
   });
 
   final String title;
   final Widget? leading;
   final List<Widget> actions;
+  final EdgeInsets? padding;
 
   @override
   Widget build(BuildContext context) {
+    final resolvedPadding =
+        padding ?? const EdgeInsets.fromLTRB(20, 20, 20, 12);
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          padding: resolvedPadding,
           child: SizedBox(
             height: 48,
             child: Row(

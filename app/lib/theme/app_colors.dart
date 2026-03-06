@@ -62,10 +62,10 @@ class AppColors {
   );
 
   static const AppPalette light = AppPalette(
-    background: Color(0xFFF6F7FB),
-    surface1: Color(0xFFFFFFFF),
-    surface2: Color(0xFFF0F3FA),
-    stroke: Color(0xFFD7DDE8),
+    background: Color(0xFFE6EBF3),
+    surface1: Color(0xFFF0F3F9),
+    surface2: Color(0xFFDDE5F1),
+    stroke: Color(0xFFC4CEDD),
     textPrimary: Color(0xFF1C2432),
     textSecondary: Color(0xFF51607A),
     accentExpense: Color(0xFFE25555),

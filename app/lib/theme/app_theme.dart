@@ -105,6 +105,14 @@ ThemeData buildAppTheme({required AppPalette palette, required Brightness bright
         ),
       ),
     ),
+    navigationBarTheme: NavigationBarThemeData(
+      labelTextStyle: WidgetStatePropertyAll(
+        scaledTextTheme.labelSmall?.copyWith(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    ),
   );
 }
 

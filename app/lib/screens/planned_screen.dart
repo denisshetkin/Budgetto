@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 import '../models/category_entry.dart';
 import '../models/payment_method.dart';
@@ -10,6 +11,7 @@ import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../services/local_notifications.dart';
 import '../widgets/app_header.dart';
+import '../widgets/slide_action_icon.dart';
 import '../widgets/soft_card.dart';
 
 typedef _CategoryItem = CategoryEntry;
@@ -146,6 +148,65 @@ class PlannedScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _openActionsSheet(
+    BuildContext context,
+    AppState appState,
+    PlannedEntry entry,
+  ) async {
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface1,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: Icon(
+                    Icons.add_circle_outline,
+                    color: AppColors.accentIncome,
+                  ),
+                  title: const Text('Добавить в операции'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _addToTransactions(context, appState, entry);
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.edit,
+                    color: AppColors.accentIncome,
+                  ),
+                  title: const Text('Редактировать'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _openAddPlanned(context, appState, entry: entry);
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.delete,
+                    color: AppColors.accentExpense,
+                  ),
+                  title: const Text('Удалить'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _confirmDelete(context, appState, entry);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
@@ -157,12 +218,12 @@ class PlannedScreen extends StatelessWidget {
           children: [
             AppHeader(
               title: 'Регулярные платежи',
-              leading: Navigator.of(context).canPop()
-                  ? IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: Icon(Icons.arrow_back_rounded),
-                    )
-                  : null,
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+              leading: Icon(
+                Icons.event_note,
+                size: 32,
+                color: AppColors.accentTotal,
+              ),
               actions: [
                 IconButton(
                   onPressed: () => _openAddPlanned(context, appState),
@@ -172,7 +233,7 @@ class PlannedScreen extends StatelessWidget {
             ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(12),
                 child: entries.isEmpty
                     ? Center(
                         child: Text(
@@ -182,165 +243,173 @@ class PlannedScreen extends StatelessWidget {
                           textAlign: TextAlign.center,
                         ),
                       )
-                    : ListView.separated(
-                        itemCount: entries.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final entry = entries[index];
-                          return SoftCard(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      height: 32,
-                                      width: 32,
-                                      decoration: BoxDecoration(
-                                        color: AppColors.surface2,
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Icon(
-                                        entry.categoryIcon,
-                                        color: entry.categoryColor,
-                                        size: 18,
-                                      ),
+                    : SlidableAutoCloseBehavior(
+                        child: ListView.separated(
+                          itemCount: entries.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          itemBuilder: (context, index) {
+                            final entry = entries[index];
+                            return Slidable(
+                              key: ValueKey(entry.id),
+                              endActionPane: ActionPane(
+                                motion: const DrawerMotion(),
+                                extentRatio: 0.26,
+                                children: [
+                                  CustomSlidableAction(
+                                    onPressed: (_) => _openAddPlanned(
+                                      context,
+                                      appState,
+                                      entry: entry,
                                     ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            (entry.note ?? '').trim().isNotEmpty
-                                                ? entry.note!
-                                                : entry.categoryName,
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.bodyLarge,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            entry.paymentMethod.name,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.copyWith(
-                                                  color:
-                                                      AppColors.textSecondary,
-                                                ),
-                                          ),
-                                          if (entry.scheduledAt != null) ...[
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              entry.notify
-                                                  ? 'Напоминание: ${_formatPlannedDate(entry.scheduledAt!)}'
-                                                  : 'Дата: ${_formatPlannedDate(entry.scheduledAt!)}',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodySmall
-                                                  ?.copyWith(
-                                                    color:
-                                                        AppColors.textSecondary,
-                                                  ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Builder(
-                                      builder: (context) {
-                                        final symbol = appState.currencySymbol();
-                                        final raw = entry.amount % 1 == 0
-                                            ? entry.amount.toStringAsFixed(0)
-                                            : entry.amount.toStringAsFixed(2);
-                                        final label = symbol.isEmpty
-                                            ? raw
-                                            : '$raw $symbol';
-                                        return Text(
-                                          label,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyLarge
-                                              ?.copyWith(
-                                                color: AppColors.accentExpense,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                        );
-                                      },
-                                    ),
-                                    const SizedBox(width: 8),
-                                    IconButton(
-                                      onPressed: () =>
-                                          _addToTransactions(context, appState, entry),
-                                      icon: Icon(
-                                        Icons.add_circle_outline,
+                                    backgroundColor: Colors.transparent,
+                                    autoClose: false,
+                                    child: Align(
+                                      alignment: Alignment.centerRight,
+                                      child: SlideActionIcon(
+                                        icon: Icons.edit,
                                         color: AppColors.accentIncome,
                                       ),
-                                      iconSize: 22,
-                                      padding: EdgeInsets.zero,
-                                      constraints:
-                                          const BoxConstraints.tightFor(
-                                            width: 34,
-                                            height: 34,
-                                          ),
-                                      tooltip: 'Добавить в операции',
                                     ),
-                                    IconButton(
-                                      onPressed: () => _openAddPlanned(
-                                        context,
-                                        appState,
-                                        entry: entry,
-                                      ),
-                                      icon: Icon(
-                                        Icons.edit,
-                                        color: AppColors.accentIncome,
-                                      ),
-                                      iconSize: 22,
-                                      padding: EdgeInsets.zero,
-                                      constraints:
-                                          const BoxConstraints.tightFor(
-                                            width: 34,
-                                            height: 34,
-                                          ),
-                                      tooltip: 'Редактировать',
-                                    ),
-                                    IconButton(
-                                      onPressed: () =>
-                                          _confirmDelete(context, appState, entry),
-                                      icon: Icon(
-                                        Icons.delete,
+                                  ),
+                                  CustomSlidableAction(
+                                    onPressed: (_) =>
+                                        _confirmDelete(context, appState, entry),
+                                    backgroundColor: Colors.transparent,
+                                    autoClose: false,
+                                    child: Align(
+                                      alignment: Alignment.centerRight,
+                                      child: SlideActionIcon(
+                                        icon: Icons.delete,
                                         color: AppColors.accentExpense,
                                       ),
-                                      iconSize: 22,
-                                      padding: EdgeInsets.zero,
-                                      constraints:
-                                          const BoxConstraints.tightFor(
-                                            width: 34,
-                                            height: 34,
-                                          ),
-                                      tooltip: 'Удалить',
                                     ),
-                                  ],
-                                ),
-                                if (entry.tags.isNotEmpty) ...[
-                                  const SizedBox(height: 8),
-                                  Wrap(
-                                    spacing: 6,
-                                    runSpacing: 6,
-                                    children: entry.tags
-                                        .map((tag) => _TagChip(tag: tag))
-                                        .toList(),
                                   ),
                                 ],
-                              ],
-                            ),
-                          );
-                        },
+                              ),
+                              child: GestureDetector(
+                                onTap: () => _openAddPlanned(
+                                  context,
+                                  appState,
+                                  entry: entry,
+                                ),
+                                onLongPress: () =>
+                                    _openActionsSheet(context, appState, entry),
+                                child: SoftCard(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            height: 32,
+                                            width: 32,
+                                            decoration: BoxDecoration(
+                                              color: AppColors.surface2,
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                            ),
+                                            child: Icon(
+                                              entry.categoryIcon,
+                                              color: entry.categoryColor,
+                                              size: 18,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  (entry.note ?? '')
+                                                          .trim()
+                                                          .isNotEmpty
+                                                      ? entry.note!
+                                                      : entry.categoryName,
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .bodyLarge,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  entry.paymentMethod.name,
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .bodySmall
+                                                      ?.copyWith(
+                                                        color: AppColors
+                                                            .textSecondary,
+                                                      ),
+                                                ),
+                                                if (entry.scheduledAt != null)
+                                                  ...[
+                                                    const SizedBox(height: 2),
+                                                    Text(
+                                                      entry.notify
+                                                          ? 'Напоминание: ${_formatPlannedDate(entry.scheduledAt!)}'
+                                                          : 'Дата: ${_formatPlannedDate(entry.scheduledAt!)}',
+                                                      style: Theme.of(context)
+                                                          .textTheme
+                                                          .bodySmall
+                                                          ?.copyWith(
+                                                            color: AppColors
+                                                                .textSecondary,
+                                                          ),
+                                                    ),
+                                                  ],
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Builder(
+                                            builder: (context) {
+                                              final symbol =
+                                                  appState.currencySymbol();
+                                              final raw = entry.amount % 1 == 0
+                                                  ? entry.amount
+                                                      .toStringAsFixed(0)
+                                                  : entry.amount
+                                                      .toStringAsFixed(2);
+                                              final label = symbol.isEmpty
+                                                  ? raw
+                                                  : '$raw $symbol';
+                                              return Text(
+                                                label,
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodyLarge
+                                                    ?.copyWith(
+                                                      color: AppColors
+                                                          .accentExpense,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                      if (entry.tags.isNotEmpty) ...[
+                                        const SizedBox(height: 8),
+                                        Wrap(
+                                          spacing: 6,
+                                          runSpacing: 6,
+                                          children: entry.tags
+                                              .map((tag) => _TagChip(tag: tag))
+                                              .toList(),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
               ),
             ),

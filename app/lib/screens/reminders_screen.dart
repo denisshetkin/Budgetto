@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 import '../models/reminder_entry.dart';
 import '../services/local_notifications.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_header.dart';
+import '../widgets/slide_action_icon.dart';
 import '../widgets/soft_card.dart';
 
 String _formatDate(DateTime value) {
@@ -66,11 +68,88 @@ class RemindersScreen extends StatelessWidget {
     appState.updateReminder(updated);
   }
 
+  Future<void> _confirmDelete(
+    BuildContext context,
+    AppState appState,
+    ReminderEntry entry,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Удалить напоминание?'),
+          content: const Text('Уверен, что хочешь удалить это напоминание?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Отмена'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Удалить'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true) {
+      appState.removeReminder(entry.id);
+    }
+  }
+
+  Future<void> _openActionsSheet(
+    BuildContext context,
+    AppState appState,
+    ReminderEntry entry,
+  ) async {
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface1,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: Icon(
+                    Icons.edit,
+                    color: AppColors.accentIncome,
+                  ),
+                  title: const Text('Редактировать'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _openForm(context, entry: entry);
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.delete,
+                    color: AppColors.accentExpense,
+                  ),
+                  title: const Text('Удалить'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _confirmDelete(context, appState, entry);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
     final reminders = appState.reminders;
-    final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
       body: SafeArea(
@@ -78,40 +157,24 @@ class RemindersScreen extends StatelessWidget {
           children: [
             AppHeader(
               title: 'Напоминания',
-              leading: canPop
-                  ? IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: Icon(Icons.arrow_back),
-                    )
-                  : null,
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+              leading: Icon(
+                Icons.notifications,
+                size: 32,
+                color: AppColors.accentDisplay,
+              ),
+              actions: [
+                IconButton(
+                  onPressed: () => _openForm(context),
+                  icon: Icon(Icons.add),
+                ),
+              ],
             ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   children: [
-                    InkWell(
-                      onTap: () => _openForm(context),
-                      borderRadius: BorderRadius.circular(18),
-                      child: SoftCard(
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.add,
-                              color: AppColors.accentIncome,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Создать',
-                                style: Theme.of(context).textTheme.bodyLarge,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
                     Expanded(
                       child: reminders.isEmpty
                           ? Center(
@@ -126,82 +189,131 @@ class RemindersScreen extends StatelessWidget {
                                 textAlign: TextAlign.center,
                               ),
                             )
-                          : ListView.separated(
-                              itemCount: reminders.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(height: 12),
-                              itemBuilder: (context, index) {
-                                final entry = reminders[index];
-                                final textColor = entry.enabled
-                                    ? null
-                                    : AppColors.textSecondary;
-                                final subtitleColor = entry.enabled
-                                    ? AppColors.textSecondary
-                                    : AppColors.stroke;
-                                final comment = (entry.comment ?? '').trim();
-                                return InkWell(
-                                  onTap: () => _openForm(
-                                    context,
-                                    entry: entry,
-                                  ),
-                                  borderRadius: BorderRadius.circular(18),
-                                  child: SoftCard(
-                                    child: Row(
+                          : SlidableAutoCloseBehavior(
+                              child: ListView.separated(
+                                itemCount: reminders.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 8),
+                                itemBuilder: (context, index) {
+                                  final entry = reminders[index];
+                                  final textColor = entry.enabled
+                                      ? null
+                                      : AppColors.textSecondary;
+                                  final subtitleColor = entry.enabled
+                                      ? AppColors.textSecondary
+                                      : AppColors.stroke;
+                                  final comment = (entry.comment ?? '').trim();
+                                  return Slidable(
+                                    key: ValueKey(entry.id),
+                                    endActionPane: ActionPane(
+                                      motion: const DrawerMotion(),
+                                      extentRatio: 0.26,
                                       children: [
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                entry.title,
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .bodyLarge
-                                                    ?.copyWith(
-                                                      color: textColor,
-                                                      fontWeight: FontWeight.w600,
-                                                    ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                '${reminderFrequencyLabel(entry.frequency)} • ${_formatDateTime(entry.startsAt)}',
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .bodySmall
-                                                    ?.copyWith(
-                                                      color: subtitleColor,
-                                                    ),
-                                              ),
-                                              if (comment.isNotEmpty) ...[
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  comment,
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .bodySmall
-                                                      ?.copyWith(
-                                                        color: subtitleColor,
-                                                      ),
-                                                ),
-                                              ],
-                                            ],
+                                        CustomSlidableAction(
+                                          onPressed: (_) => _openForm(
+                                            context,
+                                            entry: entry,
+                                          ),
+                                          backgroundColor: Colors.transparent,
+                                          autoClose: false,
+                                          child: Align(
+                                            alignment: Alignment.centerRight,
+                                            child: SlideActionIcon(
+                                              icon: Icons.edit,
+                                              color: AppColors.accentIncome,
+                                            ),
                                           ),
                                         ),
-                                        Switch(
-                                          value: entry.enabled,
-                                          onChanged: (value) => _toggleReminder(
+                                        CustomSlidableAction(
+                                          onPressed: (_) => _confirmDelete(
                                             context,
                                             appState,
                                             entry,
-                                            value,
+                                          ),
+                                          backgroundColor: Colors.transparent,
+                                          autoClose: false,
+                                          child: Align(
+                                            alignment: Alignment.centerRight,
+                                            child: SlideActionIcon(
+                                              icon: Icons.delete,
+                                              color: AppColors.accentExpense,
+                                            ),
                                           ),
                                         ),
                                       ],
                                     ),
-                                  ),
-                                );
-                              },
+                                    child: GestureDetector(
+                                      onTap: () => _openForm(
+                                        context,
+                                        entry: entry,
+                                      ),
+                                      onLongPress: () => _openActionsSheet(
+                                        context,
+                                        appState,
+                                        entry,
+                                      ),
+                                      child: SoftCard(
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    entry.title,
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .bodyLarge
+                                                        ?.copyWith(
+                                                          color: textColor,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                        ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    '${reminderFrequencyLabel(entry.frequency)} • ${_formatDateTime(entry.startsAt)}',
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .bodySmall
+                                                        ?.copyWith(
+                                                          color: subtitleColor,
+                                                        ),
+                                                  ),
+                                                  if (comment.isNotEmpty) ...[
+                                                    const SizedBox(height: 4),
+                                                    Text(
+                                                      comment,
+                                                      style: Theme.of(context)
+                                                          .textTheme
+                                                          .bodySmall
+                                                          ?.copyWith(
+                                                            color:
+                                                                subtitleColor,
+                                                          ),
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
+                                            ),
+                                            Switch(
+                                              value: entry.enabled,
+                                              onChanged: (value) =>
+                                                  _toggleReminder(
+                                                    context,
+                                                    appState,
+                                                    entry,
+                                                    value,
+                                                  ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
                     ),
                   ],

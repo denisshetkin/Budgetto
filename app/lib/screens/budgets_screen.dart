@@ -84,7 +84,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Создать общий бюджет',
+                        'Добавить общий бюджет',
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.w600),
                       ),
@@ -403,7 +403,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                     width: double.infinity,
                     child: FilledButton(
                       onPressed: () => _openCreateBudget(context, appState),
-                      child: const Text('Создать общий бюджет'),
+                      child: const Text('Добавить общий бюджет'),
                     ),
                   ),
                   const SizedBox(height: 8),

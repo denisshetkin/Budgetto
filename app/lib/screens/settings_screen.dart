@@ -27,63 +27,62 @@ class SettingsScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            const AppHeader(title: 'Настройки'),
+            AppHeader(
+              title: 'Настройки',
+              padding: EdgeInsets.fromLTRB(12, 12, 12, 8),
+              leading: Icon(
+                Icons.settings,
+                size: 32,
+                color: AppColors.categoryPalette[5],
+              ),
+            ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(12),
                 children: [
-                  _SettingsMenuItem(
-                    icon: Icons.category_outlined,
-                    title: 'Категории',
-                    subtitle: 'Редактировать список категорий',
-                    onTap: () =>
-                        _openScreen(context, const CategoriesScreen()),
-                  ),
-                  const SizedBox(height: 12),
-                  _SettingsMenuItem(
-                    icon: Icons.sell_outlined,
-                    title: 'Теги',
-                    subtitle: 'Добавить и переименовать теги',
-                    onTap: () => _openScreen(context, const TagsScreen()),
-                  ),
-                  const SizedBox(height: 12),
-                  _SettingsMenuItem(
-                    icon: Icons.credit_card_outlined,
-                    title: 'Способы оплаты',
-                    subtitle: 'Карты и счета для операций',
-                    onTap: () => _openScreen(context, const CardsScreen()),
-                  ),
-                  const SizedBox(height: 12),
                   _SettingsMenuItem(
                     icon: Icons.account_balance_wallet_outlined,
                     title: 'Бюджеты',
                     subtitle: 'Лимиты и цели по категориям',
+                    iconColor: AppColors.accentTotal,
                     onTap: () => _openScreen(context, const BudgetsScreen()),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   _SettingsMenuItem(
-                    icon: Icons.event_note_outlined,
-                    title: 'Регулярные платежи',
-                    subtitle: 'Плановые списания и напоминания',
-                    onTap: () => _openScreen(context, const PlannedScreen()),
+                    icon: Icons.credit_card_outlined,
+                    title: 'Способы оплаты',
+                    subtitle: 'Карты и счета для операций',
+                    iconColor: AppColors.chipBlue,
+                    onTap: () => _openScreen(context, const CardsScreen()),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   _SettingsMenuItem(
-                    icon: Icons.notifications_outlined,
-                    title: 'Напоминания',
-                    subtitle: 'Сценарии и уведомления',
-                    onTap: () => _openScreen(context, const RemindersScreen()),
+                    icon: Icons.category_outlined,
+                    title: 'Категории',
+                    subtitle: 'Редактировать список категорий',
+                    iconColor: AppColors.categoryPalette[4],
+                    onTap: () =>
+                        _openScreen(context, const CategoriesScreen()),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 8),
+                  _SettingsMenuItem(
+                    icon: Icons.sell_outlined,
+                    title: 'Теги',
+                    subtitle: 'Добавить и переименовать теги',
+                    iconColor: AppColors.categoryPalette[7],
+                    onTap: () => _openScreen(context, const TagsScreen()),
+                  ),
+                  const SizedBox(height: 8),
                   _SettingsMenuItem(
                     icon: Icons.currency_exchange_outlined,
                     title: 'Валюта',
                     subtitle: 'Валюта отображения суммы',
                     value: appState.currencyCode ?? 'Не выбрана',
+                    iconColor: AppColors.accentDisplay,
                     onTap: () =>
                         _openScreen(context, const CurrencySettingsScreen()),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   _SettingsMenuItem(
                     icon: Icons.dark_mode_outlined,
                     title: 'Тема',
@@ -91,23 +90,16 @@ class SettingsScreen extends StatelessWidget {
                     value: appState.themeMode == ThemeMode.light
                         ? 'Светлая'
                         : 'Темная',
+                    iconColor: AppColors.accentNeutral,
                     onTap: () =>
                         _openScreen(context, const ThemeSettingsScreen()),
                   ),
-                  const SizedBox(height: 12),
-                  _SettingsMenuItem(
-                    icon: Icons.sync_outlined,
-                    title: 'Синхронизация',
-                    subtitle: 'Статус и доступ к облаку',
-                    value: appState.syncEnabled ? 'Включена' : 'Выключена',
-                    onTap: () =>
-                        _openScreen(context, const SyncSettingsScreen()),
-                  ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   _SettingsMenuItem(
                     icon: Icons.storage_outlined,
                     title: 'Данные',
                     subtitle: 'Очистка и сброс приложения',
+                    iconColor: AppColors.accentExpense,
                     onTap: () =>
                         _openScreen(context, const DataSettingsScreen()),
                   ),
@@ -127,12 +119,14 @@ class _SettingsMenuItem extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.iconColor,
     this.value,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
+  final Color? iconColor;
   final String? value;
   final VoidCallback onTap;
 
@@ -155,7 +149,11 @@ class _SettingsMenuItem extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.stroke, width: 1),
                 ),
-                child: Icon(icon, size: 20, color: AppColors.textSecondary),
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: iconColor ?? AppColors.textSecondary,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
