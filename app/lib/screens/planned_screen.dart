@@ -157,10 +157,16 @@ class PlannedScreen extends StatelessWidget {
           children: [
             AppHeader(
               title: 'Регулярные платежи',
+              leading: Navigator.of(context).canPop()
+                  ? IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: Icon(Icons.arrow_back_rounded),
+                    )
+                  : null,
               actions: [
                 IconButton(
                   onPressed: () => _openAddPlanned(context, appState),
-                  icon: const Icon(Icons.add),
+                  icon: Icon(Icons.add),
                 ),
               ],
             ),
@@ -271,7 +277,7 @@ class PlannedScreen extends StatelessWidget {
                                     IconButton(
                                       onPressed: () =>
                                           _addToTransactions(context, appState, entry),
-                                      icon: const Icon(
+                                      icon: Icon(
                                         Icons.add_circle_outline,
                                         color: AppColors.accentIncome,
                                       ),
@@ -290,7 +296,7 @@ class PlannedScreen extends StatelessWidget {
                                         appState,
                                         entry: entry,
                                       ),
-                                      icon: const Icon(
+                                      icon: Icon(
                                         Icons.edit,
                                         color: AppColors.accentIncome,
                                       ),
@@ -306,7 +312,7 @@ class PlannedScreen extends StatelessWidget {
                                     IconButton(
                                       onPressed: () =>
                                           _confirmDelete(context, appState, entry),
-                                      icon: const Icon(
+                                      icon: Icon(
                                         Icons.delete,
                                         color: AppColors.accentExpense,
                                       ),
@@ -571,7 +577,7 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
         actions: [
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(
+            icon: Icon(
               Icons.close_rounded,
               color: AppColors.accentExpense,
             ),
@@ -580,7 +586,7 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
           ),
           IconButton(
             onPressed: _save,
-            icon: const Icon(Icons.check_rounded, color: Color(0xFF9AD27A)),
+            icon: Icon(Icons.check_rounded, color: Color(0xFF9AD27A)),
             iconSize: 36,
             tooltip: 'Сохранить',
           ),

@@ -140,11 +140,11 @@ class _HeaderRow extends StatelessWidget {
           children: [
             IconButton(
               onPressed: onFilterTap,
-              icon: const Icon(Icons.tune),
+              icon: Icon(Icons.tune),
             ),
             IconButton(
               onPressed: onSettingsTap,
-              icon: const Icon(Icons.settings_outlined),
+              icon: Icon(Icons.settings_outlined),
             ),
           ],
         ),

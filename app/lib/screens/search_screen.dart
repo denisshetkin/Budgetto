@@ -194,7 +194,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   Expanded(
                     child: TextButton.icon(
                       onPressed: _pickFromDateTime,
-                      icon: const Icon(Icons.schedule, size: 18),
+                      icon: Icon(Icons.schedule, size: 18),
                       label: Text(
                         _fromDate == null
                             ? 'От: дата и время'
@@ -215,7 +215,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   Expanded(
                     child: TextButton.icon(
                       onPressed: _pickToDateTime,
-                      icon: const Icon(Icons.schedule, size: 18),
+                      icon: Icon(Icons.schedule, size: 18),
                       label: Text(
                         _toDate == null
                             ? 'До: дата и время'

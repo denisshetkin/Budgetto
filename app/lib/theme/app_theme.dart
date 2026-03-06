@@ -30,75 +30,88 @@ TextTheme _bumpTextTheme(TextTheme theme, double delta) {
   );
 }
 
-ThemeData buildAppTheme() {
-  final base = ThemeData.dark(useMaterial3: true);
+ThemeData buildAppTheme({required AppPalette palette, required Brightness brightness}) {
+  final base = ThemeData(brightness: brightness, useMaterial3: true);
   final textTheme = GoogleFonts.spaceGroteskTextTheme(base.textTheme).apply(
-    bodyColor: AppColors.textPrimary,
-    displayColor: AppColors.textPrimary,
+    bodyColor: palette.textPrimary,
+    displayColor: palette.textPrimary,
   );
   final scaledTextTheme = _bumpTextTheme(textTheme, 2.5);
 
   return base.copyWith(
-    scaffoldBackgroundColor: AppColors.background,
-    colorScheme: const ColorScheme.dark(
-      primary: AppColors.accentIncome,
-      secondary: AppColors.accentExpense,
-      surface: AppColors.surface1,
-      onPrimary: AppColors.textPrimary,
-      onSecondary: AppColors.textPrimary,
-      onSurface: AppColors.textPrimary,
+    scaffoldBackgroundColor: palette.background,
+    colorScheme: ColorScheme(
+      brightness: brightness,
+      primary: palette.accentIncome,
+      onPrimary: palette.textPrimary,
+      secondary: palette.accentExpense,
+      onSecondary: palette.textPrimary,
+      background: palette.background,
+      onBackground: palette.textPrimary,
+      surface: palette.surface1,
+      onSurface: palette.textPrimary,
+      error: palette.accentExpense,
+      onError: palette.textPrimary,
     ),
     textTheme: scaledTextTheme,
     appBarTheme: AppBarTheme(
-      backgroundColor: AppColors.background,
+      backgroundColor: palette.background,
       elevation: 0,
       centerTitle: false,
       titleTextStyle: scaledTextTheme.titleLarge?.copyWith(
         fontWeight: FontWeight.w600,
-        color: AppColors.textPrimary,
+        color: palette.textPrimary,
       ),
-      iconTheme: const IconThemeData(color: AppColors.textPrimary),
+      iconTheme: IconThemeData(color: palette.textPrimary),
     ),
     cardTheme: CardThemeData(
-      color: AppColors.surface1,
+      color: palette.surface1,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: AppColors.stroke, width: 1),
+        side: BorderSide(color: palette.stroke, width: 1),
       ),
     ),
-    dividerColor: AppColors.stroke,
-    iconTheme: const IconThemeData(color: AppColors.textSecondary),
+    dividerColor: palette.stroke,
+    iconTheme: IconThemeData(color: palette.textSecondary),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: AppColors.surface2,
+      fillColor: palette.surface2,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide.none,
       ),
       hintStyle: scaledTextTheme.bodyMedium?.copyWith(
-        color: AppColors.textSecondary,
+        color: palette.textSecondary,
       ),
     ),
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: ButtonStyle(
         backgroundColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
-              ? AppColors.surface2
+              ? palette.surface2
               : Colors.transparent,
         ),
         foregroundColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
-              ? AppColors.textPrimary
-              : AppColors.textSecondary,
+              ? palette.textPrimary
+              : palette.textSecondary,
         ),
         shape: WidgetStateProperty.all(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         ),
-        side: const WidgetStatePropertyAll(
-          BorderSide(color: AppColors.stroke, width: 1),
+        side: WidgetStatePropertyAll(
+          BorderSide(color: palette.stroke, width: 1),
         ),
       ),
     ),
   );
+}
+
+ThemeData buildDarkTheme() {
+  return buildAppTheme(palette: AppColors.dark, brightness: Brightness.dark);
+}
+
+ThemeData buildLightTheme() {
+  return buildAppTheme(palette: AppColors.light, brightness: Brightness.light);
 }

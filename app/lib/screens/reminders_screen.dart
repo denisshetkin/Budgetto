@@ -81,7 +81,7 @@ class RemindersScreen extends StatelessWidget {
               leading: canPop
                   ? IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.arrow_back),
+                      icon: Icon(Icons.arrow_back),
                     )
                   : null,
             ),
@@ -96,7 +96,7 @@ class RemindersScreen extends StatelessWidget {
                       child: SoftCard(
                         child: Row(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.add,
                               color: AppColors.accentIncome,
                             ),
@@ -316,7 +316,7 @@ class _ReminderFormScreenState extends State<_ReminderFormScreen> {
                 onTap: () => Navigator.of(context).pop(frequency),
                 title: Text(reminderFrequencyLabel(frequency)),
                 trailing: isSelected
-                    ? const Icon(
+                    ? Icon(
                         Icons.check,
                         color: AppColors.accentIncome,
                       )
@@ -526,7 +526,7 @@ class _ReminderFormScreenState extends State<_ReminderFormScreen> {
                                   style: theme.textTheme.bodyMedium,
                                 ),
                               ),
-                              const Icon(
+                              Icon(
                                 Icons.expand_more,
                                 color: AppColors.textSecondary,
                               ),

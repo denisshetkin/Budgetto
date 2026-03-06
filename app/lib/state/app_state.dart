@@ -54,8 +54,10 @@ class AppState extends ChangeNotifier {
   FamilyGroup? _family;
   bool _syncEnabled = false;
   bool _familyNotificationsEnabled = true;
+  ThemeMode _themeMode = ThemeMode.dark;
 
   static const _prefFcmToken = 'fcm_last_token';
+  static const _prefThemeMode = 'theme_mode';
 
   bool get isReady => _initialized;
   String? get currencyCode => _currencyCode;
@@ -64,6 +66,7 @@ class AppState extends ChangeNotifier {
   bool get isFamilyMode => _family != null;
   bool get syncEnabled => _syncEnabled;
   bool get familyNotificationsEnabled => _familyNotificationsEnabled;
+  ThemeMode get themeMode => _themeMode;
 
   List<TransactionEntry> get transactions => List.unmodifiable(_transactions);
   List<PlannedEntry> get plannedEntries => List.unmodifiable(_plannedEntries);
@@ -114,6 +117,19 @@ class AppState extends ChangeNotifier {
 
   void setSyncEnabled(bool value) {
     _syncEnabled = value;
+    notifyListeners();
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    if (_themeMode == mode) {
+      return;
+    }
+    _themeMode = mode;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _prefThemeMode,
+      mode == ThemeMode.light ? 'light' : 'dark',
+    );
     notifyListeners();
   }
 
@@ -1080,10 +1096,17 @@ class AppState extends ChangeNotifier {
     return _paymentMethods.firstWhere((method) => method.id == id);
   }
 
+  Future<void> _loadLocalPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    final theme = prefs.getString(_prefThemeMode);
+    _themeMode = theme == 'light' ? ThemeMode.light : ThemeMode.dark;
+  }
+
   Future<void> initialize() async {
     if (_initialized) {
       return;
     }
+    await _loadLocalPreferences();
     final user = await _ensureSignedIn();
     await _ensureUserDocument(user);
     _startFamilyListSync(user.uid);

@@ -221,7 +221,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         actions: [
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(
+            icon: Icon(
               Icons.close_rounded,
               color: AppColors.accentExpense,
             ),
@@ -230,7 +230,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           ),
           IconButton(
             onPressed: _save,
-            icon: const Icon(Icons.check_rounded, color: Color(0xFF9AD27A)),
+            icon: Icon(Icons.check_rounded, color: Color(0xFF9AD27A)),
             iconSize: 36,
             tooltip: 'Сохранить',
           ),
@@ -261,7 +261,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                             borderRadius: BorderRadius.circular(16),
                             child: Row(
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.calendar_month_outlined,
                                   size: 18,
                                 ),
@@ -287,7 +287,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                             borderRadius: BorderRadius.circular(16),
                             child: Row(
                               children: [
-                                const Icon(Icons.access_time, size: 18),
+                                Icon(Icons.access_time, size: 18),
                                 const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(

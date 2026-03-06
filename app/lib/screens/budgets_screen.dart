@@ -386,7 +386,15 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            const AppHeader(title: 'Бюджеты'),
+            AppHeader(
+              title: 'Бюджеты',
+              leading: Navigator.of(context).canPop()
+                  ? IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: Icon(Icons.arrow_back_rounded),
+                    )
+                  : null,
+            ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.all(20),
@@ -576,7 +584,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                                   ),
                                 );
                               },
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.copy_rounded,
                                 size: 18,
                                 color: AppColors.textSecondary,
@@ -659,8 +667,8 @@ class _BudgetRow extends StatelessWidget {
         title: Text(title),
         subtitle: Text(subtitle),
         trailing: isActive
-            ? const Icon(Icons.check_circle, color: AppColors.accentIncome)
-            : const Icon(Icons.circle_outlined, color: AppColors.textSecondary),
+            ? Icon(Icons.check_circle, color: AppColors.accentIncome)
+            : Icon(Icons.circle_outlined, color: AppColors.textSecondary),
         onTap: onTap,
       ),
     );

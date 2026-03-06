@@ -91,13 +91,13 @@ class CategoriesScreen extends StatelessWidget {
               leading: canPop
                   ? IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.arrow_back),
+                      icon: Icon(Icons.arrow_back),
                     )
                   : null,
               actions: [
                 IconButton(
                   onPressed: () => _openAddCategory(context, appState),
-                  icon: const Icon(Icons.add),
+                  icon: Icon(Icons.add),
                 ),
               ],
             ),
@@ -156,7 +156,7 @@ class CategoriesScreen extends StatelessWidget {
                                     appState,
                                     category: category,
                                   ),
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.edit,
                                     color: AppColors.accentIncome,
                                   ),
@@ -174,7 +174,7 @@ class CategoriesScreen extends StatelessWidget {
                                     appState,
                                     category,
                                   ),
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.delete,
                                     color: AppColors.accentExpense,
                                   ),
@@ -387,7 +387,7 @@ class _AddCategorySheetState extends State<_AddCategorySheet> {
                 ),
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.close_rounded,
                     color: AppColors.accentExpense,
                   ),
@@ -402,7 +402,7 @@ class _AddCategorySheetState extends State<_AddCategorySheet> {
                     }
                     widget.onSave(name, _selectedIcon, _selectedColor);
                   },
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.check_rounded,
                     color: Color(0xFF9AD27A),
                   ),
@@ -465,7 +465,7 @@ class _AddCategorySheetState extends State<_AddCategorySheet> {
                       shape: BoxShape.circle,
                       border: Border.all(color: AppColors.stroke, width: 1),
                     ),
-                    child: const Icon(Icons.palette_outlined, size: 20),
+                    child: Icon(Icons.palette_outlined, size: 20),
                   ),
                 ),
               ],

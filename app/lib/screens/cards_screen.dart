@@ -93,13 +93,13 @@ class CardsScreen extends StatelessWidget {
               leading: canPop
                   ? IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.arrow_back),
+                      icon: Icon(Icons.arrow_back),
                     )
                   : null,
               actions: [
                 IconButton(
                   onPressed: () => _openAddCard(context, appState),
-                  icon: const Icon(Icons.add),
+                  icon: Icon(Icons.add),
                 ),
               ],
             ),
@@ -168,7 +168,7 @@ class CardsScreen extends StatelessWidget {
                                           appState,
                                           method: method,
                                         ),
-                                        icon: const Icon(
+                                        icon: Icon(
                                           Icons.edit,
                                           color: AppColors.accentIncome,
                                         ),
@@ -187,7 +187,7 @@ class CardsScreen extends StatelessWidget {
                                           appState,
                                           method,
                                         ),
-                                        icon: const Icon(
+                                        icon: Icon(
                                           Icons.delete,
                                           color: AppColors.accentExpense,
                                         ),
@@ -383,7 +383,7 @@ class _AddCardSheetState extends State<_AddCardSheet> {
                 ),
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.close_rounded,
                     color: AppColors.accentExpense,
                   ),
@@ -398,7 +398,7 @@ class _AddCardSheetState extends State<_AddCardSheet> {
                     }
                     widget.onSave(name, _selectedIcon, _selectedColor);
                   },
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.check_rounded,
                     color: Color(0xFF9AD27A),
                   ),
@@ -464,7 +464,7 @@ class _AddCardSheetState extends State<_AddCardSheet> {
                       shape: BoxShape.circle,
                       border: Border.all(color: AppColors.stroke, width: 1),
                     ),
-                    child: const Icon(Icons.palette_outlined, size: 20),
+                    child: Icon(Icons.palette_outlined, size: 20),
                   ),
                 ),
               ],

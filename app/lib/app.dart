@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'screens/app_shell.dart';
 import 'state/app_state.dart';
+import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
 
 class SmartWalletApp extends StatefulWidget {
@@ -35,11 +36,19 @@ class _SmartWalletAppState extends State<SmartWalletApp> {
   Widget build(BuildContext context) {
     return AppStateScope(
       notifier: _appState,
-      child: MaterialApp(
-        title: 'Budgetto',
-        debugShowCheckedModeBanner: false,
-        theme: buildAppTheme(),
-        home: _ready ? const AppShell() : const _SplashScreen(),
+      child: AnimatedBuilder(
+        animation: _appState,
+        builder: (context, _) {
+          AppColors.setThemeMode(_appState.themeMode);
+          return MaterialApp(
+            title: 'Budgetto',
+            debugShowCheckedModeBanner: false,
+            theme: buildLightTheme(),
+            darkTheme: buildDarkTheme(),
+            themeMode: _appState.themeMode,
+            home: _ready ? const AppShell() : const _SplashScreen(),
+          );
+        },
       ),
     );
   }

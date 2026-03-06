@@ -1,66 +1,445 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import 'cards_screen.dart';
-import 'categories_screen.dart';
-import 'reminders_screen.dart';
-import 'tags_screen.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_header.dart';
-import '../widgets/currency_picker_sheet.dart';
 import '../widgets/soft_card.dart';
+import 'budgets_screen.dart';
+import 'cards_screen.dart';
+import 'categories_screen.dart';
+import 'planned_screen.dart';
+import 'reminders_screen.dart';
+import 'tags_screen.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
+  void _openScreen(BuildContext context, Widget screen) {
+    Navigator.of(context).push(CupertinoPageRoute(builder: (_) => screen));
+  }
+
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  Widget build(BuildContext context) {
+    final appState = AppStateScope.of(context);
+
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            const AppHeader(title: 'Настройки'),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  _SettingsMenuItem(
+                    icon: Icons.category_outlined,
+                    title: 'Категории',
+                    subtitle: 'Редактировать список категорий',
+                    onTap: () =>
+                        _openScreen(context, const CategoriesScreen()),
+                  ),
+                  const SizedBox(height: 12),
+                  _SettingsMenuItem(
+                    icon: Icons.sell_outlined,
+                    title: 'Теги',
+                    subtitle: 'Добавить и переименовать теги',
+                    onTap: () => _openScreen(context, const TagsScreen()),
+                  ),
+                  const SizedBox(height: 12),
+                  _SettingsMenuItem(
+                    icon: Icons.credit_card_outlined,
+                    title: 'Способы оплаты',
+                    subtitle: 'Карты и счета для операций',
+                    onTap: () => _openScreen(context, const CardsScreen()),
+                  ),
+                  const SizedBox(height: 12),
+                  _SettingsMenuItem(
+                    icon: Icons.account_balance_wallet_outlined,
+                    title: 'Бюджеты',
+                    subtitle: 'Лимиты и цели по категориям',
+                    onTap: () => _openScreen(context, const BudgetsScreen()),
+                  ),
+                  const SizedBox(height: 12),
+                  _SettingsMenuItem(
+                    icon: Icons.event_note_outlined,
+                    title: 'Регулярные платежи',
+                    subtitle: 'Плановые списания и напоминания',
+                    onTap: () => _openScreen(context, const PlannedScreen()),
+                  ),
+                  const SizedBox(height: 12),
+                  _SettingsMenuItem(
+                    icon: Icons.notifications_outlined,
+                    title: 'Напоминания',
+                    subtitle: 'Сценарии и уведомления',
+                    onTap: () => _openScreen(context, const RemindersScreen()),
+                  ),
+                  const SizedBox(height: 20),
+                  _SettingsMenuItem(
+                    icon: Icons.currency_exchange_outlined,
+                    title: 'Валюта',
+                    subtitle: 'Валюта отображения суммы',
+                    value: appState.currencyCode ?? 'Не выбрана',
+                    onTap: () =>
+                        _openScreen(context, const CurrencySettingsScreen()),
+                  ),
+                  const SizedBox(height: 12),
+                  _SettingsMenuItem(
+                    icon: Icons.dark_mode_outlined,
+                    title: 'Тема',
+                    subtitle: 'Темная или светлая тема',
+                    value: appState.themeMode == ThemeMode.light
+                        ? 'Светлая'
+                        : 'Темная',
+                    onTap: () =>
+                        _openScreen(context, const ThemeSettingsScreen()),
+                  ),
+                  const SizedBox(height: 12),
+                  _SettingsMenuItem(
+                    icon: Icons.sync_outlined,
+                    title: 'Синхронизация',
+                    subtitle: 'Статус и доступ к облаку',
+                    value: appState.syncEnabled ? 'Включена' : 'Выключена',
+                    onTap: () =>
+                        _openScreen(context, const SyncSettingsScreen()),
+                  ),
+                  const SizedBox(height: 12),
+                  _SettingsMenuItem(
+                    icon: Icons.storage_outlined,
+                    title: 'Данные',
+                    subtitle: 'Очистка и сброс приложения',
+                    onTap: () =>
+                        _openScreen(context, const DataSettingsScreen()),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
-  void _openCategories(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => const CategoriesScreen()),
-    );
-  }
+class _SettingsMenuItem extends StatelessWidget {
+  const _SettingsMenuItem({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.value,
+  });
 
-  void _openTags(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => const TagsScreen()),
-    );
-  }
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String? value;
+  final VoidCallback onTap;
 
-  void _openPaymentMethods(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => const CardsScreen()),
-    );
-  }
-
-  void _openReminders(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => const RemindersScreen()),
-    );
-  }
-
-  void _openCurrencyPicker(BuildContext context, AppState appState) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surface1,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+  @override
+  Widget build(BuildContext context) {
+    return SoftCard(
+      padding: EdgeInsets.zero,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.surface2,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.stroke, width: 1),
+                ),
+                child: Icon(icon, size: 20, color: AppColors.textSecondary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              if (value != null) ...[
+                const SizedBox(width: 8),
+                Text(
+                  value!,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                ),
+              ],
+              const SizedBox(width: 8),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textSecondary,
+              ),
+            ],
+          ),
+        ),
       ),
-      builder: (context) {
-        return CurrencyPickerSheet(
-          selectedCode: appState.currencyCode,
-          onSelected: (code) {
-            appState.setCurrency(code);
-            Navigator.of(context).pop();
-          },
-        );
-      },
     );
   }
+}
 
+class CurrencySettingsScreen extends StatelessWidget {
+  const CurrencySettingsScreen({super.key});
+
+  static const List<Map<String, String>> _currencies = [
+    {'code': 'USD', 'name': 'Доллар США'},
+    {'code': 'EUR', 'name': 'Евро'},
+    {'code': 'GBP', 'name': 'Фунт стерлингов'},
+    {'code': 'UAH', 'name': 'Гривна'},
+    {'code': 'JPY', 'name': 'Йена'},
+    {'code': 'RUB', 'name': 'Рубль'},
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = AppStateScope.of(context);
+
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            AppHeader(
+              title: 'Валюта',
+              leading: IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.arrow_back_rounded),
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: _currencies.map((currency) {
+                  final code = currency['code']!;
+                  final name = currency['name']!;
+                  final isSelected = code == appState.currencyCode;
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: SoftCard(
+                      padding: EdgeInsets.zero,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: () => appState.setCurrency(code),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  name,
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ),
+                              Text(
+                                code,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(color: AppColors.textSecondary),
+                              ),
+                              const SizedBox(width: 10),
+                              Icon(
+                                isSelected
+                                    ? Icons.check_circle
+                                    : Icons.circle_outlined,
+                                color: isSelected
+                                    ? AppColors.accentIncome
+                                    : AppColors.textSecondary,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ThemeSettingsScreen extends StatelessWidget {
+  const ThemeSettingsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = AppStateScope.of(context);
+
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            AppHeader(
+              title: 'Тема',
+              leading: IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.arrow_back_rounded),
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  SoftCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Оформление',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                        const SizedBox(height: 12),
+                        SegmentedButton<ThemeMode>(
+                          segments: const [
+                            ButtonSegment(
+                              value: ThemeMode.dark,
+                              label: Text('Темная'),
+                            ),
+                            ButtonSegment(
+                              value: ThemeMode.light,
+                              label: Text('Светлая'),
+                            ),
+                          ],
+                          selected: {appState.themeMode},
+                          onSelectionChanged: (selection) {
+                            appState.setThemeMode(selection.first);
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Тема влияет на фон, карточки и оттенки интерфейса.',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class SyncSettingsScreen extends StatelessWidget {
+  const SyncSettingsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = AppStateScope.of(context);
+    final status = appState.syncEnabled ? 'Включена' : 'Выключена';
+    final statusColor = appState.syncEnabled
+        ? AppColors.accentDisplay
+        : AppColors.textSecondary;
+
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            AppHeader(
+              title: 'Синхронизация',
+              leading: IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.arrow_back_rounded),
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  SoftCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Статус',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Синхронизация данных',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                            Text(
+                              status,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: statusColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Синхронизация нужна для хранения данных в облаке и совместного бюджета.',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class DataSettingsScreen extends StatefulWidget {
+  const DataSettingsScreen({super.key});
+
+  @override
+  State<DataSettingsScreen> createState() => _DataSettingsScreenState();
+}
+
+class _DataSettingsScreenState extends State<DataSettingsScreen> {
   Future<void> _confirmClearTransactions(
     BuildContext context,
     AppState appState,
@@ -90,9 +469,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!context.mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Операции очищены')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Операции очищены')),
+      );
     }
   }
 
@@ -128,9 +507,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!context.mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Аккаунт сброшен')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Аккаунт сброшен')),
+      );
     }
   }
 
@@ -142,7 +521,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            const AppHeader(title: 'Настройки'),
+            AppHeader(
+              title: 'Данные',
+              leading: IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.arrow_back_rounded),
+              ),
+            ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.all(20),
@@ -152,146 +537,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Справочники',
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 12),
-                        InkWell(
-                          onTap: () => _openCategories(context),
-                          borderRadius: BorderRadius.circular(16),
-                          child: const _SettingsRow(
-                            title: 'Категории',
-                            trailing: Icon(
-                              Icons.chevron_right_rounded,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        InkWell(
-                          onTap: () => _openTags(context),
-                          borderRadius: BorderRadius.circular(16),
-                          child: const _SettingsRow(
-                            title: 'Теги',
-                            trailing: Icon(
-                              Icons.chevron_right_rounded,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        InkWell(
-                          onTap: () => _openPaymentMethods(context),
-                          borderRadius: BorderRadius.circular(16),
-                          child: const _SettingsRow(
-                            title: 'Способы оплаты',
-                            trailing: Icon(
-                              Icons.chevron_right_rounded,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SoftCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Планирование',
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 12),
-                        InkWell(
-                          onTap: () => _openReminders(context),
-                          borderRadius: BorderRadius.circular(16),
-                          child: const _SettingsRow(
-                            title: 'Напоминания',
-                            trailing: Icon(
-                              Icons.chevron_right_rounded,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (appState.isFamilyMode) ...[
-                    SoftCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Уведомления',
-                            style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  'Операции семьи',
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.bodyMedium,
-                                ),
+                          'Управление данными',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
                               ),
-                              Switch(
-                                value: appState.familyNotificationsEnabled,
-                                onChanged: (value) {
-                                  appState.setFamilyNotificationsEnabled(value);
-                                },
-                              ),
-                            ],
-                          ),
-                          Text(
-                            'Получать уведомления, когда участники семьи добавляют расходы',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: AppColors.textSecondary),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                  SoftCard(
-                    child: Column(
-                      children: [
-                        InkWell(
-                          onTap: () => _openCurrencyPicker(context, appState),
-                          borderRadius: BorderRadius.circular(16),
-                          child: _SettingsRow(
-                            title: 'Валюта',
-                            value: appState.currencyCode ?? 'Не выбрана',
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        _SettingsRow(
-                          title: 'Синхронизация',
-                          value: appState.syncEnabled
-                              ? 'Включена'
-                              : 'Выключена',
-                        ),
-                        const SizedBox(height: 12),
-                        const _SettingsRow(title: 'Тема', value: 'Темная'),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SoftCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Данные',
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 12),
                         SizedBox(
@@ -323,32 +572,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _SettingsRow extends StatelessWidget {
-  const _SettingsRow({required this.title, this.value, this.trailing});
-
-  final String title;
-  final String? value;
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(title, style: Theme.of(context).textTheme.bodyMedium),
-        ),
-        Text(
-          value ?? '—',
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
-        ),
-        if (trailing != null) ...[const SizedBox(width: 6), trailing!],
-      ],
     );
   }
 }

@@ -85,11 +85,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     title: const Text('Личный бюджет'),
                     subtitle: const Text('Только для тебя'),
                     trailing: !appState.isFamilyMode
-                        ? const Icon(
+                        ? Icon(
                             Icons.check_circle,
                             color: AppColors.accentIncome,
                           )
-                        : const Icon(
+                        : Icon(
                             Icons.circle_outlined,
                             color: AppColors.textSecondary,
                           ),
@@ -109,11 +109,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         title: Text(family.name),
                         subtitle: Text(family.inviteCode),
                         trailing: isActive
-                            ? const Icon(
+                            ? Icon(
                                 Icons.check_circle,
                                 color: AppColors.accentIncome,
                               )
-                            : const Icon(
+                            : Icon(
                                 Icons.circle_outlined,
                                 color: AppColors.textSecondary,
                               ),
@@ -830,7 +830,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.calendar_month,
                             size: 18,
                             color: AppColors.textSecondary,
@@ -876,7 +876,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                         .bodyMedium
                                         ?.copyWith(fontWeight: FontWeight.w600),
                                   ),
-                                  const Icon(
+                                  Icon(
                                     Icons.expand_more,
                                     size: 18,
                                     color: AppColors.textSecondary,
@@ -1518,10 +1518,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               },
               backgroundColor: Colors.transparent,
               autoClose: false,
-              child: const Align(
+              child: Align(
                 alignment: Alignment.centerRight,
                 child: Padding(
-                  padding: EdgeInsets.only(right: 0),
+                  padding: const EdgeInsets.only(right: 0),
                   child: SlideActionIcon(
                     icon: Icons.edit,
                     color: AppColors.accentIncome,
@@ -1533,10 +1533,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               onPressed: (_) => _confirmDelete(context, appState, entry),
               backgroundColor: Colors.transparent,
               autoClose: false,
-              child: const Align(
+              child: Align(
                 alignment: Alignment.centerRight,
                 child: Padding(
-                  padding: EdgeInsets.only(right: 0),
+                  padding: const EdgeInsets.only(right: 0),
                   child: SlideActionIcon(
                     icon: Icons.delete,
                     color: AppColors.accentExpense,
@@ -1834,7 +1834,7 @@ class _BudgetChip extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 4),
-            const Icon(
+            Icon(
               Icons.expand_more,
               size: 16,
               color: AppColors.textSecondary,
@@ -1851,19 +1851,20 @@ class _FilterPill extends StatelessWidget {
     required this.label,
     required this.active,
     required this.onTap,
-    this.accentColor = AppColors.accentIncome,
+    this.accentColor,
     this.icon,
   });
 
   final String label;
   final bool active;
   final VoidCallback onTap;
-  final Color accentColor;
+  final Color? accentColor;
   final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
     final radius = 18.0;
+    final resolvedAccentColor = accentColor ?? AppColors.accentIncome;
     final backgroundColor = active ? AppColors.surface2 : AppColors.surface1;
     return InkWell(
       onTap: onTap,
@@ -1874,7 +1875,7 @@ class _FilterPill extends StatelessWidget {
           color: backgroundColor,
           borderRadius: BorderRadius.circular(radius),
           border: Border.all(
-            color: active ? accentColor : AppColors.stroke,
+            color: active ? resolvedAccentColor : AppColors.stroke,
             width: 1,
           ),
         ),
@@ -1893,13 +1894,13 @@ class _FilterPill extends StatelessWidget {
                     children: [
                       Icon(icon, size: 16, color: AppColors.textPrimary),
                       const SizedBox(width: 6),
-                      Text(
-                        label,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
                     ],
                   )),
       ),
@@ -1957,7 +1958,7 @@ class _DateRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
         child: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.schedule,
               size: 16,
               color: AppColors.textSecondary,
