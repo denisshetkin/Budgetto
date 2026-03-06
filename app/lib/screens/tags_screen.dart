@@ -79,7 +79,7 @@ class TagsScreen extends StatelessWidget {
     final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
-      body: SafeArea(
+      body: SafeArea(top: false,
         child: Column(
           children: [
             AppHeader(

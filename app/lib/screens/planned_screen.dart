@@ -213,7 +213,7 @@ class PlannedScreen extends StatelessWidget {
     final entries = appState.plannedEntries;
 
     return Scaffold(
-      body: SafeArea(
+      body: SafeArea(top: false,
         child: Column(
           children: [
             AppHeader(
@@ -245,6 +245,7 @@ class PlannedScreen extends StatelessWidget {
                       )
                     : SlidableAutoCloseBehavior(
                         child: ListView.separated(
+                          padding: EdgeInsets.zero,
                           itemCount: entries.length,
                           separatorBuilder: (_, __) => const SizedBox(height: 8),
                           itemBuilder: (context, index) {
@@ -693,7 +694,7 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
           const SizedBox(width: 6),
         ],
       ),
-      body: SafeArea(
+      body: SafeArea(top: false,
         child: SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + bottomInset),
           child: Column(

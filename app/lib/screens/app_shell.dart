@@ -42,9 +42,9 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final chrome = AppColors.chrome;
     final navIndicator =
-        Color.lerp(colorScheme.surface, colorScheme.primary, 0.18) ??
-            colorScheme.surface;
+        Color.lerp(chrome, colorScheme.primary, 0.18) ?? chrome;
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _screens),
       floatingActionButton: Transform.scale(
@@ -65,7 +65,7 @@ class _AppShellState extends State<AppShell> {
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: colorScheme.surface,
+          color: chrome,
           border: Border(top: BorderSide(color: theme.dividerColor, width: 1)),
         ),
         child: NavigationBarTheme(
@@ -75,7 +75,7 @@ class _AppShellState extends State<AppShell> {
           ),
           child: NavigationBar(
             height: 68,
-            backgroundColor: colorScheme.surface,
+            backgroundColor: chrome,
             indicatorColor: Colors.transparent,
             selectedIndex: _currentIndex,
             onDestinationSelected: (index) {

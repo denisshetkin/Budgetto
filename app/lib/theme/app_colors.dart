@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 class AppPalette {
   const AppPalette({
     required this.background,
+    required this.chrome,
     required this.surface1,
     required this.surface2,
     required this.stroke,
@@ -19,6 +20,7 @@ class AppPalette {
   });
 
   final Color background;
+  final Color chrome;
   final Color surface1;
   final Color surface2;
   final Color stroke;
@@ -36,6 +38,7 @@ class AppPalette {
 class AppColors {
   static const AppPalette dark = AppPalette(
     background: Color(0xFF0B1220),
+    chrome: Color(0xFF16213A),
     surface1: Color(0xFF16213A),
     surface2: Color(0xFF1E2B4C),
     stroke: Color(0xFF2B3A5C),
@@ -63,6 +66,7 @@ class AppColors {
 
   static const AppPalette light = AppPalette(
     background: Color(0xFFE6EBF3),
+    chrome: Color(0xFFB7CDF2),
     surface1: Color(0xFFF0F3F9),
     surface2: Color(0xFFDDE5F1),
     stroke: Color(0xFFC4CEDD),
@@ -95,6 +99,7 @@ class AppColors {
   }
 
   static Color get background => _palette.background;
+  static Color get chrome => _palette.chrome;
   static Color get surface1 => _palette.surface1;
   static Color get surface2 => _palette.surface2;
   static Color get stroke => _palette.stroke;

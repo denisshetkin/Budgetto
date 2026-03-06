@@ -152,7 +152,7 @@ class RemindersScreen extends StatelessWidget {
     final reminders = appState.reminders;
 
     return Scaffold(
-      body: SafeArea(
+      body: SafeArea(top: false,
         child: Column(
           children: [
             AppHeader(
@@ -191,6 +191,7 @@ class RemindersScreen extends StatelessWidget {
                             )
                           : SlidableAutoCloseBehavior(
                               child: ListView.separated(
+                                padding: EdgeInsets.zero,
                                 itemCount: reminders.length,
                                 separatorBuilder: (_, __) =>
                                     const SizedBox(height: 8),
@@ -560,7 +561,7 @@ class _ReminderFormScreenState extends State<_ReminderFormScreen> {
           child: Container(height: 1, color: AppColors.stroke),
         ),
       ),
-      body: SafeArea(
+      body: SafeArea(top: false,
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
           child: Column(

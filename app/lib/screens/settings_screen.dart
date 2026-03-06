@@ -24,7 +24,7 @@ class SettingsScreen extends StatelessWidget {
     final appState = AppStateScope.of(context);
 
     return Scaffold(
-      body: SafeArea(
+      body: SafeArea(top: false,
         child: Column(
           children: [
             AppHeader(
@@ -215,7 +215,7 @@ class CurrencySettingsScreen extends StatelessWidget {
     final appState = AppStateScope.of(context);
 
     return Scaffold(
-      body: SafeArea(
+      body: SafeArea(top: false,
         child: Column(
           children: [
             AppHeader(
@@ -293,7 +293,7 @@ class ThemeSettingsScreen extends StatelessWidget {
     final appState = AppStateScope.of(context);
 
     return Scaffold(
-      body: SafeArea(
+      body: SafeArea(top: false,
         child: Column(
           children: [
             AppHeader(
@@ -366,7 +366,7 @@ class SyncSettingsScreen extends StatelessWidget {
         : AppColors.textSecondary;
 
     return Scaffold(
-      body: SafeArea(
+      body: SafeArea(top: false,
         child: Column(
           children: [
             AppHeader(
@@ -516,7 +516,7 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
     final appState = AppStateScope.of(context);
 
     return Scaffold(
-      body: SafeArea(
+      body: SafeArea(top: false,
         child: Column(
           children: [
             AppHeader(

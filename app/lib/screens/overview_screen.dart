@@ -100,7 +100,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
     const horizontalInset = 12.0;
 
     return Scaffold(
-      body: SafeArea(
+      body: SafeArea(top: false,
         child: Column(
           children: [
             AppHeader(

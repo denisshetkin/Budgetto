@@ -1596,7 +1596,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         _groupByDate ? _groupedItems(filteredTransactions) : const <Object>[];
 
     return Scaffold(
-      body: SafeArea(
+      body: SafeArea(top: false,
         child: Column(
           children: [
             AppHeader(
@@ -1678,6 +1678,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               : SlidableAutoCloseBehavior(
                                   child: _groupByDate
                                       ? ListView.builder(
+                                          padding: EdgeInsets.zero,
                                           itemCount: groupedItems.length,
                                           itemBuilder: (context, index) {
                                             final item = groupedItems[index];
@@ -1696,6 +1697,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                           },
                                         )
                                       : ListView.separated(
+                                          padding: EdgeInsets.zero,
                                           itemCount:
                                               filteredTransactions.length,
                                           separatorBuilder: (_, index) =>

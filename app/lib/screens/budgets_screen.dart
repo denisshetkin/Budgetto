@@ -383,7 +383,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     }
 
     return Scaffold(
-      body: SafeArea(
+      body: SafeArea(top: false,
         child: Column(
           children: [
             AppHeader(
