@@ -11,6 +11,7 @@ class TransactionRow extends StatelessWidget {
     required this.symbol,
     this.showCategoryIcon = true,
     this.showPaymentIcon = true,
+    this.showTags = true,
     this.authorName,
   });
 
@@ -18,6 +19,7 @@ class TransactionRow extends StatelessWidget {
   final String symbol;
   final bool showCategoryIcon;
   final bool showPaymentIcon;
+  final bool showTags;
   final String? authorName;
 
   @override
@@ -82,7 +84,7 @@ class TransactionRow extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              if (tags.isNotEmpty) ...[
+              if (showTags && tags.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Wrap(
                   spacing: 6,

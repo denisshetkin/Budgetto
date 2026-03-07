@@ -15,17 +15,9 @@
                     </layoutGuides>
                     <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <subviews>
-                            <label opaque="NO" text="Budgetto" textAlignment="center" translatesAutoresizingMaskIntoConstraints="NO" id="bFY-fB-k86">
-                                <fontDescription key="fontDescription" type="system" weight="bold" pointSize="28"/>
-                                <color key="textColor" red="0.933" green="0.945" blue="0.973" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                            </label>
-                        </subviews>
+                        <subviews/>
                         <color key="backgroundColor" red="0.043" green="0.071" blue="0.125" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                        <constraints>
-                            <constraint firstItem="bFY-fB-k86" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="dS5-3B-MhA"/>
-                            <constraint firstItem="bFY-fB-k86" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="l1P-sQ-9tK"/>
-                        </constraints>
+                        <constraints/>
                     </view>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>

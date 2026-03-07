@@ -19,6 +19,7 @@ class _SearchScreenState extends State<SearchScreen> {
   SearchType _type = SearchType.all;
   final Set<String> _selectedCategoryIds = {};
   final Set<String> _selectedMethodIds = {};
+  final Set<String> _selectedTagIds = {};
   DateTime? _fromDate;
   TimeOfDay? _fromTime;
   DateTime? _toDate;
@@ -29,16 +30,19 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final appState = AppStateScope.of(context);
+    _syncSelection(
+      _selectedCategoryIds,
+      appState.categories.map((category) => category.id),
+    );
+    _syncSelection(
+      _selectedMethodIds,
+      appState.paymentMethods.map((method) => method.id),
+    );
+    _syncSelection(_selectedTagIds, appState.tags.map((tag) => tag.id));
     if (_initialized) {
       return;
     }
-    final appState = AppStateScope.of(context);
-    _selectedCategoryIds.addAll(
-      appState.categories.map((category) => category.id),
-    );
-    _selectedMethodIds.addAll(
-      appState.paymentMethods.map((method) => method.id),
-    );
     _initialized = true;
   }
 
@@ -99,6 +103,19 @@ class _SearchScreenState extends State<SearchScreen> {
     return DateTime(date.year, date.month, date.day, t.hour, t.minute);
   }
 
+  void _syncSelection(Set<String> selected, Iterable<String> availableIds) {
+    final available = availableIds.toSet();
+    final shouldSyncAll =
+        selected.isEmpty || selected.length == available.length;
+    if (shouldSyncAll) {
+      selected
+        ..clear()
+        ..addAll(available);
+      return;
+    }
+    selected.removeWhere((id) => !available.contains(id));
+  }
+
   List<TransactionEntry> _applyFilters(List<TransactionEntry> source) {
     final query = _queryController.text.trim().toLowerCase();
     final from = _combine(_fromDate, _fromTime);
@@ -120,6 +137,14 @@ class _SearchScreenState extends State<SearchScreen> {
           !_selectedMethodIds.contains(entry.paymentMethod.id)) {
         return false;
       }
+      if (_selectedTagIds.isNotEmpty) {
+        final hasTag = entry.tags.any(
+          (tag) => _selectedTagIds.contains(tag.id),
+        );
+        if (!hasTag) {
+          return false;
+        }
+      }
       if (from != null && entry.date.isBefore(from)) {
         return false;
       }
@@ -129,7 +154,10 @@ class _SearchScreenState extends State<SearchScreen> {
       if (query.isNotEmpty) {
         final note = (entry.note ?? '').toLowerCase();
         final category = entry.categoryName.toLowerCase();
-        if (!note.contains(query) && !category.contains(query)) {
+        final hasTag = entry.tags.any(
+          (tag) => tag.name.toLowerCase().contains(query),
+        );
+        if (!note.contains(query) && !category.contains(query) && !hasTag) {
           return false;
         }
       }
@@ -146,6 +174,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final transactions = _applyFilters(appState.transactions);
     final symbol = appState.currencySymbol();
     final categories = appState.categories;
+    final tags = appState.tags;
     final methods = appState.paymentMethods;
 
     return Scaffold(
@@ -164,7 +193,7 @@ class _SearchScreenState extends State<SearchScreen> {
               child: TextField(
                 controller: _queryController,
                 decoration: const InputDecoration(
-                  hintText: 'Поиск по описанию или категории',
+                  hintText: 'Поиск по описанию, категории или тегу',
                 ),
                 onChanged: (_) => setState(() {}),
               ),
@@ -233,6 +262,76 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            SoftCard(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: Theme(
+                data: Theme.of(
+                  context,
+                ).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  title: const Text('Теги'),
+                  initiallyExpanded: false,
+                  collapsedIconColor: AppColors.textSecondary,
+                  iconColor: AppColors.textSecondary,
+                  shape: const RoundedRectangleBorder(
+                    side: BorderSide(color: Colors.transparent),
+                  ),
+                  collapsedShape: const RoundedRectangleBorder(
+                    side: BorderSide(color: Colors.transparent),
+                  ),
+                  tilePadding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 2,
+                  ),
+                  childrenPadding: const EdgeInsets.only(
+                    bottom: 8,
+                    left: 4,
+                    right: 4,
+                  ),
+                  children: [
+                    if (tags.isEmpty)
+                      Text(
+                        'Теги пока не добавлены',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      )
+                    else
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: tags.map((tag) {
+                          final isSelected = _selectedTagIds.contains(tag.id);
+                          return FilterChip(
+                            label: Text(tag.name),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              setState(() {
+                                if (selected) {
+                                  _selectedTagIds.add(tag.id);
+                                } else {
+                                  _selectedTagIds.remove(tag.id);
+                                }
+                              });
+                            },
+                            selectedColor: AppColors.surface2,
+                            checkmarkColor: AppColors.accentIncome,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            visualDensity: VisualDensity.compact,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            labelStyle: Theme.of(context).textTheme.bodySmall,
+                          );
+                        }).toList(),
+                      ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 12),

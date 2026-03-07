@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/category_entry.dart';
@@ -27,6 +28,7 @@ class AppState extends ChangeNotifier {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _categoriesSub;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _plannedSub;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _remindersSub;
@@ -67,6 +69,13 @@ class AppState extends ChangeNotifier {
   bool get syncEnabled => _syncEnabled;
   bool get familyNotificationsEnabled => _familyNotificationsEnabled;
   ThemeMode get themeMode => _themeMode;
+  bool get isAnonymousUser => _auth.currentUser?.isAnonymous ?? true;
+  bool get isGoogleSignedIn =>
+      _auth.currentUser?.providerData.any(
+        (info) => info.providerId == 'google.com',
+      ) ??
+      false;
+  String? get currentUserEmail => _auth.currentUser?.email;
 
   List<TransactionEntry> get transactions => List.unmodifiable(_transactions);
   List<PlannedEntry> get plannedEntries => List.unmodifiable(_plannedEntries);
@@ -644,8 +653,7 @@ class AppState extends ChangeNotifier {
       if (entry.tags.isEmpty) {
         continue;
       }
-      final updatedTags =
-          entry.tags.where((tag) => tag.id != id).toList();
+      final updatedTags = entry.tags.where((tag) => tag.id != id).toList();
       if (updatedTags.length != entry.tags.length) {
         _transactions[i] = TransactionEntry(
           id: entry.id,
@@ -669,8 +677,7 @@ class AppState extends ChangeNotifier {
       if (entry.tags.isEmpty) {
         continue;
       }
-      final updatedTags =
-          entry.tags.where((tag) => tag.id != id).toList();
+      final updatedTags = entry.tags.where((tag) => tag.id != id).toList();
       if (updatedTags.length != entry.tags.length) {
         final updatedEntry = PlannedEntry(
           id: entry.id,
@@ -860,12 +867,8 @@ class AppState extends ChangeNotifier {
     List<PlannedEntry> previous,
     List<PlannedEntry> current,
   ) {
-    final prevMap = {
-      for (final entry in previous) entry.id: entry,
-    };
-    final currentMap = {
-      for (final entry in current) entry.id: entry,
-    };
+    final prevMap = {for (final entry in previous) entry.id: entry};
+    final currentMap = {for (final entry in current) entry.id: entry};
 
     for (final entry in previous) {
       if (!currentMap.containsKey(entry.id)) {
@@ -1018,12 +1021,8 @@ class AppState extends ChangeNotifier {
     List<ReminderEntry> previous,
     List<ReminderEntry> current,
   ) {
-    final prevMap = {
-      for (final entry in previous) entry.id: entry,
-    };
-    final currentMap = {
-      for (final entry in current) entry.id: entry,
-    };
+    final prevMap = {for (final entry in previous) entry.id: entry};
+    final currentMap = {for (final entry in current) entry.id: entry};
 
     for (final entry in previous) {
       if (!currentMap.containsKey(entry.id)) {
@@ -1113,6 +1112,10 @@ class AppState extends ChangeNotifier {
     }
     await _loadLocalPreferences();
     final user = await _ensureSignedIn();
+    await _loadUserContext(user);
+  }
+
+  Future<void> _loadUserContext(User user) async {
     await _ensureUserDocument(user);
     _startFamilyListSync(user.uid);
 
@@ -1181,22 +1184,94 @@ class AppState extends ChangeNotifier {
     }, SetOptions(merge: true));
   }
 
+  String _resolveProvider(User user) {
+    if (user.isAnonymous) {
+      return 'anonymous';
+    }
+    for (final info in user.providerData) {
+      if (info.providerId == 'google.com') {
+        return 'google';
+      }
+    }
+    return user.providerData.isNotEmpty
+        ? user.providerData.first.providerId
+        : 'unknown';
+  }
+
+  void _applyAuthUser(User user) {
+    final provider = _resolveProvider(user);
+    final displayName = user.displayName?.trim() ?? '';
+    if (displayName.isNotEmpty) {
+      _memberNames[user.uid] = displayName;
+    }
+    _currentUser = _currentUser.copyWith(
+      id: user.uid,
+      provider: provider,
+      name: displayName.isNotEmpty ? displayName : _currentUser.name,
+    );
+  }
+
   Future<User> _ensureSignedIn() async {
     final current = _auth.currentUser;
     if (current != null) {
-      final provider = current.providerData.isNotEmpty
-          ? current.providerData.first.providerId
-          : null;
-      _currentUser = _currentUser.copyWith(
-        id: current.uid,
-        provider: current.isAnonymous ? 'anonymous' : provider,
-      );
+      _applyAuthUser(current);
       return current;
     }
     final credential = await _auth.signInAnonymously();
     final user = credential.user!;
     _currentUser = _currentUser.copyWith(id: user.uid, provider: 'anonymous');
     return user;
+  }
+
+  Future<void> _syncAuthProfile(User user) async {
+    final updates = <String, dynamic>{'provider': _currentUser.provider};
+    final displayName = user.displayName?.trim() ?? '';
+    if (displayName.isNotEmpty) {
+      updates['name'] = displayName;
+    }
+    await _updateUserField(updates);
+  }
+
+  Future<bool> signInWithGoogle() async {
+    final googleUser = await _googleSignIn.signIn();
+    if (googleUser == null) {
+      return false;
+    }
+    final googleAuth = await googleUser.authentication;
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    final current = _auth.currentUser;
+    final previousUserId = current?.uid;
+    UserCredential result;
+    try {
+      if (current != null && current.isAnonymous) {
+        result = await current.linkWithCredential(credential);
+      } else {
+        result = await _auth.signInWithCredential(credential);
+      }
+    } on FirebaseAuthException catch (error) {
+      if (error.code == 'credential-already-in-use' ||
+          error.code == 'account-exists-with-different-credential') {
+        result = await _auth.signInWithCredential(credential);
+      } else {
+        rethrow;
+      }
+    }
+
+    final user = result.user!;
+    _applyAuthUser(user);
+    await _ensureUserDocument(user);
+    await _syncAuthProfile(user);
+
+    if (previousUserId != null && previousUserId != user.uid) {
+      await _loadUserContext(user);
+    } else {
+      notifyListeners();
+    }
+    return true;
   }
 
   Future<void> _ensureUserDocument(User user) async {
@@ -1553,8 +1628,7 @@ class AppState extends ChangeNotifier {
       }
     }
 
-    final tagRef =
-        _db.collection('budgets').doc(budgetId).collection('tags');
+    final tagRef = _db.collection('budgets').doc(budgetId).collection('tags');
     final tagSnap = await tagRef.limit(1).get();
     if (tagSnap.docs.isEmpty) {
       for (var i = 0; i < _tags.length; i++) {
@@ -1568,8 +1642,10 @@ class AppState extends ChangeNotifier {
       }
     }
 
-    final plannedRef =
-        _db.collection('budgets').doc(budgetId).collection('planned');
+    final plannedRef = _db
+        .collection('budgets')
+        .doc(budgetId)
+        .collection('planned');
     final plannedSnap = await plannedRef.limit(1).get();
     if (plannedSnap.docs.isEmpty) {
       for (var i = 0; i < _plannedEntries.length; i++) {
@@ -1581,8 +1657,10 @@ class AppState extends ChangeNotifier {
       }
     }
 
-    final remindersRef =
-        _db.collection('budgets').doc(budgetId).collection('reminders');
+    final remindersRef = _db
+        .collection('budgets')
+        .doc(budgetId)
+        .collection('reminders');
     final remindersSnap = await remindersRef.limit(1).get();
     if (remindersSnap.docs.isEmpty) {
       for (var i = 0; i < _reminders.length; i++) {
@@ -1688,8 +1766,7 @@ class AppState extends ChangeNotifier {
     final data = doc.data()!;
     final createdAt =
         (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-    final startsAt =
-        (data['startsAt'] as Timestamp?)?.toDate() ?? createdAt;
+    final startsAt = (data['startsAt'] as Timestamp?)?.toDate() ?? createdAt;
     final frequency = _reminderFrequencyFromString(
       data['frequency'] as String?,
     );
@@ -2087,8 +2164,11 @@ class AppState extends ChangeNotifier {
     final batch = _db.batch();
     for (var i = 0; i < _tags.length; i++) {
       final tag = _tags[i];
-      final ref =
-          _db.collection('budgets').doc(_budgetId).collection('tags').doc(tag.id);
+      final ref = _db
+          .collection('budgets')
+          .doc(_budgetId)
+          .collection('tags')
+          .doc(tag.id);
       batch.set(ref, {'order': i}, SetOptions(merge: true));
     }
     await batch.commit();
@@ -2217,8 +2297,7 @@ class AppState extends ChangeNotifier {
     for (final doc in query.docs) {
       final data = doc.data();
       final tags = _tagsFromMapList(data['tags'] as List<dynamic>?);
-      final updatedTags =
-          tags.where((entry) => entry.id != tagId).toList();
+      final updatedTags = tags.where((entry) => entry.id != tagId).toList();
       batch.set(doc.reference, {
         'tags': updatedTags.map(_tagToMap).toList(),
         'tagIds': updatedTags.map((entry) => entry.id).toList(),
@@ -2241,8 +2320,7 @@ class AppState extends ChangeNotifier {
     for (final doc in query.docs) {
       final data = doc.data();
       final tags = _tagsFromMapList(data['tags'] as List<dynamic>?);
-      final updatedTags =
-          tags.where((entry) => entry.id != tagId).toList();
+      final updatedTags = tags.where((entry) => entry.id != tagId).toList();
       batch.set(doc.reference, {
         'tags': updatedTags.map(_tagToMap).toList(),
         'tagIds': updatedTags.map((entry) => entry.id).toList(),

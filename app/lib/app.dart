@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'screens/app_shell.dart';
 import 'state/app_state.dart';
@@ -15,6 +16,7 @@ class SmartWalletApp extends StatefulWidget {
 class _SmartWalletAppState extends State<SmartWalletApp> {
   final AppState _appState = AppState();
   bool _ready = false;
+  bool _fontsReady = false;
 
   @override
   void initState() {
@@ -23,6 +25,14 @@ class _SmartWalletAppState extends State<SmartWalletApp> {
   }
 
   Future<void> _bootstrap() async {
+    final fontStyle = GoogleFonts.sacramento();
+    await GoogleFonts.pendingFonts([fontStyle]);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _fontsReady = true;
+    });
     await _appState.initialize();
     if (!mounted) {
       return;
@@ -46,10 +56,25 @@ class _SmartWalletAppState extends State<SmartWalletApp> {
             theme: buildLightTheme(),
             darkTheme: buildDarkTheme(),
             themeMode: _appState.themeMode,
-            home: _ready ? const AppShell() : const _SplashScreen(),
+            home: _ready
+                ? const AppShell()
+                : (_fontsReady
+                    ? const _SplashScreen()
+                    : const _BlankScreen()),
           );
         },
       ),
+    );
+  }
+}
+
+class _BlankScreen extends StatelessWidget {
+  const _BlankScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: SizedBox.expand(),
     );
   }
 }
@@ -59,9 +84,31 @@ class _SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    final colorScheme = Theme.of(context).colorScheme;
+    return Scaffold(
       body: Center(
-        child: CircularProgressIndicator(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Budgetto',
+              style: GoogleFonts.sacramento(
+                fontSize: 64,
+                fontWeight: FontWeight.w600,
+                color: colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: colorScheme.primary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

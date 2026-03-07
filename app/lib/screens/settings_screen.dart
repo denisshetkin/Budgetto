@@ -24,7 +24,8 @@ class SettingsScreen extends StatelessWidget {
     final appState = AppStateScope.of(context);
 
     return Scaffold(
-      body: SafeArea(top: false,
+      body: SafeArea(
+        top: false,
         child: Column(
           children: [
             AppHeader(
@@ -61,8 +62,7 @@ class SettingsScreen extends StatelessWidget {
                     title: 'Категории',
                     subtitle: 'Редактировать список категорий',
                     iconColor: AppColors.categoryPalette[4],
-                    onTap: () =>
-                        _openScreen(context, const CategoriesScreen()),
+                    onTap: () => _openScreen(context, const CategoriesScreen()),
                   ),
                   const SizedBox(height: 8),
                   _SettingsMenuItem(
@@ -93,6 +93,15 @@ class SettingsScreen extends StatelessWidget {
                     iconColor: AppColors.accentNeutral,
                     onTap: () =>
                         _openScreen(context, const ThemeSettingsScreen()),
+                  ),
+                  const SizedBox(height: 8),
+                  _SettingsMenuItem(
+                    icon: Icons.sync_rounded,
+                    title: 'Синхронизация',
+                    subtitle: 'Вход и перенос прогресса',
+                    iconColor: AppColors.accentDisplay,
+                    onTap: () =>
+                        _openScreen(context, const SyncSettingsScreen()),
                   ),
                   const SizedBox(height: 8),
                   _SettingsMenuItem(
@@ -163,15 +172,15 @@ class _SettingsMenuItem extends StatelessWidget {
                     Text(
                       title,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -181,15 +190,12 @@ class _SettingsMenuItem extends StatelessWidget {
                 Text(
                   value!,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
               const SizedBox(width: 8),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.textSecondary,
-              ),
+              Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
             ],
           ),
         ),
@@ -215,7 +221,8 @@ class CurrencySettingsScreen extends StatelessWidget {
     final appState = AppStateScope.of(context);
 
     return Scaffold(
-      body: SafeArea(top: false,
+      body: SafeArea(
+        top: false,
         child: Column(
           children: [
             AppHeader(
@@ -255,9 +262,7 @@ class CurrencySettingsScreen extends StatelessWidget {
                               ),
                               Text(
                                 code,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
+                                style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(color: AppColors.textSecondary),
                               ),
                               const SizedBox(width: 10),
@@ -293,7 +298,8 @@ class ThemeSettingsScreen extends StatelessWidget {
     final appState = AppStateScope.of(context);
 
     return Scaffold(
-      body: SafeArea(top: false,
+      body: SafeArea(
+        top: false,
         child: Column(
           children: [
             AppHeader(
@@ -313,9 +319,8 @@ class ThemeSettingsScreen extends StatelessWidget {
                       children: [
                         Text(
                           'Оформление',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 12),
                         SegmentedButton<ThemeMode>(
@@ -337,9 +342,8 @@ class ThemeSettingsScreen extends StatelessWidget {
                         const SizedBox(height: 12),
                         Text(
                           'Тема влияет на фон, карточки и оттенки интерфейса.',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppColors.textSecondary),
                         ),
                       ],
                     ),
@@ -357,6 +361,27 @@ class ThemeSettingsScreen extends StatelessWidget {
 class SyncSettingsScreen extends StatelessWidget {
   const SyncSettingsScreen({super.key});
 
+  Future<void> _connectGoogle(BuildContext context, AppState appState) async {
+    try {
+      final connected = await appState.signInWithGoogle();
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(connected ? 'Google подключен' : 'Вход отменен'),
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось подключить Google')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
@@ -364,9 +389,16 @@ class SyncSettingsScreen extends StatelessWidget {
     final statusColor = appState.syncEnabled
         ? AppColors.accentDisplay
         : AppColors.textSecondary;
+    final isGoogle = appState.isGoogleSignedIn;
+    final email = appState.currentUserEmail ?? '';
+    final accountStatus = isGoogle ? 'Google подключен' : 'Гость';
+    final accountStatusColor = isGoogle
+        ? AppColors.accentDisplay
+        : AppColors.textSecondary;
 
     return Scaffold(
-      body: SafeArea(top: false,
+      body: SafeArea(
+        top: false,
         child: Column(
           children: [
             AppHeader(
@@ -385,10 +417,68 @@ class SyncSettingsScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
+                          'Аккаунт',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Статус',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                            Text(
+                              accountStatus,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    color: accountStatusColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                          ],
+                        ),
+                        if (email.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            email,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: AppColors.textSecondary),
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            onPressed: isGoogle
+                                ? null
+                                : () => _connectGoogle(context, appState),
+                            child: Text(
+                              isGoogle
+                                  ? 'Google подключен'
+                                  : 'Войти через Google',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Подключи Google, чтобы переносить прогресс между устройствами.',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SoftCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
                           'Статус',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 12),
                         Row(
@@ -400,9 +490,7 @@ class SyncSettingsScreen extends StatelessWidget {
                             ),
                             Text(
                               status,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
+                              style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(
                                     color: statusColor,
                                     fontWeight: FontWeight.w600,
@@ -413,9 +501,8 @@ class SyncSettingsScreen extends StatelessWidget {
                         const SizedBox(height: 12),
                         Text(
                           'Синхронизация нужна для хранения данных в облаке и совместного бюджета.',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppColors.textSecondary),
                         ),
                       ],
                     ),
@@ -467,9 +554,9 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
       if (!context.mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Операции очищены')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Операции очищены')));
     }
   }
 
@@ -505,9 +592,9 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
       if (!context.mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Аккаунт сброшен')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Аккаунт сброшен')));
     }
   }
 
@@ -516,7 +603,8 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
     final appState = AppStateScope.of(context);
 
     return Scaffold(
-      body: SafeArea(top: false,
+      body: SafeArea(
+        top: false,
         child: Column(
           children: [
             AppHeader(
@@ -536,9 +624,8 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
                       children: [
                         Text(
                           'Управление данными',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 12),
                         SizedBox(

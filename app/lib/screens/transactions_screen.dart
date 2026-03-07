@@ -30,11 +30,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   static const _prefShowTotal = 'transactions_show_total';
   static const _prefShowCategoryIcon = 'transactions_show_category_icon';
   static const _prefShowPaymentIcon = 'transactions_show_payment_icon';
+  static const _prefShowTags = 'transactions_show_tags';
   static const _prefShowAuthors = 'transactions_show_authors';
   static const _prefGroupByDate = 'transactions_group_by_date';
   FilterType _filterType = FilterType.all;
   final Set<String> _selectedCategoryIds = {};
   final Set<String> _selectedMethodIds = {};
+  final Set<String> _selectedTagIds = {};
   DateTime? _fromDate;
   TimeOfDay? _fromTime;
   DateTime? _toDate;
@@ -42,6 +44,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   bool _showAuthors = false;
   bool _showCategoryIcon = false;
   bool _showPaymentIcon = false;
+  bool _showTags = true;
   bool _showTotal = false;
   bool _groupByDate = false;
   DateTime? _selectedMonth;
@@ -229,9 +232,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Нет операций для экспорта')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Нет операций для экспорта')),
+      );
       return;
     }
 
@@ -289,20 +292,17 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       return;
     }
     try {
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: 'Экспорт операций Budgetto',
-      );
+      await Share.shareXFiles([
+        XFile(file.path),
+      ], text: 'Экспорт операций Budgetto');
     } catch (error) {
       debugPrint('Export share failed: $error');
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Файл сохранен: ${file.path}'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Файл сохранен: ${file.path}')));
     }
   }
 
@@ -477,16 +477,19 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final appState = AppStateScope.of(context);
+    _syncSelection(
+      _selectedCategoryIds,
+      appState.categories.map((category) => category.id),
+    );
+    _syncSelection(
+      _selectedMethodIds,
+      appState.paymentMethods.map((method) => method.id),
+    );
+    _syncSelection(_selectedTagIds, appState.tags.map((tag) => tag.id));
     if (_filtersInitialized) {
       return;
     }
-    final appState = AppStateScope.of(context);
-    _selectedCategoryIds.addAll(
-      appState.categories.map((category) => category.id),
-    );
-    _selectedMethodIds.addAll(
-      appState.paymentMethods.map((method) => method.id),
-    );
     _setMonthFilter(DateTime.now());
     _filtersInitialized = true;
   }
@@ -503,6 +506,19 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     }
     final t = time ?? const TimeOfDay(hour: 0, minute: 0);
     return DateTime(date.year, date.month, date.day, t.hour, t.minute);
+  }
+
+  void _syncSelection(Set<String> selected, Iterable<String> availableIds) {
+    final available = availableIds.toSet();
+    final shouldSyncAll =
+        selected.isEmpty || selected.length == available.length;
+    if (shouldSyncAll) {
+      selected
+        ..clear()
+        ..addAll(available);
+      return;
+    }
+    selected.removeWhere((id) => !available.contains(id));
   }
 
   List<TransactionEntry> _applyFilters(List<TransactionEntry> source) {
@@ -527,6 +543,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           !_selectedMethodIds.contains(entry.paymentMethod.id)) {
         return false;
       }
+      if (_selectedTagIds.isNotEmpty) {
+        final hasTag = entry.tags.any(
+          (tag) => _selectedTagIds.contains(tag.id),
+        );
+        if (!hasTag) {
+          return false;
+        }
+      }
       if (from != null && entry.date.isBefore(from)) {
         return false;
       }
@@ -536,7 +560,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       if (query.isNotEmpty) {
         final note = (entry.note ?? '').toLowerCase();
         final category = entry.categoryName.toLowerCase();
-        if (!note.contains(query) && !category.contains(query)) {
+        final hasTag = entry.tags.any(
+          (tag) => tag.name.toLowerCase().contains(query),
+        );
+        if (!note.contains(query) && !category.contains(query) && !hasTag) {
           return false;
         }
       }
@@ -553,6 +580,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         _selectedCategoryIds.length == appState.categories.length;
     final methodsAll =
         _selectedMethodIds.length == appState.paymentMethods.length;
+    final tagsAll = _selectedTagIds.length == appState.tags.length;
     final monthActive =
         _selectedMonth != null &&
         !_isSameMonth(_selectedMonth!, DateTime.now());
@@ -562,7 +590,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         (monthOnly ? false : (_fromDate != null || _toDate != null)) ||
         monthActive ||
         !categoriesAll ||
-        !methodsAll;
+        !methodsAll ||
+        !tagsAll;
   }
 
   void _resetFilters(AppState appState) {
@@ -576,6 +605,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       _selectedMethodIds
         ..clear()
         ..addAll(appState.paymentMethods.map((method) => method.id));
+      _selectedTagIds
+        ..clear()
+        ..addAll(appState.tags.map((tag) => tag.id));
     });
   }
 
@@ -588,6 +620,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       _showTotal = prefs.getBool(_prefShowTotal) ?? false;
       _showCategoryIcon = prefs.getBool(_prefShowCategoryIcon) ?? false;
       _showPaymentIcon = prefs.getBool(_prefShowPaymentIcon) ?? false;
+      _showTags = prefs.getBool(_prefShowTags) ?? true;
       _showAuthors = prefs.getBool(_prefShowAuthors) ?? false;
       _groupByDate = prefs.getBool(_prefGroupByDate) ?? false;
     });
@@ -598,6 +631,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     await prefs.setBool(_prefShowTotal, _showTotal);
     await prefs.setBool(_prefShowCategoryIcon, _showCategoryIcon);
     await prefs.setBool(_prefShowPaymentIcon, _showPaymentIcon);
+    await prefs.setBool(_prefShowTags, _showTags);
     await prefs.setBool(_prefShowAuthors, _showAuthors);
     await prefs.setBool(_prefGroupByDate, _groupByDate);
   }
@@ -635,7 +669,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   child: TextField(
                     controller: tempQuery,
                     decoration: const InputDecoration(
-                      hintText: 'Описание или категория',
+                      hintText: 'Описание, категория или тег',
                     ),
                   ),
                 ),
@@ -1105,8 +1139,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                 const SizedBox(width: 8),
                                 Text(
                                   category.name,
-                                  style:
-                                      Theme.of(context).textTheme.bodySmall,
+                                  style: Theme.of(context).textTheme.bodySmall,
                                 ),
                               ],
                             ),
@@ -1139,6 +1172,130 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                 _selectedCategoryIds
                                   ..clear()
                                   ..addAll(tempCategoryIds);
+                              });
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text('Применить'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _openTagFilter(AppState appState) async {
+    final tempTagIds = <String>{..._selectedTagIds};
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface1,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Теги',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    if (appState.tags.isEmpty)
+                      Text(
+                        'Теги пока не добавлены',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      )
+                    else
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: appState.tags.map((tag) {
+                          final isSelected = tempTagIds.contains(tag.id);
+                          return GestureDetector(
+                            onTap: () {
+                              setModalState(() {
+                                if (isSelected) {
+                                  tempTagIds.remove(tag.id);
+                                } else {
+                                  tempTagIds.add(tag.id);
+                                }
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppColors.surface2
+                                    : AppColors.surface1,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? AppColors.accentTotal
+                                      : AppColors.stroke,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.tag, color: tag.color, size: 18),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    tag.name,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              setModalState(() {
+                                tempTagIds
+                                  ..clear()
+                                  ..addAll(appState.tags.map((t) => t.id));
+                              });
+                            },
+                            child: const Text('Сбросить'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () {
+                              setState(() {
+                                _selectedTagIds
+                                  ..clear()
+                                  ..addAll(tempTagIds);
                               });
                               Navigator.of(context).pop();
                             },
@@ -1226,8 +1383,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                 const SizedBox(width: 8),
                                 Text(
                                   method.name,
-                                  style:
-                                      Theme.of(context).textTheme.bodySmall,
+                                  style: Theme.of(context).textTheme.bodySmall,
                                 ),
                               ],
                             ),
@@ -1332,6 +1488,18 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       _saveDisplayPrefs();
                     },
                   ),
+                  const SizedBox(width: 8),
+                  _FilterPill(
+                    label: 'Теги',
+                    active: _showTags,
+                    accentColor: pillAccent,
+                    onTap: () {
+                      setState(() {
+                        _showTags = !_showTags;
+                      });
+                      _saveDisplayPrefs();
+                    },
+                  ),
                   if (appState.isFamilyMode) ...[
                     const SizedBox(width: 8),
                     _FilterPill(
@@ -1374,6 +1542,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         _selectedCategoryIds.length == appState.categories.length;
     final methodsAll =
         _selectedMethodIds.length == appState.paymentMethods.length;
+    final tagsAll = _selectedTagIds.length == appState.tags.length;
     final queryActive = _queryController.text.trim().isNotEmpty;
     final typeActive = _filterType != FilterType.all;
     final monthActive =
@@ -1382,6 +1551,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final dateActive = _useCustomRange || monthActive;
     final categoryActive = !categoriesAll;
     final methodActive = !methodsAll;
+    final tagActive = !tagsAll;
     final barLine = AppColors.stroke;
     final barBackground = AppColors.surface1;
     final pillAccent = AppColors.chipBlue;
@@ -1398,6 +1568,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               physics: const BouncingScrollPhysics(),
               child: Row(
                 children: [
+                  _FilterPill(
+                    label: 'Сброс',
+                    active: hasFilter,
+                    accentColor: pillAccent,
+                    emphasized: true,
+                    enabled: hasFilter,
+                    onTap: hasFilter ? () => _resetFilters(appState) : null,
+                  ),
+                  const SizedBox(width: 8),
                   _FilterPill(
                     label: 'Поиск',
                     active: queryActive,
@@ -1427,6 +1606,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ),
                   const SizedBox(width: 8),
                   _FilterPill(
+                    label: 'Теги',
+                    active: tagActive,
+                    accentColor: pillAccent,
+                    onTap: () => _openTagFilter(appState),
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterPill(
                     label: 'Оплата',
                     active: methodActive,
                     accentColor: pillAccent,
@@ -1439,13 +1625,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     accentColor: pillAccent,
                     icon: Icons.ios_share,
                     onTap: () => _exportCsv(appState),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterPill(
-                    label: 'Сброс',
-                    active: hasFilter,
-                    accentColor: pillAccent,
-                    onTap: () => _resetFilters(appState),
                   ),
                 ],
               ),
@@ -1565,8 +1744,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               symbol: symbol,
               showCategoryIcon: _showCategoryIcon,
               showPaymentIcon: _showPaymentIcon,
-              authorName:
-                  showAuthors ? appState.memberName(entry.createdByUserId) : null,
+              showTags: _showTags,
+              authorName: showAuthors
+                  ? appState.memberName(entry.createdByUserId)
+                  : null,
             ),
           ),
         ),
@@ -1592,11 +1773,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final hasFilter = _isFilterActive(appState);
     final showAuthors = appState.isFamilyMode && _showAuthors;
     final emptyLabel = hasFilter ? 'Ничего не найдено' : 'Пока нет операций';
-    final groupedItems =
-        _groupByDate ? _groupedItems(filteredTransactions) : const <Object>[];
+    final groupedItems = _groupByDate
+        ? _groupedItems(filteredTransactions)
+        : const <Object>[];
 
     return Scaffold(
-      body: SafeArea(top: false,
+      body: SafeArea(
+        top: false,
         child: Column(
           children: [
             AppHeader(
@@ -1620,8 +1803,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               child: _showDisplayBar
                   ? _buildDisplayBar(appState)
                   : (_showFilterBar
-                      ? _buildFilterBar(appState)
-                      : const SizedBox.shrink()),
+                        ? _buildFilterBar(appState)
+                        : const SizedBox.shrink()),
             ),
             Expanded(
               child: Stack(
@@ -1872,11 +2055,7 @@ class _BudgetChip extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 4),
-            Icon(
-              Icons.expand_more,
-              size: 16,
-              color: AppColors.textSecondary,
-            ),
+            Icon(Icons.expand_more, size: 16, color: AppColors.textSecondary),
           ],
         ),
       ),
@@ -1891,56 +2070,70 @@ class _FilterPill extends StatelessWidget {
     required this.onTap,
     this.accentColor,
     this.icon,
+    this.emphasized = false,
+    this.enabled = true,
   });
 
   final String label;
   final bool active;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final Color? accentColor;
   final IconData? icon;
+  final bool emphasized;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final radius = 18.0;
     final resolvedAccentColor = accentColor ?? AppColors.accentIncome;
-    final backgroundColor = active ? AppColors.surface2 : AppColors.surface1;
+    final isEmphasizedActive = active && emphasized;
+    final backgroundColor = isEmphasizedActive
+        ? resolvedAccentColor.withOpacity(0.16)
+        : (active ? AppColors.surface2 : AppColors.surface1);
+    final borderColor = active ? resolvedAccentColor : AppColors.stroke;
+    final borderWidth = isEmphasizedActive ? 1.6 : 1.0;
+    final contentColor = isEmphasizedActive
+        ? resolvedAccentColor
+        : AppColors.textPrimary;
+    final canTap = enabled && onTap != null;
     return InkWell(
-      onTap: onTap,
+      onTap: canTap ? onTap : null,
       borderRadius: BorderRadius.circular(radius),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(radius),
-          border: Border.all(
-            color: active ? resolvedAccentColor : AppColors.stroke,
-            width: 1,
+      child: Opacity(
+        opacity: canTap ? 1 : 0.45,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(radius),
+            border: Border.all(color: borderColor, width: borderWidth),
           ),
+          child: icon == null
+              ? Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: contentColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                )
+              : (label.isEmpty
+                    ? Icon(icon, size: 16, color: contentColor)
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(icon, size: 16, color: contentColor),
+                          const SizedBox(width: 6),
+                          Text(
+                            label,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: contentColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ],
+                      )),
         ),
-        child: icon == null
-            ? Text(
-                label,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-              )
-            : (label.isEmpty
-                ? Icon(icon, size: 16, color: AppColors.textPrimary)
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(icon, size: 16, color: AppColors.textPrimary),
-                      const SizedBox(width: 6),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-                    ],
-                  )),
       ),
     );
   }
@@ -1996,11 +2189,7 @@ class _DateRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
         child: Row(
           children: [
-            Icon(
-              Icons.schedule,
-              size: 16,
-              color: AppColors.textSecondary,
-            ),
+            Icon(Icons.schedule, size: 16, color: AppColors.textSecondary),
             const SizedBox(width: 8),
             Text(
               label,
