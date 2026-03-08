@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/transaction_entry.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
+import '../utils/transaction_filters.dart';
 import '../widgets/soft_card.dart';
 import '../widgets/transaction_row.dart';
 
@@ -20,6 +21,9 @@ class _SearchScreenState extends State<SearchScreen> {
   final Set<String> _selectedCategoryIds = {};
   final Set<String> _selectedMethodIds = {};
   final Set<String> _selectedTagIds = {};
+  int _lastCategoryCount = 0;
+  int _lastMethodCount = 0;
+  int _lastTagCount = 0;
   DateTime? _fromDate;
   TimeOfDay? _fromTime;
   DateTime? _toDate;
@@ -31,15 +35,15 @@ class _SearchScreenState extends State<SearchScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final appState = AppStateScope.of(context);
-    _syncSelection(
-      _selectedCategoryIds,
-      appState.categories.map((category) => category.id),
-    );
-    _syncSelection(
-      _selectedMethodIds,
-      appState.paymentMethods.map((method) => method.id),
-    );
-    _syncSelection(_selectedTagIds, appState.tags.map((tag) => tag.id));
+    final categoryIds = appState.categories.map((category) => category.id);
+    final methodIds = appState.paymentMethods.map((method) => method.id);
+    final tagIds = appState.tags.map((tag) => tag.id);
+    _syncSelection(_selectedCategoryIds, categoryIds, _lastCategoryCount);
+    _syncSelection(_selectedMethodIds, methodIds, _lastMethodCount);
+    _syncSelection(_selectedTagIds, tagIds, _lastTagCount);
+    _lastCategoryCount = appState.categories.length;
+    _lastMethodCount = appState.paymentMethods.length;
+    _lastTagCount = appState.tags.length;
     if (_initialized) {
       return;
     }
@@ -103,10 +107,13 @@ class _SearchScreenState extends State<SearchScreen> {
     return DateTime(date.year, date.month, date.day, t.hour, t.minute);
   }
 
-  void _syncSelection(Set<String> selected, Iterable<String> availableIds) {
+  void _syncSelection(
+    Set<String> selected,
+    Iterable<String> availableIds,
+    int previousCount,
+  ) {
     final available = availableIds.toSet();
-    final shouldSyncAll =
-        selected.isEmpty || selected.length == available.length;
+    final shouldSyncAll = selected.isEmpty || selected.length == previousCount;
     if (shouldSyncAll) {
       selected
         ..clear()
@@ -116,53 +123,45 @@ class _SearchScreenState extends State<SearchScreen> {
     selected.removeWhere((id) => !available.contains(id));
   }
 
-  List<TransactionEntry> _applyFilters(List<TransactionEntry> source) {
+  FilterMode _filterMode() {
+    switch (_type) {
+      case SearchType.income:
+        return FilterMode.income;
+      case SearchType.expense:
+        return FilterMode.expense;
+      case SearchType.all:
+        return FilterMode.all;
+    }
+  }
+
+  List<TransactionEntry> _applyFilters(
+    List<TransactionEntry> source,
+    AppState appState,
+  ) {
     final query = _queryController.text.trim().toLowerCase();
     final from = _combine(_fromDate, _fromTime);
     final to = _combine(_toDate, _toTime);
+    final filter = TransactionFilter(
+      mode: _filterMode(),
+      selectedCategoryIds: _selectedCategoryIds,
+      selectedMethodIds: _selectedMethodIds,
+      selectedTagIds: _selectedTagIds,
+      query: query,
+      from: from,
+      to: to,
+    );
 
-    final filtered = source.where((entry) {
-      if (_type == SearchType.income && entry.type != TransactionType.income) {
-        return false;
-      }
-      if (_type == SearchType.expense &&
-          entry.type != TransactionType.expense) {
-        return false;
-      }
-      if (_selectedCategoryIds.isNotEmpty &&
-          !_selectedCategoryIds.contains(entry.categoryId)) {
-        return false;
-      }
-      if (_selectedMethodIds.isNotEmpty &&
-          !_selectedMethodIds.contains(entry.paymentMethod.id)) {
-        return false;
-      }
-      if (_selectedTagIds.isNotEmpty) {
-        final hasTag = entry.tags.any(
-          (tag) => _selectedTagIds.contains(tag.id),
-        );
-        if (!hasTag) {
-          return false;
-        }
-      }
-      if (from != null && entry.date.isBefore(from)) {
-        return false;
-      }
-      if (to != null && entry.date.isAfter(to)) {
-        return false;
-      }
-      if (query.isNotEmpty) {
-        final note = (entry.note ?? '').toLowerCase();
-        final category = entry.categoryName.toLowerCase();
-        final hasTag = entry.tags.any(
-          (tag) => tag.name.toLowerCase().contains(query),
-        );
-        if (!note.contains(query) && !category.contains(query) && !hasTag) {
-          return false;
-        }
-      }
-      return true;
-    }).toList();
+    final filtered = source
+        .where(
+          (entry) => shouldIncludeTransaction(
+            entry: entry,
+            filter: filter,
+            categories: appState.categories,
+            methods: appState.paymentMethods,
+            tags: appState.tags,
+          ),
+        )
+        .toList();
 
     filtered.sort((a, b) => b.date.compareTo(a.date));
     return filtered;
@@ -171,7 +170,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
-    final transactions = _applyFilters(appState.transactions);
+    final transactions = _applyFilters(appState.transactions, appState);
     final symbol = appState.currencySymbol();
     final categories = appState.categories;
     final tags = appState.tags;

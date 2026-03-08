@@ -11,6 +11,7 @@ import '../models/payment_method.dart';
 import '../models/transaction_entry.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
+import '../utils/transaction_filters.dart';
 import '../widgets/app_header.dart';
 import '../widgets/slide_action_icon.dart';
 import '../widgets/soft_card.dart';
@@ -37,6 +38,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   final Set<String> _selectedCategoryIds = {};
   final Set<String> _selectedMethodIds = {};
   final Set<String> _selectedTagIds = {};
+  int _lastCategoryCount = 0;
+  int _lastMethodCount = 0;
+  int _lastTagCount = 0;
   DateTime? _fromDate;
   TimeOfDay? _fromTime;
   DateTime? _toDate;
@@ -227,7 +231,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   Future<void> _exportCsv(AppState appState) async {
     final source = _sorted(appState.transactions);
-    final filtered = _applyFilters(source);
+    final filtered = _applyFilters(source, appState);
     if (filtered.isEmpty) {
       if (!mounted) {
         return;
@@ -478,15 +482,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final appState = AppStateScope.of(context);
-    _syncSelection(
-      _selectedCategoryIds,
-      appState.categories.map((category) => category.id),
-    );
-    _syncSelection(
-      _selectedMethodIds,
-      appState.paymentMethods.map((method) => method.id),
-    );
-    _syncSelection(_selectedTagIds, appState.tags.map((tag) => tag.id));
+    final categoryIds = appState.categories.map((category) => category.id);
+    final methodIds = appState.paymentMethods.map((method) => method.id);
+    final tagIds = appState.tags.map((tag) => tag.id);
+    _syncSelection(_selectedCategoryIds, categoryIds, _lastCategoryCount);
+    _syncSelection(_selectedMethodIds, methodIds, _lastMethodCount);
+    _syncSelection(_selectedTagIds, tagIds, _lastTagCount);
+    _lastCategoryCount = appState.categories.length;
+    _lastMethodCount = appState.paymentMethods.length;
+    _lastTagCount = appState.tags.length;
     if (_filtersInitialized) {
       return;
     }
@@ -508,10 +512,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     return DateTime(date.year, date.month, date.day, t.hour, t.minute);
   }
 
-  void _syncSelection(Set<String> selected, Iterable<String> availableIds) {
+  void _syncSelection(
+    Set<String> selected,
+    Iterable<String> availableIds,
+    int previousCount,
+  ) {
     final available = availableIds.toSet();
-    final shouldSyncAll =
-        selected.isEmpty || selected.length == available.length;
+    final shouldSyncAll = selected.isEmpty || selected.length == previousCount;
     if (shouldSyncAll) {
       selected
         ..clear()
@@ -521,54 +528,45 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     selected.removeWhere((id) => !available.contains(id));
   }
 
-  List<TransactionEntry> _applyFilters(List<TransactionEntry> source) {
+  FilterMode _filterMode() {
+    switch (_filterType) {
+      case FilterType.income:
+        return FilterMode.income;
+      case FilterType.expense:
+        return FilterMode.expense;
+      case FilterType.all:
+        return FilterMode.all;
+    }
+  }
+
+  List<TransactionEntry> _applyFilters(
+    List<TransactionEntry> source,
+    AppState appState,
+  ) {
     final query = _queryController.text.trim().toLowerCase();
     final from = _combine(_fromDate, _fromTime);
     final to = _combine(_toDate, _toTime);
+    final filter = TransactionFilter(
+      mode: _filterMode(),
+      selectedCategoryIds: _selectedCategoryIds,
+      selectedMethodIds: _selectedMethodIds,
+      selectedTagIds: _selectedTagIds,
+      query: query,
+      from: from,
+      to: to,
+    );
 
-    final filtered = source.where((entry) {
-      if (_filterType == FilterType.income &&
-          entry.type != TransactionType.income) {
-        return false;
-      }
-      if (_filterType == FilterType.expense &&
-          entry.type != TransactionType.expense) {
-        return false;
-      }
-      if (_selectedCategoryIds.isNotEmpty &&
-          !_selectedCategoryIds.contains(entry.categoryId)) {
-        return false;
-      }
-      if (_selectedMethodIds.isNotEmpty &&
-          !_selectedMethodIds.contains(entry.paymentMethod.id)) {
-        return false;
-      }
-      if (_selectedTagIds.isNotEmpty) {
-        final hasTag = entry.tags.any(
-          (tag) => _selectedTagIds.contains(tag.id),
-        );
-        if (!hasTag) {
-          return false;
-        }
-      }
-      if (from != null && entry.date.isBefore(from)) {
-        return false;
-      }
-      if (to != null && entry.date.isAfter(to)) {
-        return false;
-      }
-      if (query.isNotEmpty) {
-        final note = (entry.note ?? '').toLowerCase();
-        final category = entry.categoryName.toLowerCase();
-        final hasTag = entry.tags.any(
-          (tag) => tag.name.toLowerCase().contains(query),
-        );
-        if (!note.contains(query) && !category.contains(query) && !hasTag) {
-          return false;
-        }
-      }
-      return true;
-    }).toList();
+    final filtered = source
+        .where(
+          (entry) => shouldIncludeTransaction(
+            entry: entry,
+            filter: filter,
+            categories: appState.categories,
+            methods: appState.paymentMethods,
+            tags: appState.tags,
+          ),
+        )
+        .toList();
 
     filtered.sort((a, b) => b.date.compareTo(a.date));
     return filtered;
@@ -1766,7 +1764,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         : Icons.person_outline;
     final symbol = appState.currencySymbol();
     final transactions = _sorted(appState.transactions);
-    final filteredTransactions = _applyFilters(transactions);
+    final filteredTransactions = _applyFilters(transactions, appState);
     final income = _sumForType(filteredTransactions, TransactionType.income);
     final expense = _sumForType(filteredTransactions, TransactionType.expense);
     final balance = income - expense;
