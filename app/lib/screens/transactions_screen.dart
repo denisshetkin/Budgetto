@@ -1,13 +1,7 @@
-import 'dart:io';
-
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:share_plus/share_plus.dart';
 
-import '../models/payment_method.dart';
 import '../models/transaction_entry.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
@@ -176,8 +170,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     }
   }
 
-  String _twoDigits(int value) => value.toString().padLeft(2, '0');
-
   static const List<String> _monthShortEn = [
     'Jan',
     'Feb',
@@ -193,121 +185,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     'Dec',
   ];
 
-  String _formatExportDate(DateTime date) {
-    return '${_twoDigits(date.day)}.${_twoDigits(date.month)}.${date.year} '
-        '${_twoDigits(date.hour)}:${_twoDigits(date.minute)}';
-  }
-
   String _formatGroupDate(DateTime date) {
     final month = _monthShortEn[date.month - 1];
     return '${date.day} $month ${date.year}';
-  }
-
-  String _formatExportAmount(double amount) {
-    final fixed = amount.toStringAsFixed(2);
-    return fixed.replaceAll('.', ',');
-  }
-
-  String _csvCell(String value) {
-    final escaped = value.replaceAll('"', '""');
-    return '"$escaped"';
-  }
-
-  String _methodLabel(PaymentMethod method) {
-    return method.type == PaymentMethodType.cash ? 'Кеш' : 'Карта';
-  }
-
-  String _typeLabel(TransactionType type) {
-    return type == TransactionType.income ? 'Доход' : 'Расход';
-  }
-
-  Future<bool> _isPhysicalDevice() async {
-    if (!Platform.isIOS) {
-      return true;
-    }
-    final info = await DeviceInfoPlugin().iosInfo;
-    return info.isPhysicalDevice;
-  }
-
-  Future<void> _exportCsv(AppState appState) async {
-    final source = _sorted(appState.transactions);
-    final filtered = _applyFilters(source, appState);
-    if (filtered.isEmpty) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Нет операций для экспорта')),
-      );
-      return;
-    }
-
-    final buffer = StringBuffer();
-    buffer.writeln(
-      [
-        'ID',
-        'Дата',
-        'Кто',
-        'Метод',
-        'Категория',
-        'Описание',
-        'Тип',
-        'Сумма',
-      ].map(_csvCell).join(';'),
-    );
-
-    for (var i = 0; i < filtered.length; i++) {
-      final entry = filtered[i];
-      final author = appState.memberName(entry.createdByUserId) ?? '';
-      buffer.writeln(
-        [
-          '${i + 1}',
-          _formatExportDate(entry.date),
-          author,
-          _methodLabel(entry.paymentMethod),
-          entry.categoryName,
-          entry.note ?? '',
-          _typeLabel(entry.type),
-          _formatExportAmount(entry.amount),
-        ].map(_csvCell).join(';'),
-      );
-    }
-
-    final dir = await getApplicationDocumentsDirectory();
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final file = File('${dir.path}/budgetto-export-$timestamp.csv');
-    await file.writeAsString(buffer.toString(), flush: true);
-
-    if (!mounted) {
-      return;
-    }
-    final isPhysicalDevice = await _isPhysicalDevice();
-    if (!mounted) {
-      return;
-    }
-    if (Platform.isIOS && !isPhysicalDevice) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Экспорт доступен на устройстве. Файл сохранен: ${file.path}',
-          ),
-        ),
-      );
-      return;
-    }
-    try {
-      await Share.shareXFiles([
-        XFile(file.path),
-      ], text: 'Экспорт операций Budgetto');
-    } catch (error) {
-      debugPrint('Export share failed: $error');
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Файл сохранен: ${file.path}')));
-    }
   }
 
   void _openActionsSheet(
@@ -458,17 +338,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         .fold(0.0, (sum, entry) => sum + entry.amount);
   }
 
-  String _rangeLabel() {
-    if (!_useCustomRange && _selectedMonth != null) {
-      return _monthLabel(_selectedMonth!);
-    }
-    if (_fromDate == null || _toDate == null) {
-      final now = DateTime.now();
-      return _monthLabel(DateTime(now.year, now.month));
-    }
-    return '${_formatDateTime(_fromDate!, _fromTime)} – ${_formatDateTime(_toDate!, _toTime)}';
-  }
-
   bool _isSameMonth(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month;
   }
@@ -616,11 +485,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     }
     setState(() {
       _showTotal = prefs.getBool(_prefShowTotal) ?? false;
-      _showCategoryIcon = prefs.getBool(_prefShowCategoryIcon) ?? false;
+      _showCategoryIcon = prefs.getBool(_prefShowCategoryIcon) ?? true;
       _showPaymentIcon = prefs.getBool(_prefShowPaymentIcon) ?? false;
       _showTags = prefs.getBool(_prefShowTags) ?? true;
       _showAuthors = prefs.getBool(_prefShowAuthors) ?? false;
-      _groupByDate = prefs.getBool(_prefGroupByDate) ?? false;
+      _groupByDate = prefs.getBool(_prefGroupByDate) ?? true;
     });
   }
 
@@ -667,7 +536,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   child: TextField(
                     controller: tempQuery,
                     decoration: const InputDecoration(
-                      hintText: 'Описание, категория или тег',
+                      hintText: 'Описание, категория, тег или сумма',
                     ),
                   ),
                 ),
@@ -1464,7 +1333,19 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ),
                   const SizedBox(width: 8),
                   _FilterPill(
-                    label: 'Категория',
+                    label: 'По датам',
+                    active: _groupByDate,
+                    accentColor: pillAccent,
+                    onTap: () {
+                      setState(() {
+                        _groupByDate = !_groupByDate;
+                      });
+                      _saveDisplayPrefs();
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterPill(
+                    label: 'Категории',
                     active: _showCategoryIcon,
                     accentColor: pillAccent,
                     onTap: () {
@@ -1512,18 +1393,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       },
                     ),
                   ],
-                  const SizedBox(width: 8),
-                  _FilterPill(
-                    label: 'По датам',
-                    active: _groupByDate,
-                    accentColor: pillAccent,
-                    onTap: () {
-                      setState(() {
-                        _groupByDate = !_groupByDate;
-                      });
-                      _saveDisplayPrefs();
-                    },
-                  ),
                 ],
               ),
             ),
@@ -1615,14 +1484,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     active: methodActive,
                     accentColor: pillAccent,
                     onTap: () => _openMethodFilter(appState),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterPill(
-                    label: '',
-                    active: false,
-                    accentColor: pillAccent,
-                    icon: Icons.ios_share,
-                    onTap: () => _exportCsv(appState),
                   ),
                 ],
               ),
@@ -2067,7 +1928,6 @@ class _FilterPill extends StatelessWidget {
     required this.active,
     required this.onTap,
     this.accentColor,
-    this.icon,
     this.emphasized = false,
     this.enabled = true,
   });
@@ -2076,7 +1936,6 @@ class _FilterPill extends StatelessWidget {
   final bool active;
   final VoidCallback? onTap;
   final Color? accentColor;
-  final IconData? icon;
   final bool emphasized;
   final bool enabled;
 
@@ -2086,7 +1945,7 @@ class _FilterPill extends StatelessWidget {
     final resolvedAccentColor = accentColor ?? AppColors.accentIncome;
     final isEmphasizedActive = active && emphasized;
     final backgroundColor = isEmphasizedActive
-        ? resolvedAccentColor.withOpacity(0.16)
+        ? resolvedAccentColor.withValues(alpha: 0.16)
         : (active ? AppColors.surface2 : AppColors.surface1);
     final borderColor = active ? resolvedAccentColor : AppColors.stroke;
     final borderWidth = isEmphasizedActive ? 1.6 : 1.0;
@@ -2106,31 +1965,13 @@ class _FilterPill extends StatelessWidget {
             borderRadius: BorderRadius.circular(radius),
             border: Border.all(color: borderColor, width: borderWidth),
           ),
-          child: icon == null
-              ? Text(
-                  label,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: contentColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                )
-              : (label.isEmpty
-                    ? Icon(icon, size: 16, color: contentColor)
-                    : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(icon, size: 16, color: contentColor),
-                          const SizedBox(width: 6),
-                          Text(
-                            label,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: contentColor,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                        ],
-                      )),
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: contentColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ),
     );

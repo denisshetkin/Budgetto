@@ -1,6 +1,11 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 
+import '../services/transaction_import.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_header.dart';
@@ -8,8 +13,7 @@ import '../widgets/soft_card.dart';
 import 'budgets_screen.dart';
 import 'cards_screen.dart';
 import 'categories_screen.dart';
-import 'planned_screen.dart';
-import 'reminders_screen.dart';
+import 'subscription_screen.dart';
 import 'tags_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -22,6 +26,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
+    final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
       body: SafeArea(
@@ -31,16 +36,27 @@ class SettingsScreen extends StatelessWidget {
             AppHeader(
               title: 'Настройки',
               padding: EdgeInsets.fromLTRB(12, 12, 12, 8),
-              leading: Icon(
-                Icons.settings,
-                size: 32,
-                color: AppColors.categoryPalette[5],
-              ),
+              leading: canPop
+                  ? IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.arrow_back),
+                    )
+                  : Icon(Icons.settings, size: 32, color: AppColors.chipBlue),
             ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.all(12),
                 children: [
+                  _SettingsMenuItem(
+                    icon: Icons.workspace_premium_outlined,
+                    title: 'Premium',
+                    subtitle: 'Подписка и доступ к приложению',
+                    value: appState.accessStatusLabel,
+                    iconColor: AppColors.accentTotal,
+                    onTap: () =>
+                        _openScreen(context, const SubscriptionScreen()),
+                  ),
+                  const SizedBox(height: 8),
                   _SettingsMenuItem(
                     icon: Icons.account_balance_wallet_outlined,
                     title: 'Бюджеты',
@@ -107,7 +123,7 @@ class SettingsScreen extends StatelessWidget {
                   _SettingsMenuItem(
                     icon: Icons.storage_outlined,
                     title: 'Данные',
-                    subtitle: 'Очистка и сброс приложения',
+                    subtitle: 'Импорт, очистка и сброс приложения',
                     iconColor: AppColors.accentExpense,
                     onTap: () =>
                         _openScreen(context, const DataSettingsScreen()),
@@ -525,6 +541,8 @@ class DataSettingsScreen extends StatefulWidget {
 }
 
 class _DataSettingsScreenState extends State<DataSettingsScreen> {
+  bool _importBusy = false;
+
   Future<void> _confirmClearTransactions(
     BuildContext context,
     AppState appState,
@@ -598,6 +616,204 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
     }
   }
 
+  Future<void> _pickAndImportCsv(AppState appState) async {
+    if (_importBusy) {
+      return;
+    }
+
+    setState(() {
+      _importBusy = true;
+    });
+
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['csv'],
+        withData: true,
+        withReadStream: true,
+      );
+
+      if (result == null || result.files.isEmpty) {
+        return;
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      final file = result.files.single;
+      final bytes = file.bytes ?? await _readFileBytes(file.readStream);
+      if (bytes == null) {
+        _showMessage('Не удалось прочитать выбранный файл.');
+        return;
+      }
+
+      final csvContent = utf8.decode(bytes, allowMalformed: true);
+      final preview = TransactionImportService.analyzeCsv(
+        csvContent: csvContent,
+        existingCategoryNames: appState.categories.map((item) => item.name),
+        existingPaymentMethodNames: appState.paymentMethods.map(
+          (item) => item.name,
+        ),
+        sourceName: file.name,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      if (preview.hasErrors) {
+        await _showImportErrors(preview);
+        return;
+      }
+
+      await _confirmImportPreview(appState, preview);
+    } catch (error) {
+      if (mounted) {
+        _showMessage('Импорт не удался: $error');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _importBusy = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _showImportErrors(TransactionImportPreview preview) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Исправь ошибки в CSV'),
+          content: SizedBox(
+            width: 480,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    preview.sourceName == null
+                        ? 'Файл не прошёл валидацию.'
+                        : 'Файл "${preview.sourceName}" не прошёл валидацию.',
+                  ),
+                  const SizedBox(height: 12),
+                  ...preview.errors.map(
+                    (issue) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text('• ${issue.displayMessage}'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Понятно'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _confirmImportPreview(
+    AppState appState,
+    TransactionImportPreview preview,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Подтвердить импорт'),
+          content: SizedBox(
+            width: 480,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (preview.sourceName != null) ...[
+                    Text('Файл: ${preview.sourceName}'),
+                    const SizedBox(height: 12),
+                  ],
+                  Text('Будет добавлено записей: ${preview.rows.length}'),
+                  const SizedBox(height: 8),
+                  Text('Новых категорий: ${preview.newCategoryNames.length}'),
+                  if (preview.newCategoryNames.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    ...preview.newCategoryNames.map(
+                      (name) => Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Text('• $name'),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Все добавленные записи получат новый тег импорта, чтобы их можно было быстро отфильтровать и удалить.',
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Отмена'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Импортировать'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    final result = TransactionImportService.commitImport(
+      appState: appState,
+      preview: preview,
+    );
+
+    _showMessage(
+      'Импортировано ${result.addedTransactions} записей. '
+      'Тег: ${result.importTagName}.',
+    );
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<Uint8List?> _readFileBytes(Stream<List<int>>? stream) async {
+    if (stream == null) {
+      return null;
+    }
+    final builder = BytesBuilder(copy: false);
+    await for (final chunk in stream) {
+      builder.add(chunk);
+    }
+    final bytes = builder.takeBytes();
+    if (bytes.isEmpty) {
+      return null;
+    }
+    return bytes;
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
@@ -618,6 +834,57 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
+                  SoftCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Импорт затрат из CSV',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          TransactionImportService.buildInstructions(),
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        const SizedBox(height: 12),
+                        SelectableText(
+                          TransactionImportService.sampleCsv(),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                fontFamily: 'monospace',
+                                color: AppColors.textSecondary,
+                                height: 1.5,
+                              ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed: _importBusy
+                                ? null
+                                : () => _pickAndImportCsv(appState),
+                            icon: _importBusy
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.upload_file_rounded),
+                            label: Text(
+                              _importBusy
+                                  ? 'Проверяем CSV...'
+                                  : 'Выбрать CSV и проверить',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   SoftCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

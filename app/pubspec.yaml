@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   google_fonts: ^6.3.0
   flutter_slidable: ^3.1.2
+  file_picker: ^8.1.2
   shared_preferences: ^2.2.3
   share_plus: ^10.0.2
   path_provider: ^2.1.4
@@ -48,6 +49,7 @@ dependencies:
   flutter_local_notifications: ^17.2.3
   flutter_timezone: ^1.0.8
   timezone: ^0.9.4
+  in_app_purchase: ^3.2.3
 
 dev_dependencies:
   flutter_test:
@@ -77,6 +79,11 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  fonts:
+    - family: Sacramento
+      fonts:
+        - asset: assets/fonts/Sacramento-Regular.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

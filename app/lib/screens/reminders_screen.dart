@@ -150,6 +150,7 @@ class RemindersScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
     final reminders = appState.reminders;
+    final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
       body: SafeArea(top: false,
@@ -158,11 +159,16 @@ class RemindersScreen extends StatelessWidget {
             AppHeader(
               title: 'Напоминания',
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-              leading: Icon(
-                Icons.notifications,
-                size: 32,
-                color: AppColors.accentDisplay,
-              ),
+              leading: canPop
+                  ? IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.arrow_back),
+                    )
+                  : Icon(
+                      Icons.notifications,
+                      size: 32,
+                      color: AppColors.accentDisplay,
+                    ),
               actions: [
                 IconButton(
                   onPressed: () => _openForm(context),

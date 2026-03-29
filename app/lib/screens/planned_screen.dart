@@ -99,8 +99,9 @@ class PlannedScreen extends StatelessWidget {
         ? entry.amount.toStringAsFixed(0)
         : entry.amount.toStringAsFixed(2);
     final amountLabel = symbol.isEmpty ? raw : '$raw $symbol';
-    final description =
-        (entry.note ?? '').trim().isNotEmpty ? entry.note!.trim() : entry.categoryName;
+    final description = (entry.note ?? '').trim().isNotEmpty
+        ? entry.note!.trim()
+        : entry.categoryName;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
@@ -143,9 +144,9 @@ class PlannedScreen extends StatelessWidget {
       createdByUserId: appState.currentUser.id,
     );
     appState.addTransaction(transaction);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Добавлено в операции')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Добавлено в операции')));
   }
 
   Future<void> _openActionsSheet(
@@ -178,10 +179,7 @@ class PlannedScreen extends StatelessWidget {
                   },
                 ),
                 ListTile(
-                  leading: Icon(
-                    Icons.edit,
-                    color: AppColors.accentIncome,
-                  ),
+                  leading: Icon(Icons.edit, color: AppColors.accentIncome),
                   title: const Text('Редактировать'),
                   onTap: () {
                     Navigator.of(context).pop();
@@ -189,10 +187,7 @@ class PlannedScreen extends StatelessWidget {
                   },
                 ),
                 ListTile(
-                  leading: Icon(
-                    Icons.delete,
-                    color: AppColors.accentExpense,
-                  ),
+                  leading: Icon(Icons.delete, color: AppColors.accentExpense),
                   title: const Text('Удалить'),
                   onTap: () {
                     Navigator.of(context).pop();
@@ -211,19 +206,26 @@ class PlannedScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
     final entries = appState.plannedEntries;
+    final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
-      body: SafeArea(top: false,
+      body: SafeArea(
+        top: false,
         child: Column(
           children: [
             AppHeader(
-              title: 'Регулярные',
+              title: 'Регулярные платежи',
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-              leading: Icon(
-                Icons.event_note,
-                size: 32,
-                color: AppColors.accentTotal,
-              ),
+              leading: canPop
+                  ? IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.arrow_back),
+                    )
+                  : Icon(
+                      Icons.event_note,
+                      size: 32,
+                      color: AppColors.accentTotal,
+                    ),
               actions: [
                 IconButton(
                   onPressed: () => _openAddPlanned(context, appState),
@@ -237,7 +239,7 @@ class PlannedScreen extends StatelessWidget {
                 child: entries.isEmpty
                     ? Center(
                         child: Text(
-                          'Пока нет регулярных',
+                          'Пока нет регулярных платежей',
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(color: AppColors.textSecondary),
                           textAlign: TextAlign.center,
@@ -247,7 +249,8 @@ class PlannedScreen extends StatelessWidget {
                         child: ListView.separated(
                           padding: EdgeInsets.zero,
                           itemCount: entries.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 8),
                           itemBuilder: (context, index) {
                             final entry = entries[index];
                             return Slidable(
@@ -273,8 +276,11 @@ class PlannedScreen extends StatelessWidget {
                                     ),
                                   ),
                                   CustomSlidableAction(
-                                    onPressed: (_) =>
-                                        _confirmDelete(context, appState, entry),
+                                    onPressed: (_) => _confirmDelete(
+                                      context,
+                                      appState,
+                                      entry,
+                                    ),
                                     backgroundColor: Colors.transparent,
                                     autoClose: false,
                                     child: Align(
@@ -328,9 +334,9 @@ class PlannedScreen extends StatelessWidget {
                                                           .isNotEmpty
                                                       ? entry.note!
                                                       : entry.categoryName,
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .bodyLarge,
+                                                  style: Theme.of(
+                                                    context,
+                                                  ).textTheme.bodyLarge,
                                                   maxLines: 1,
                                                   overflow:
                                                       TextOverflow.ellipsis,
@@ -346,39 +352,40 @@ class PlannedScreen extends StatelessWidget {
                                                             .textSecondary,
                                                       ),
                                                 ),
-                                                if (entry.scheduledAt != null)
-                                                  ...[
-                                                    const SizedBox(height: 2),
-                                                    Text(
-                                                      entry.notify
-                                                          ? 'Напоминание: ${_formatPlannedDate(entry.scheduledAt!)}'
-                                                          : 'Дата: ${_formatPlannedDate(entry.scheduledAt!)}',
-                                                      style: Theme.of(context)
-                                                          .textTheme
-                                                          .bodySmall
-                                                          ?.copyWith(
-                                                            color: AppColors
-                                                                .textSecondary,
-                                                          ),
-                                                    ),
-                                                  ],
+                                                if (entry.scheduledAt !=
+                                                    null) ...[
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    entry.notify
+                                                        ? 'Напоминание: ${_formatPlannedDate(entry.scheduledAt!)}'
+                                                        : 'Дата: ${_formatPlannedDate(entry.scheduledAt!)}',
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .bodySmall
+                                                        ?.copyWith(
+                                                          color: AppColors
+                                                              .textSecondary,
+                                                        ),
+                                                  ),
+                                                ],
                                               ],
                                             ),
                                           ),
                                           const SizedBox(width: 12),
                                           Builder(
                                             builder: (context) {
-                                              final symbol =
-                                                  appState.currencySymbol();
+                                              final symbol = appState
+                                                  .currencySymbol();
                                               final raw = entry.amount % 1 == 0
                                                   ? entry.amount
-                                                      .toStringAsFixed(0)
+                                                        .toStringAsFixed(0)
                                                   : entry.amount
-                                                      .toStringAsFixed(2);
+                                                        .toStringAsFixed(2);
                                               final label = symbol.isEmpty
                                                   ? raw
                                                   : '$raw $symbol';
-                                              final isIncome = entry.type ==
+                                              final isIncome =
+                                                  entry.type ==
                                                   TransactionType.income;
                                               return Text(
                                                 '${isIncome ? '+' : '-'} $label',
@@ -388,9 +395,9 @@ class PlannedScreen extends StatelessWidget {
                                                     ?.copyWith(
                                                       color: isIncome
                                                           ? AppColors
-                                                              .accentIncome
+                                                                .accentIncome
                                                           : AppColors
-                                                              .accentExpense,
+                                                                .accentExpense,
                                                       fontWeight:
                                                           FontWeight.w600,
                                                     ),
@@ -412,9 +419,9 @@ class PlannedScreen extends StatelessWidget {
                                             padding: EdgeInsets.zero,
                                             constraints:
                                                 const BoxConstraints.tightFor(
-                                              width: 34,
-                                              height: 34,
-                                            ),
+                                                  width: 34,
+                                                  height: 34,
+                                                ),
                                             tooltip: 'Добавить в операции',
                                           ),
                                         ],
@@ -644,9 +651,9 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -678,10 +685,7 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
         actions: [
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
-            icon: Icon(
-              Icons.close_rounded,
-              color: AppColors.accentExpense,
-            ),
+            icon: Icon(Icons.close_rounded, color: AppColors.accentExpense),
             iconSize: 36,
             tooltip: 'Отмена',
           ),
@@ -694,7 +698,8 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
           const SizedBox(width: 6),
         ],
       ),
-      body: SafeArea(top: false,
+      body: SafeArea(
+        top: false,
         child: SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + bottomInset),
           child: Column(
@@ -703,8 +708,7 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
               SegmentedButton<TransactionType>(
                 showSelectedIcon: false,
                 style: ButtonStyle(
-                  backgroundColor:
-                      WidgetStateProperty.resolveWith((states) {
+                  backgroundColor: WidgetStateProperty.resolveWith((states) {
                     if (states.contains(WidgetState.selected)) {
                       return accent.withOpacity(0.22);
                     }
@@ -712,8 +716,8 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
                   }),
                   textStyle: WidgetStatePropertyAll(
                     Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 segments: const [
@@ -735,295 +739,196 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
               ),
               const SizedBox(height: 12),
               SoftCard(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 120,
-                    child: Text(
-                      'Сумма',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.surface2.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: accent, width: 1.4),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: TextField(
-                        controller: _amountController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(
-                            RegExp(r'[0-9.,]'),
-                          ),
-                        ],
-                        textAlign: TextAlign.left,
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineMedium
-                            ?.copyWith(fontWeight: FontWeight.w600),
-                        decoration: const InputDecoration(
-                          hintText: '0',
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 120,
+                      child: Text(
+                        'Сумма',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            SoftCard(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 120,
-                    child: Text(
-                      'Описание',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.surface2.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: accent, width: 1.4),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: TextField(
-                        controller: _noteController,
-                        maxLines: 2,
-                        decoration: const InputDecoration(
-                          hintText: 'Например, коммуналка',
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(vertical: 8),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            SoftCard(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 120,
-                    child: Text(
-                      'Когда',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: _pickScheduledAt,
+                    const SizedBox(width: 12),
+                    Expanded(
                       child: Container(
                         decoration: BoxDecoration(
                           color: AppColors.surface2.withOpacity(0.9),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: accent,
-                            width: 1.2,
+                          border: Border.all(color: accent, width: 1.4),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: TextField(
+                          controller: _amountController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'[0-9.,]'),
+                            ),
+                          ],
+                          textAlign: TextAlign.left,
+                          style: Theme.of(context).textTheme.headlineMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                          decoration: const InputDecoration(
+                            hintText: '0',
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(vertical: 8),
                           ),
                         ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        child: Text(
-                          _scheduledAt == null
-                              ? 'Выбрать дату и время'
-                              : _formatScheduledAt(_scheduledAt!),
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            SoftCard(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Напомнить',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+              const SizedBox(height: 12),
+              SoftCard(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 120,
+                      child: Text(
+                        'Описание',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ),
-                  ),
-                  Switch(
-                    value: _notify,
-                    onChanged: (value) async {
-                      if (value) {
-                        if (_scheduledAt == null) {
-                          await _pickScheduledAt();
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surface2.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: accent, width: 1.4),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: TextField(
+                          controller: _noteController,
+                          maxLines: 2,
+                          decoration: const InputDecoration(
+                            hintText: 'Например, коммуналка',
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(vertical: 8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              SoftCard(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 120,
+                      child: Text(
+                        'Когда',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: _pickScheduledAt,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.surface2.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: accent, width: 1.2),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          child: Text(
+                            _scheduledAt == null
+                                ? 'Выбрать дату и время'
+                                : _formatScheduledAt(_scheduledAt!),
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              SoftCard(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 6,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Напомнить',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    Switch(
+                      value: _notify,
+                      onChanged: (value) async {
+                        if (value) {
                           if (_scheduledAt == null) {
+                            await _pickScheduledAt();
+                            if (_scheduledAt == null) {
+                              return;
+                            }
+                          }
+                          final allowed = await _ensureNotificationsAllowed();
+                          if (!allowed) {
                             return;
                           }
+                          _notificationId ??= _generateNotificationId();
                         }
-                        final allowed = await _ensureNotificationsAllowed();
-                        if (!allowed) {
-                          return;
-                        }
-                        _notificationId ??= _generateNotificationId();
-                      }
-                      setState(() {
-                        _notify = value;
-                      });
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Оплата',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: methods.map((method) {
-                final isSelected = _selectedMethod?.id == method.id;
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedMethod = method;
-                    });
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
+                        setState(() {
+                          _notify = value;
+                        });
+                      },
                     ),
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppColors.surface2 : AppColors.surface1,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isSelected ? accent : AppColors.stroke,
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(method.icon, color: method.color, size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          method.name,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Категория',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: categories.map((category) {
-                final isSelected = _selectedCategory?.id == category.id;
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedCategory = category;
-                    });
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppColors.surface2 : AppColors.surface1,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isSelected ? accent : AppColors.stroke,
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(category.icon, color: category.color, size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          category.name,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Теги',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-            if (tags.isEmpty)
-              Text(
-                'Теги пока не добавлены',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
+                  ],
                 ),
-              )
-            else
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Оплата',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
-                children: tags.map((tag) {
-                  final isSelected = _selectedTagIds.contains(tag.id);
+                children: methods.map((method) {
+                  final isSelected = _selectedMethod?.id == method.id;
                   return GestureDetector(
                     onTap: () {
                       setState(() {
-                        if (isSelected) {
-                          _selectedTagIds.remove(tag.id);
-                        } else {
-                          _selectedTagIds.add(tag.id);
-                        }
+                        _selectedMethod = method;
                       });
                     },
                     child: Container(
@@ -1032,7 +937,9 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: isSelected ? AppColors.surface2 : AppColors.surface1,
+                        color: isSelected
+                            ? AppColors.surface2
+                            : AppColors.surface1,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: isSelected ? accent : AppColors.stroke,
@@ -1042,10 +949,10 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.tag, color: tag.color, size: 18),
+                          Icon(method.icon, color: method.color, size: 18),
                           const SizedBox(width: 8),
                           Text(
-                            tag.name,
+                            method.name,
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ],
@@ -1054,6 +961,116 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
                   );
                 }).toList(),
               ),
+              const SizedBox(height: 16),
+              Text(
+                'Категория',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: categories.map((category) {
+                  final isSelected = _selectedCategory?.id == category.id;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedCategory = category;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.surface2
+                            : AppColors.surface1,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isSelected ? accent : AppColors.stroke,
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(category.icon, color: category.color, size: 18),
+                          const SizedBox(width: 8),
+                          Text(
+                            category.name,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Теги',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+              if (tags.isEmpty)
+                Text(
+                  'Теги пока не добавлены',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                )
+              else
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: tags.map((tag) {
+                    final isSelected = _selectedTagIds.contains(tag.id);
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (isSelected) {
+                            _selectedTagIds.remove(tag.id);
+                          } else {
+                            _selectedTagIds.add(tag.id);
+                          }
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppColors.surface2
+                              : AppColors.surface1,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isSelected ? accent : AppColors.stroke,
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.tag, color: tag.color, size: 18),
+                            const SizedBox(width: 8),
+                            Text(
+                              tag.name,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
             ],
           ),
         ),

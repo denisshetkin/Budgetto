@@ -7,9 +7,11 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/category_entry.dart';
+import '../models/checklist_entry.dart';
 import '../models/family_group.dart';
 import '../models/payment_method.dart';
 import '../models/planned_entry.dart';
@@ -29,21 +31,26 @@ class AppState extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final InAppPurchase _inAppPurchase = InAppPurchase.instance;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _categoriesSub;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _plannedSub;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _remindersSub;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _listsSub;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _tagsSub;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _methodsSub;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _transactionsSub;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _budgetSub;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _familiesSub;
   StreamSubscription<String>? _tokenRefreshSub;
+  StreamSubscription<List<PurchaseDetails>>? _purchaseSub;
+  StreamSubscription<RemoteMessage>? _foregroundMessageSub;
   String? _budgetId;
   bool _initialized = false;
   String? _currencyCode;
   final List<TransactionEntry> _transactions = [];
   final List<PlannedEntry> _plannedEntries = [];
   final List<ReminderEntry> _reminders = [];
+  final List<ChecklistEntry> _checklists = [];
   final List<PaymentMethod> _paymentMethods = [];
   final List<CategoryEntry> _categories = [];
   final List<TagEntry> _tags = [];
@@ -57,9 +64,28 @@ class AppState extends ChangeNotifier {
   bool _syncEnabled = false;
   bool _familyNotificationsEnabled = true;
   ThemeMode _themeMode = ThemeMode.dark;
+  DateTime? _trialStartedAt;
+  String? _activeSubscriptionProductId;
+  bool _storeAvailable = false;
+  bool _billingLoading = false;
+  bool _purchasePending = false;
+  String? _billingError;
+  final Map<String, ProductDetails> _subscriptionProducts = {};
 
   static const _prefFcmToken = 'fcm_last_token';
   static const _prefThemeMode = 'theme_mode';
+  static const _prefTrialStartedAt = 'trial_started_at';
+  static const _prefActiveSubscriptionProductId =
+      'active_subscription_product_id';
+  static const _trialDurationDays = 30;
+  static const monthlySubscriptionProductId = 'budgetto_premium_monthly';
+  static const quarterlySubscriptionProductId = 'budgetto_premium_quarterly';
+  static const yearlySubscriptionProductId = 'budgetto_premium_yearly';
+  static const Set<String> _subscriptionProductIds = {
+    monthlySubscriptionProductId,
+    quarterlySubscriptionProductId,
+    yearlySubscriptionProductId,
+  };
 
   bool get isReady => _initialized;
   String? get currencyCode => _currencyCode;
@@ -69,6 +95,52 @@ class AppState extends ChangeNotifier {
   bool get syncEnabled => _syncEnabled;
   bool get familyNotificationsEnabled => _familyNotificationsEnabled;
   ThemeMode get themeMode => _themeMode;
+  DateTime? get trialStartedAt => _trialStartedAt;
+  DateTime? get trialEndsAt =>
+      _trialStartedAt?.add(const Duration(days: _trialDurationDays));
+  bool get storeAvailable => _storeAvailable;
+  bool get billingLoading => _billingLoading;
+  bool get purchasePending => _purchasePending;
+  String? get billingError => _billingError;
+  bool get hasPremiumAccess => _activeSubscriptionProductId != null;
+  bool get isTrialActive {
+    if (hasPremiumAccess) {
+      return false;
+    }
+    final endsAt = trialEndsAt;
+    if (endsAt == null) {
+      return true;
+    }
+    return DateTime.now().isBefore(endsAt);
+  }
+
+  bool get isAccessLocked => !hasPremiumAccess && !isTrialActive;
+
+  int get trialDaysRemaining {
+    if (hasPremiumAccess) {
+      return 0;
+    }
+    final endsAt = trialEndsAt;
+    if (endsAt == null) {
+      return _trialDurationDays;
+    }
+    final seconds = endsAt.difference(DateTime.now()).inSeconds;
+    if (seconds <= 0) {
+      return 0;
+    }
+    return (seconds / Duration.secondsPerDay).ceil();
+  }
+
+  String get accessStatusLabel {
+    if (hasPremiumAccess) {
+      return 'Premium активен';
+    }
+    if (isTrialActive) {
+      return 'Осталось $trialDaysRemaining д.';
+    }
+    return 'Доступ закрыт';
+  }
+
   bool get isAnonymousUser => _auth.currentUser?.isAnonymous ?? true;
   bool get isGoogleSignedIn =>
       _auth.currentUser?.providerData.any(
@@ -80,12 +152,38 @@ class AppState extends ChangeNotifier {
   List<TransactionEntry> get transactions => List.unmodifiable(_transactions);
   List<PlannedEntry> get plannedEntries => List.unmodifiable(_plannedEntries);
   List<ReminderEntry> get reminders => List.unmodifiable(_reminders);
+  List<ChecklistEntry> get checklists => List.unmodifiable(_checklists);
   List<PaymentMethod> get paymentMethods => List.unmodifiable(_paymentMethods);
   List<CategoryEntry> get categories => List.unmodifiable(_categories);
   List<TagEntry> get tags => List.unmodifiable(_tags);
   List<UserProfile> get familyMembers => List.unmodifiable(_familyMembers);
   List<FamilyGroup> get availableFamilies =>
       List.unmodifiable(_availableFamilies);
+  List<ProductDetails> get subscriptionProducts {
+    const order = [
+      yearlySubscriptionProductId,
+      quarterlySubscriptionProductId,
+      monthlySubscriptionProductId,
+    ];
+    final products = _subscriptionProducts.values.toList();
+    products.sort((a, b) {
+      final left = order.indexOf(a.id);
+      final right = order.indexOf(b.id);
+      return left.compareTo(right);
+    });
+    return List.unmodifiable(products);
+  }
+
+  PaymentMethod? get defaultPaymentMethod {
+    if (_paymentMethods.isEmpty) {
+      return null;
+    }
+    final cashIndex = _paymentMethods.indexWhere((item) => item.id == 'cash');
+    if (cashIndex >= 0) {
+      return _paymentMethods[cashIndex];
+    }
+    return _paymentMethods.first;
+  }
 
   String? memberName(String? userId) {
     if (userId == null) {
@@ -142,16 +240,20 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setFamilyNotificationsEnabled(bool value) async {
+  Future<bool> setFamilyNotificationsEnabled(bool value) async {
     if (_familyNotificationsEnabled == value) {
-      return;
+      return true;
+    }
+    if (value) {
+      final ready = await _ensureMessagingReady(requestPermission: true);
+      if (!ready) {
+        return false;
+      }
     }
     _familyNotificationsEnabled = value;
     notifyListeners();
     await _updateUserField({'notifyFamilyTransactions': value});
-    if (value && isFamilyMode) {
-      await _ensureMessagingReady(requestPermission: true);
-    }
+    return true;
   }
 
   Future<void> resetAccount() async {
@@ -175,6 +277,7 @@ class AppState extends ChangeNotifier {
     _transactions.clear();
     _plannedEntries.clear();
     _reminders.clear();
+    _checklists.clear();
     _paymentMethods.clear();
     _categories.clear();
     _tags.clear();
@@ -453,12 +556,44 @@ class AppState extends ChangeNotifier {
     required IconData icon,
     required Color color,
   }) {
-    final id = 'cat_${DateTime.now().millisecondsSinceEpoch}';
-    _categories.add(
-      CategoryEntry(id: id, name: name, icon: icon, color: color),
-    );
+    addCategoryEntry(name: name, icon: icon, color: color);
+  }
+
+  CategoryEntry addCategoryEntry({
+    required String name,
+    required IconData icon,
+    required Color color,
+  }) {
+    final id = 'cat_${DateTime.now().microsecondsSinceEpoch}';
+    final entry = CategoryEntry(id: id, name: name, icon: icon, color: color);
+    _categories.add(entry);
     notifyListeners();
-    _saveCategoryRemote(_categories.last);
+    _saveCategoryRemote(entry);
+    return entry;
+  }
+
+  CategoryEntry? findCategoryByName(String name) {
+    final normalized = _normalizeLookupName(name);
+    for (final category in _categories) {
+      if (_normalizeLookupName(category.name) == normalized) {
+        return category;
+      }
+    }
+    return null;
+  }
+
+  CategoryEntry ensureCategoryByName(String name) {
+    final existing = findCategoryByName(name);
+    if (existing != null) {
+      return existing;
+    }
+    final color =
+        _categoryPalette[_categories.length % _categoryPalette.length];
+    return addCategoryEntry(
+      name: name.trim(),
+      icon: Icons.more_horiz,
+      color: color,
+    );
   }
 
   void updateCategory({
@@ -553,10 +688,52 @@ class AppState extends ChangeNotifier {
     required IconData icon,
     required Color color,
   }) {
-    final id = 'tag_${DateTime.now().millisecondsSinceEpoch}';
-    _tags.add(TagEntry(id: id, name: name, icon: icon, color: color));
+    addTagEntry(name: name, icon: icon, color: color);
+  }
+
+  TagEntry addTagEntry({
+    required String name,
+    required IconData icon,
+    required Color color,
+  }) {
+    final id = 'tag_${DateTime.now().microsecondsSinceEpoch}';
+    final entry = TagEntry(id: id, name: name, icon: icon, color: color);
+    _tags.add(entry);
     notifyListeners();
-    _saveTagRemote(_tags.last);
+    _saveTagRemote(entry);
+    return entry;
+  }
+
+  TagEntry? findTagByName(String name) {
+    final normalized = _normalizeLookupName(name);
+    for (final tag in _tags) {
+      if (_normalizeLookupName(tag.name) == normalized) {
+        return tag;
+      }
+    }
+    return null;
+  }
+
+  TagEntry ensureTagByName(
+    String name, {
+    required IconData icon,
+    required Color color,
+  }) {
+    final existing = findTagByName(name);
+    if (existing != null) {
+      return existing;
+    }
+    return addTagEntry(name: name.trim(), icon: icon, color: color);
+  }
+
+  PaymentMethod? findPaymentMethodByName(String name) {
+    final normalized = _normalizeLookupName(name);
+    for (final method in _paymentMethods) {
+      if (_normalizeLookupName(method.name) == normalized) {
+        return method;
+      }
+    }
+    return null;
   }
 
   void updateTag({
@@ -786,6 +963,34 @@ class AppState extends ChangeNotifier {
     if (removed != null) {
       unawaited(_cancelReminderNotification(removed));
     }
+  }
+
+  void addChecklist(ChecklistEntry entry) {
+    _checklists.add(entry);
+    notifyListeners();
+    _saveChecklistRemote(entry);
+    _persistChecklistOrder();
+  }
+
+  void updateChecklist(ChecklistEntry entry) {
+    final index = _checklists.indexWhere((item) => item.id == entry.id);
+    if (index == -1) {
+      return;
+    }
+    _checklists[index] = entry;
+    notifyListeners();
+    _saveChecklistRemote(entry);
+  }
+
+  void removeChecklist(String id) {
+    final index = _checklists.indexWhere((entry) => entry.id == id);
+    if (index == -1) {
+      return;
+    }
+    _checklists.removeAt(index);
+    notifyListeners();
+    _deleteChecklistRemote(id);
+    _persistChecklistOrder();
   }
 
   bool _shouldNotifyPlanned(PlannedEntry entry) {
@@ -1073,7 +1278,7 @@ class AppState extends ChangeNotifier {
     final start = _periodStart(now, filter);
     return _transactions
         .where((entry) => entry.type == type && !entry.date.isBefore(start))
-        .fold(0.0, (sum, entry) => sum + entry.amount);
+        .fold(0.0, (total, entry) => total + entry.amount);
   }
 
   double balanceForPeriod(PeriodFilter filter) {
@@ -1092,27 +1297,174 @@ class AppState extends ChangeNotifier {
     return DateTime(start.year, start.month, start.day);
   }
 
-  CategoryEntry _categoryById(String id) {
-    return _categories.firstWhere((category) => category.id == id);
-  }
-
-  PaymentMethod _methodById(String id) {
-    return _paymentMethods.firstWhere((method) => method.id == id);
-  }
-
   Future<void> _loadLocalPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     final theme = prefs.getString(_prefThemeMode);
     _themeMode = theme == 'light' ? ThemeMode.light : ThemeMode.dark;
+    final storedTrialStartedAt = prefs.getInt(_prefTrialStartedAt);
+    if (storedTrialStartedAt == null) {
+      _trialStartedAt = DateTime.now();
+      await prefs.setInt(
+        _prefTrialStartedAt,
+        _trialStartedAt!.millisecondsSinceEpoch,
+      );
+    } else {
+      _trialStartedAt = DateTime.fromMillisecondsSinceEpoch(
+        storedTrialStartedAt,
+      );
+    }
+    _activeSubscriptionProductId = prefs.getString(
+      _prefActiveSubscriptionProductId,
+    );
   }
 
   Future<void> initialize() async {
     if (_initialized) {
       return;
     }
+    _bindMessagingListeners();
     await _loadLocalPreferences();
+    unawaited(_initializeBilling());
     final user = await _ensureSignedIn();
     await _loadUserContext(user);
+  }
+
+  Future<void> _initializeBilling() async {
+    _purchaseSub ??= _inAppPurchase.purchaseStream.listen(
+      _handlePurchaseUpdates,
+      onError: (Object error) {
+        _purchasePending = false;
+        _billingError = 'Не удалось обновить статус покупки';
+        notifyListeners();
+      },
+    );
+    _billingLoading = true;
+    _billingError = null;
+    notifyListeners();
+
+    try {
+      final isAvailable = await _inAppPurchase.isAvailable();
+      _storeAvailable = isAvailable;
+      if (!isAvailable) {
+        _subscriptionProducts.clear();
+        _billingLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      final response = await _inAppPurchase.queryProductDetails(
+        _subscriptionProductIds,
+      );
+      if (response.error != null) {
+        _billingError = response.error!.message;
+      } else {
+        _billingError = null;
+      }
+      _subscriptionProducts
+        ..clear()
+        ..addEntries(
+          response.productDetails.map(
+            (product) => MapEntry(product.id, product),
+          ),
+        );
+    } catch (_) {
+      _storeAvailable = false;
+      _subscriptionProducts.clear();
+      _billingError = 'Не удалось подключить магазин';
+    } finally {
+      _billingLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> purchaseSubscription(String productId) async {
+    final product = _subscriptionProducts[productId];
+    if (product == null) {
+      _billingError = 'Тариф пока недоступен в магазине';
+      notifyListeners();
+      return;
+    }
+    _purchasePending = true;
+    _billingError = null;
+    notifyListeners();
+    final purchaseParam = PurchaseParam(productDetails: product);
+    final started = await _inAppPurchase.buyNonConsumable(
+      purchaseParam: purchaseParam,
+    );
+    if (!started) {
+      _purchasePending = false;
+      _billingError = 'Не удалось начать покупку';
+      notifyListeners();
+    }
+  }
+
+  Future<void> restorePurchases() async {
+    if (!_storeAvailable) {
+      _billingError = 'Магазин сейчас недоступен';
+      notifyListeners();
+      return;
+    }
+    _purchasePending = true;
+    _billingError = null;
+    notifyListeners();
+    try {
+      await _inAppPurchase.restorePurchases();
+    } catch (_) {
+      _purchasePending = false;
+      _billingError = 'Не удалось восстановить покупки';
+      notifyListeners();
+    }
+  }
+
+  Future<void> _handlePurchaseUpdates(
+    List<PurchaseDetails> purchaseDetailsList,
+  ) async {
+    var shouldNotify = false;
+    for (final purchase in purchaseDetailsList) {
+      switch (purchase.status) {
+        case PurchaseStatus.pending:
+          _purchasePending = true;
+          shouldNotify = true;
+          break;
+        case PurchaseStatus.purchased:
+        case PurchaseStatus.restored:
+          if (_subscriptionProductIds.contains(purchase.productID)) {
+            _activeSubscriptionProductId = purchase.productID;
+            _purchasePending = false;
+            _billingError = null;
+            await _storeActiveSubscriptionProductId(purchase.productID);
+            shouldNotify = true;
+          }
+          break;
+        case PurchaseStatus.error:
+          _purchasePending = false;
+          _billingError =
+              purchase.error?.message ?? 'Не удалось завершить покупку';
+          shouldNotify = true;
+          break;
+        case PurchaseStatus.canceled:
+          _purchasePending = false;
+          shouldNotify = true;
+          break;
+      }
+
+      if (purchase.pendingCompletePurchase) {
+        await _inAppPurchase.completePurchase(purchase);
+      }
+    }
+
+    if (shouldNotify) {
+      notifyListeners();
+    }
+  }
+
+  Future<void> _storeActiveSubscriptionProductId(String? productId) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (productId == null) {
+      await prefs.remove(_prefActiveSubscriptionProductId);
+      return;
+    }
+    await prefs.setString(_prefActiveSubscriptionProductId, productId);
   }
 
   Future<void> _loadUserContext(User user) async {
@@ -1322,6 +1674,7 @@ class AppState extends ChangeNotifier {
     _transactions.clear();
     _plannedEntries.clear();
     _reminders.clear();
+    _checklists.clear();
     _categories.clear();
     _paymentMethods.clear();
     _tags.clear();
@@ -1419,6 +1772,20 @@ class AppState extends ChangeNotifier {
           notifyListeners();
         });
 
+    _listsSub = _db
+        .collection('budgets')
+        .doc(budgetId)
+        .collection('lists')
+        .orderBy('order')
+        .snapshots()
+        .listen((snap) {
+          final list = snap.docs.map(_checklistFromDoc).toList();
+          _checklists
+            ..clear()
+            ..addAll(list);
+          notifyListeners();
+        });
+
     _methodsSub = _db
         .collection('budgets')
         .doc(budgetId)
@@ -1483,6 +1850,7 @@ class AppState extends ChangeNotifier {
     await _categoriesSub?.cancel();
     await _plannedSub?.cancel();
     await _remindersSub?.cancel();
+    await _listsSub?.cancel();
     await _tagsSub?.cancel();
     await _methodsSub?.cancel();
     await _transactionsSub?.cancel();
@@ -1491,6 +1859,7 @@ class AppState extends ChangeNotifier {
     _categoriesSub = null;
     _plannedSub = null;
     _remindersSub = null;
+    _listsSub = null;
     _tagsSub = null;
     _methodsSub = null;
     _transactionsSub = null;
@@ -1498,14 +1867,45 @@ class AppState extends ChangeNotifier {
     _tokenRefreshSub = null;
   }
 
-  Future<void> _ensureMessagingReady({required bool requestPermission}) async {
-    if (_currentUser.id == 'local') {
+  void _bindMessagingListeners() {
+    _foregroundMessageSub ??= FirebaseMessaging.onMessage.listen(
+      _handleForegroundMessage,
+    );
+  }
+
+  Future<void> _handleForegroundMessage(RemoteMessage message) async {
+    if (!_familyNotificationsEnabled) {
       return;
+    }
+    if (defaultTargetPlatform != TargetPlatform.android) {
+      return;
+    }
+    if (message.data['type'] != 'family_transaction') {
+      return;
+    }
+
+    final title = message.notification?.title?.trim();
+    final body = message.notification?.body?.trim();
+    await LocalNotifications.instance.showFamilyTransaction(
+      id:
+          ((message.data['transactionId'] as String?)?.hashCode ??
+              DateTime.now().millisecondsSinceEpoch) &
+          0x7fffffff,
+      title: (title == null || title.isEmpty) ? 'Новая трата в семье' : title,
+      body: (body == null || body.isEmpty)
+          ? 'В семейном бюджете появилась новая трата'
+          : body,
+    );
+  }
+
+  Future<bool> _ensureMessagingReady({required bool requestPermission}) async {
+    if (_currentUser.id == 'local') {
+      return false;
     }
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       final isPhysical = await _isPhysicalDevice();
       if (!isPhysical) {
-        return;
+        return false;
       }
     }
     final messaging = FirebaseMessaging.instance;
@@ -1516,7 +1916,7 @@ class AppState extends ChangeNotifier {
         sound: true,
       );
       if (settings.authorizationStatus == AuthorizationStatus.denied) {
-        return;
+        return false;
       }
     }
     await messaging.setForegroundNotificationPresentationOptions(
@@ -1529,8 +1929,9 @@ class AppState extends ChangeNotifier {
       final token = await messaging.getToken();
       await _storeFcmToken(token);
       _tokenRefreshSub ??= messaging.onTokenRefresh.listen(_storeFcmToken);
+      return true;
     } catch (_) {
-      return;
+      return false;
     }
   }
 
@@ -1672,6 +2073,18 @@ class AppState extends ChangeNotifier {
       }
     }
 
+    final listRef = _db.collection('budgets').doc(budgetId).collection('lists');
+    final listSnap = await listRef.limit(1).get();
+    if (listSnap.docs.isEmpty) {
+      for (var i = 0; i < _checklists.length; i++) {
+        final entry = _checklists[i];
+        await listRef.doc(entry.id).set({
+          ..._checklistToMap(entry),
+          'order': i,
+        });
+      }
+    }
+
     final methodRef = _db
         .collection('budgets')
         .doc(budgetId)
@@ -1779,6 +2192,19 @@ class AppState extends ChangeNotifier {
       comment: data['comment'] as String?,
       enabled: data['enabled'] as bool? ?? true,
       notificationId: (data['notificationId'] as num?)?.toInt(),
+    );
+  }
+
+  ChecklistEntry _checklistFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data()!;
+    final createdAt =
+        (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+    final items = _checklistItemsFromMapList(data['items'] as List<dynamic>?);
+    return ChecklistEntry(
+      id: doc.id,
+      title: data['title'] as String? ?? '',
+      items: items,
+      createdAt: createdAt,
     );
   }
 
@@ -1892,6 +2318,41 @@ class AppState extends ChangeNotifier {
     };
   }
 
+  Map<String, dynamic> _checklistToMap(ChecklistEntry entry) {
+    return {
+      'title': entry.title,
+      'items': entry.items.map(_checklistItemToMap).toList(),
+      'createdAt': Timestamp.fromDate(entry.createdAt),
+    };
+  }
+
+  Map<String, dynamic> _checklistItemToMap(ChecklistItem item) {
+    return {'id': item.id, 'title': item.title, 'checked': item.checked};
+  }
+
+  ChecklistItem _checklistItemFromMap(Map<String, dynamic> map) {
+    return ChecklistItem(
+      id: map['id'] as String? ?? '',
+      title: map['title'] as String? ?? '',
+      checked: map['checked'] as bool? ?? false,
+    );
+  }
+
+  List<ChecklistItem> _checklistItemsFromMapList(List<dynamic>? raw) {
+    if (raw == null) {
+      return [];
+    }
+    final items = <ChecklistItem>[];
+    for (final item in raw) {
+      if (item is Map<String, dynamic>) {
+        items.add(_checklistItemFromMap(item));
+      } else if (item is Map) {
+        items.add(_checklistItemFromMap(Map<String, dynamic>.from(item)));
+      }
+    }
+    return items;
+  }
+
   Map<String, dynamic> _iconToMap(IconData icon) {
     return {
       'code': icon.codePoint,
@@ -1929,6 +2390,10 @@ class AppState extends ChangeNotifier {
         (map['color'] as num?)?.toInt() ?? _categoryPalette.first.value,
       ),
     );
+  }
+
+  String _normalizeLookupName(String value) {
+    return value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
   }
 
   List<TagEntry> _tagsFromMapList(List<dynamic>? raw) {
@@ -2086,6 +2551,33 @@ class AppState extends ChangeNotifier {
         .delete();
   }
 
+  Future<void> _saveChecklistRemote(ChecklistEntry entry) async {
+    if (!_syncEnabled || _budgetId == null) {
+      return;
+    }
+    await _db
+        .collection('budgets')
+        .doc(_budgetId)
+        .collection('lists')
+        .doc(entry.id)
+        .set({
+          ..._checklistToMap(entry),
+          'order': _checklists.indexWhere((item) => item.id == entry.id),
+        }, SetOptions(merge: true));
+  }
+
+  Future<void> _deleteChecklistRemote(String id) async {
+    if (!_syncEnabled || _budgetId == null) {
+      return;
+    }
+    await _db
+        .collection('budgets')
+        .doc(_budgetId)
+        .collection('lists')
+        .doc(id)
+        .delete();
+  }
+
   Future<void> _savePaymentMethodRemote(PaymentMethod method) async {
     if (!_syncEnabled || _budgetId == null) {
       return;
@@ -2186,6 +2678,23 @@ class AppState extends ChangeNotifier {
           .doc(_budgetId)
           .collection('paymentMethods')
           .doc(method.id);
+      batch.set(ref, {'order': i}, SetOptions(merge: true));
+    }
+    await batch.commit();
+  }
+
+  Future<void> _persistChecklistOrder() async {
+    if (!_syncEnabled || _budgetId == null) {
+      return;
+    }
+    final batch = _db.batch();
+    for (var i = 0; i < _checklists.length; i++) {
+      final entry = _checklists[i];
+      final ref = _db
+          .collection('budgets')
+          .doc(_budgetId)
+          .collection('lists')
+          .doc(entry.id);
       batch.set(ref, {'order': i}, SetOptions(merge: true));
     }
     await batch.commit();
@@ -2511,124 +3020,6 @@ class AppState extends ChangeNotifier {
     ]);
   }
 
-  void _seedTransactions() {
-    final now = DateTime.now();
-    final food = _categoryById('food');
-    final home = _categoryById('home');
-    final transport = _categoryById('transport');
-    final fun = _categoryById('fun');
-    final cash = _methodById('cash');
-    final wise = _methodById('card_wise');
-    final revolut = _methodById('card_revolut');
-
-    _transactions.addAll([
-      TransactionEntry(
-        id: 'seed_1',
-        type: TransactionType.expense,
-        amount: 12.5,
-        categoryId: food.id,
-        categoryName: food.name,
-        categoryIcon: food.icon,
-        categoryColor: food.color,
-        date: now.subtract(const Duration(hours: 2)),
-        paymentMethod: cash,
-        note: 'Кофе',
-        createdByUserId: _currentUser.id,
-      ),
-      TransactionEntry(
-        id: 'seed_2',
-        type: TransactionType.expense,
-        amount: 58.0,
-        categoryId: home.id,
-        categoryName: home.name,
-        categoryIcon: home.icon,
-        categoryColor: home.color,
-        date: now.subtract(const Duration(hours: 6)),
-        paymentMethod: wise,
-        note: 'Интернет',
-        createdByUserId: _currentUser.id,
-      ),
-      TransactionEntry(
-        id: 'seed_3',
-        type: TransactionType.expense,
-        amount: 7.2,
-        categoryId: transport.id,
-        categoryName: transport.name,
-        categoryIcon: transport.icon,
-        categoryColor: transport.color,
-        date: now.subtract(const Duration(days: 1, hours: 3)),
-        paymentMethod: revolut,
-        note: 'Метро',
-        createdByUserId: _currentUser.id,
-      ),
-      TransactionEntry(
-        id: 'seed_4',
-        type: TransactionType.income,
-        amount: 1200,
-        categoryId: fun.id,
-        categoryName: fun.name,
-        categoryIcon: fun.icon,
-        categoryColor: fun.color,
-        date: now.subtract(const Duration(days: 2, hours: 4)),
-        paymentMethod: wise,
-        note: 'Фриланс',
-        createdByUserId: _currentUser.id,
-      ),
-      TransactionEntry(
-        id: 'seed_5',
-        type: TransactionType.expense,
-        amount: 34.0,
-        categoryId: food.id,
-        categoryName: food.name,
-        categoryIcon: food.icon,
-        categoryColor: food.color,
-        date: now.subtract(const Duration(days: 8, hours: 2)),
-        paymentMethod: revolut,
-        note: 'Ужин',
-        createdByUserId: _currentUser.id,
-      ),
-      TransactionEntry(
-        id: 'seed_6',
-        type: TransactionType.expense,
-        amount: 19.9,
-        categoryId: transport.id,
-        categoryName: transport.name,
-        categoryIcon: transport.icon,
-        categoryColor: transport.color,
-        date: now.subtract(const Duration(days: 9, hours: 1)),
-        paymentMethod: cash,
-        note: 'Такси',
-        createdByUserId: _currentUser.id,
-      ),
-      TransactionEntry(
-        id: 'seed_7',
-        type: TransactionType.expense,
-        amount: 220.0,
-        categoryId: home.id,
-        categoryName: home.name,
-        categoryIcon: home.icon,
-        categoryColor: home.color,
-        date: now.subtract(const Duration(days: 35, hours: 5)),
-        paymentMethod: wise,
-        note: 'Коммуналка',
-        createdByUserId: _currentUser.id,
-      ),
-      TransactionEntry(
-        id: 'seed_8',
-        type: TransactionType.income,
-        amount: 900,
-        categoryId: fun.id,
-        categoryName: fun.name,
-        categoryIcon: fun.icon,
-        categoryColor: fun.color,
-        date: now.subtract(const Duration(days: 40, hours: 3)),
-        paymentMethod: wise,
-        note: 'Проект',
-        createdByUserId: _currentUser.id,
-      ),
-    ]);
-  }
-
   String _createInviteCode() {
     final raw = DateTime.now().millisecondsSinceEpoch
         .toRadixString(36)
@@ -2638,7 +3029,9 @@ class AppState extends ChangeNotifier {
 
   @override
   void dispose() {
+    _purchaseSub?.cancel();
     _tokenRefreshSub?.cancel();
+    _foregroundMessageSub?.cancel();
     super.dispose();
   }
 }

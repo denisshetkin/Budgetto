@@ -37,7 +37,9 @@ class LocalNotifications {
   Future<bool> requestPermissions() async {
     bool granted = true;
     final ios = _plugin
-        .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >();
     if (ios != null) {
       final result = await ios.requestPermissions(
         alert: true,
@@ -47,7 +49,9 @@ class LocalNotifications {
       granted = granted && (result ?? false);
     }
     final android = _plugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (android != null) {
       final result = await android.requestNotificationsPermission();
       granted = granted && (result ?? true);
@@ -113,6 +117,26 @@ class LocalNotifications {
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
     );
+  }
+
+  Future<void> showFamilyTransaction({
+    required int id,
+    required String title,
+    required String body,
+  }) async {
+    await initialize();
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'family_transactions',
+        'Семейные траты',
+        channelDescription: 'Уведомления о новых расходах в семейном бюджете',
+        importance: Importance.high,
+        priority: Priority.high,
+      ),
+      iOS: DarwinNotificationDetails(),
+    );
+
+    await _plugin.show(id, title, body, details);
   }
 
   Future<void> cancel(int id) async {

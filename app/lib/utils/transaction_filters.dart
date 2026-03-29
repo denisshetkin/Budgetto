@@ -25,6 +25,16 @@ class TransactionFilter {
   final DateTime? to;
 }
 
+String _normalizeSearchValue(String value) {
+  return value.toLowerCase().replaceAll(' ', '').replaceAll(',', '.');
+}
+
+String _formatAmountForSearch(double amount) {
+  var formatted = amount.toStringAsFixed(2);
+  formatted = formatted.replaceFirst(RegExp(r'\.?0+$'), '');
+  return formatted;
+}
+
 bool shouldIncludeTransaction({
   required TransactionEntry entry,
   required TransactionFilter filter,
@@ -72,14 +82,26 @@ bool shouldIncludeTransaction({
     return false;
   }
   if (filter.query.isNotEmpty) {
+    final query = filter.query.toLowerCase();
+    final normalizedQuery = _normalizeSearchValue(filter.query);
     final note = (entry.note ?? '').toLowerCase();
     final category = entry.categoryName.toLowerCase();
     final hasTag = entry.tags.any(
-      (tag) => tag.name.toLowerCase().contains(filter.query),
+      (tag) => tag.name.toLowerCase().contains(query),
     );
-    if (!note.contains(filter.query) &&
-        !category.contains(filter.query) &&
-        !hasTag) {
+    final amountValue = _normalizeSearchValue(
+      _formatAmountForSearch(entry.amount),
+    );
+    final amountWithDecimals = _normalizeSearchValue(
+      entry.amount.toStringAsFixed(2),
+    );
+    final matchesAmount =
+        amountValue.contains(normalizedQuery) ||
+        amountWithDecimals.contains(normalizedQuery);
+    if (!note.contains(query) &&
+        !category.contains(query) &&
+        !hasTag &&
+        !matchesAmount) {
       return false;
     }
   }

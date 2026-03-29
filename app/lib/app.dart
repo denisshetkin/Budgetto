@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 import 'screens/app_shell.dart';
+import 'screens/subscription_screen.dart';
 import 'state/app_state.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
@@ -21,18 +21,16 @@ class _SmartWalletAppState extends State<SmartWalletApp> {
   @override
   void initState() {
     super.initState();
+    GoogleFonts.config.allowRuntimeFetching = false;
     _bootstrap();
   }
 
   Future<void> _bootstrap() async {
-    final fontStyle = GoogleFonts.sacramento();
-    await GoogleFonts.pendingFonts([fontStyle]);
-    if (!mounted) {
-      return;
+    if (mounted) {
+      setState(() {
+        _fontsReady = true;
+      });
     }
-    setState(() {
-      _fontsReady = true;
-    });
     await _appState.initialize();
     if (!mounted) {
       return;
@@ -57,10 +55,10 @@ class _SmartWalletAppState extends State<SmartWalletApp> {
             darkTheme: buildDarkTheme(),
             themeMode: _appState.themeMode,
             home: _ready
-                ? const AppShell()
-                : (_fontsReady
-                    ? const _SplashScreen()
-                    : const _BlankScreen()),
+                ? (_appState.isAccessLocked
+                      ? const SubscriptionScreen()
+                      : const AppShell())
+                : (_fontsReady ? const _SplashScreen() : const _BlankScreen()),
           );
         },
       ),
@@ -73,9 +71,7 @@ class _BlankScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: SizedBox.expand(),
-    );
+    return const Scaffold(body: SizedBox.expand());
   }
 }
 
@@ -86,25 +82,29 @@ class _SplashScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      body: Center(
+      body: SafeArea(
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
+            const Spacer(flex: 3),
             Text(
               'Budgetto',
-              style: GoogleFonts.sacramento(
+              style: TextStyle(
+                fontFamily: 'Sacramento',
                 fontSize: 64,
                 fontWeight: FontWeight.w600,
                 color: colorScheme.primary,
               ),
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                color: colorScheme.primary,
+            const Spacer(flex: 4),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(48, 0, 48, 32),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  minHeight: 6,
+                  color: colorScheme.primary,
+                  backgroundColor: colorScheme.primary.withValues(alpha: 0.2),
+                ),
               ),
             ),
           ],

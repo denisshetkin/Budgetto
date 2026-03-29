@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../models/transaction_entry.dart';
+import '../services/data_export.dart';
+import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/gradient_icon.dart';
 import 'add_transaction_screen.dart';
+import 'lists_screen.dart';
 import 'overview_screen.dart';
 import 'planned_screen.dart';
 import 'reminders_screen.dart';
@@ -23,18 +26,103 @@ class _AppShellState extends State<AppShell> {
   final List<Widget> _screens = const [
     OverviewScreen(),
     TransactionsScreen(),
-    PlannedScreen(),
-    RemindersScreen(),
+    SizedBox.shrink(),
     SettingsScreen(),
   ];
 
   void _openAddTransaction() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => const AddTransactionScreen(
-          initialType: TransactionType.expense,
-        ),
+        builder: (_) =>
+            const AddTransactionScreen(initialType: TransactionType.expense),
       ),
+    );
+  }
+
+  Future<void> _openMoreMenu() async {
+    final appState = AppStateScope.of(context);
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface1,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: Icon(
+                    Icons.event_note_outlined,
+                    color: AppColors.accentTotal,
+                  ),
+                  title: const Text('Регулярные платежи'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const PlannedScreen()),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.notifications,
+                    color: AppColors.accentDisplay,
+                  ),
+                  title: const Text('Напоминания'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const RemindersScreen(),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.fact_check, color: AppColors.chipBlue),
+                  title: const Text('Списки покупок'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ListsScreen()),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.file_download_outlined,
+                    color: AppColors.accentDisplay,
+                  ),
+                  title: const Text('Импорт CSV'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const DataSettingsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.file_upload_outlined,
+                    color: AppColors.accentTotal,
+                  ),
+                  title: const Text('Экспорт CSV'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    DataExport.exportTransactionsCsv(this.context, appState);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -51,8 +139,11 @@ class _AppShellState extends State<AppShell> {
         scale: 1.05,
         child: FloatingActionButton(
           onPressed: _openAddTransaction,
-          backgroundColor:
-              Color.lerp(colorScheme.surface, colorScheme.primary, 0.2),
+          backgroundColor: Color.lerp(
+            colorScheme.surface,
+            colorScheme.primary,
+            0.2,
+          ),
           foregroundColor: colorScheme.primary,
           shape: CircleBorder(
             side: BorderSide(color: colorScheme.primary, width: 2.5),
@@ -79,6 +170,10 @@ class _AppShellState extends State<AppShell> {
             indicatorColor: Colors.transparent,
             selectedIndex: _currentIndex,
             onDestinationSelected: (index) {
+              if (index == 2) {
+                _openMoreMenu();
+                return;
+              }
               setState(() {
                 _currentIndex = index;
               });
@@ -136,27 +231,7 @@ class _AppShellState extends State<AppShell> {
                 icon: _NavIcon(
                   backgroundColor: navIndicator,
                   icon: Icon(
-                    Icons.event_note_outlined,
-                    size: 30,
-                    color: AppColors.accentTotal,
-                  ),
-                ),
-                selectedIcon: _NavIcon(
-                  backgroundColor: navIndicator,
-                  selected: true,
-                  icon: Icon(
-                    Icons.event_note,
-                    size: 30,
-                    color: AppColors.accentTotal,
-                  ),
-                ),
-                label: '',
-              ),
-              NavigationDestination(
-                icon: _NavIcon(
-                  backgroundColor: navIndicator,
-                  icon: Icon(
-                    Icons.notifications_outlined,
+                    Icons.widgets_outlined,
                     size: 30,
                     color: AppColors.accentDisplay,
                   ),
@@ -165,7 +240,7 @@ class _AppShellState extends State<AppShell> {
                   backgroundColor: navIndicator,
                   selected: true,
                   icon: Icon(
-                    Icons.notifications,
+                    Icons.widgets_rounded,
                     size: 30,
                     color: AppColors.accentDisplay,
                   ),
@@ -176,9 +251,9 @@ class _AppShellState extends State<AppShell> {
                 icon: _NavIcon(
                   backgroundColor: navIndicator,
                   icon: Icon(
-                    Icons.settings_outlined,
-                    size: 30,
-                    color: AppColors.categoryPalette[5],
+                    Icons.settings,
+                    size: 32,
+                    color: AppColors.accentNeutral,
                   ),
                 ),
                 selectedIcon: _NavIcon(
@@ -186,8 +261,8 @@ class _AppShellState extends State<AppShell> {
                   selected: true,
                   icon: Icon(
                     Icons.settings,
-                    size: 30,
-                    color: AppColors.categoryPalette[5],
+                    size: 32,
+                    color: AppColors.accentNeutral,
                   ),
                 ),
                 label: '',

@@ -18,8 +18,37 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
   final TextEditingController _familyNameController = TextEditingController();
   bool _memberNameDirty = false;
   bool _familyNameDirty = false;
+  bool _familyNotificationsSaving = false;
   bool _showFamilyErrors = false;
   bool _initialized = false;
+
+  Future<void> _toggleFamilyNotifications(
+    BuildContext context,
+    AppState appState,
+    bool value,
+  ) async {
+    if (_familyNotificationsSaving) {
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() {
+      _familyNotificationsSaving = true;
+    });
+    final success = await appState.setFamilyNotificationsEnabled(value);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _familyNotificationsSaving = false;
+    });
+    if (value && !success) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Разрешите push-уведомления в настройках устройства'),
+        ),
+      );
+    }
+  }
 
   bool _validateFamilyForm() {
     final memberValid =
@@ -383,7 +412,8 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     }
 
     return Scaffold(
-      body: SafeArea(top: false,
+      body: SafeArea(
+        top: false,
         child: Column(
           children: [
             AppHeader(
@@ -590,6 +620,68 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                                 color: AppColors.textSecondary,
                               ),
                               tooltip: 'Скопировать код',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Личные настройки в этом бюджете',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 8),
+                          SoftCard(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Уведомлять меня о новых тратах',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        'Пуш придет, когда кто-то из семьи добавит новый расход в этот бюджет.',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              color: AppColors.textSecondary,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'У остальных участников этот переключатель работает отдельно.',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              color: AppColors.textSecondary,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Switch.adaptive(
+                                  value: appState.familyNotificationsEnabled,
+                                  onChanged: _familyNotificationsSaving
+                                      ? null
+                                      : (value) => _toggleFamilyNotifications(
+                                          context,
+                                          appState,
+                                          value,
+                                        ),
+                                ),
+                              ],
                             ),
                           ),
                           if (appState.familyMembers.isNotEmpty) ...[
