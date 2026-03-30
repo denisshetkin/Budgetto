@@ -4,21 +4,33 @@ import '../models/transaction_entry.dart';
 import '../state/app_state.dart';
 
 class TransactionImportService {
-  static const int maxRows = 200;
+  static const int maxRows = 500;
 
-  static const List<String> canonicalHeaders = [
+  static const List<String> requiredHeaders = [
     'date',
-    'type',
+    'transaction_type',
+    'operation',
     'amount',
     'category',
     'payment_method',
-    'note',
+    'tags',
+  ];
+
+  static const List<String> documentHeaders = [
+    'дата',
+    'тип операции',
+    'операция',
+    'сумма',
+    'категория',
+    'способ оплаты',
+    'теги',
   ];
 
   static TransactionImportPreview analyzeCsv({
     required String csvContent,
     required Iterable<String> existingCategoryNames,
     required Iterable<String> existingPaymentMethodNames,
+    required Iterable<String> existingTagNames,
     String? sourceName,
   }) {
     final sanitized = csvContent.replaceFirst(_utf8Bom, '');
@@ -32,6 +44,8 @@ class TransactionImportService {
         ],
         rows: const [],
         newCategoryNames: const [],
+        newPaymentMethodNames: const [],
+        newTagNames: const [],
       );
     }
 
@@ -48,6 +62,8 @@ class TransactionImportService {
         ],
         rows: const [],
         newCategoryNames: const [],
+        newPaymentMethodNames: const [],
+        newTagNames: const [],
       );
     }
 
@@ -59,6 +75,8 @@ class TransactionImportService {
         ],
         rows: const [],
         newCategoryNames: const [],
+        newPaymentMethodNames: const [],
+        newTagNames: const [],
       );
     }
 
@@ -68,12 +86,12 @@ class TransactionImportService {
     final headerMap = _buildHeaderMap(headerRow);
     final errors = <TransactionImportIssue>[];
 
-    for (final header in ['date', 'type', 'amount', 'category']) {
+    for (final header in requiredHeaders) {
       if (!headerMap.containsKey(header)) {
         errors.add(
           TransactionImportIssue(
             message:
-                'Не найдена обязательная колонка "$header". Используй шаблон из инструкции.',
+                'Не найдена обязательная колонка "${_headerLabels[header]}". Используй шаблон из инструкции.',
           ),
         );
       }
@@ -104,9 +122,14 @@ class TransactionImportService {
     final existingMethods = existingPaymentMethodNames
         .map(_normalizeLookupKey)
         .toSet();
+    final existingTags = existingTagNames.map(_normalizeLookupKey).toSet();
     final preparedRows = <PreparedImportTransactionRow>[];
     final newCategoryNames = <String>[];
+    final newPaymentMethodNames = <String>[];
+    final newTagNames = <String>[];
     final seenNewCategoryKeys = <String>{};
+    final seenNewMethodKeys = <String>{};
+    final seenNewTagKeys = <String>{};
 
     for (var index = 0; index < dataRows.length; index++) {
       final csvRow = dataRows[index];
@@ -124,11 +147,12 @@ class TransactionImportService {
       }
 
       final rawDate = valueFor('date');
-      final rawType = valueFor('type');
+      final rawType = valueFor('transaction_type');
+      final rawOperation = valueFor('operation');
       final rawAmount = valueFor('amount');
       final rawCategory = valueFor('category');
       final rawMethod = valueFor('payment_method');
-      final rawNote = valueFor('note');
+      final rawTags = valueFor('tags');
 
       final date = _tryParseDate(rawDate);
       if (date == null) {
@@ -136,7 +160,7 @@ class TransactionImportService {
           TransactionImportIssue(
             lineNumber: lineNumber,
             message:
-                'Не удалось распознать дату "$rawDate". Поддерживаются ISO и формат dd.MM.yyyy HH:mm.',
+                'Не удалось распознать дату "$rawDate". Используй дату со временем, например 2026-02-05 00:53. Секунды можно указывать, они будут проигнорированы.',
           ),
         );
       }
@@ -147,7 +171,16 @@ class TransactionImportService {
           TransactionImportIssue(
             lineNumber: lineNumber,
             message:
-                'Поле type должно быть expense/income или Расход/Доход. Сейчас: "$rawType".',
+                'Поле "тип операции" заполнено неверно. Используй значение "Расход" или "Доход".',
+          ),
+        );
+      }
+
+      if (rawOperation.isEmpty) {
+        errors.add(
+          TransactionImportIssue(
+            lineNumber: lineNumber,
+            message: 'Поле "операция" не должно быть пустым.',
           ),
         );
       }
@@ -158,7 +191,7 @@ class TransactionImportService {
           TransactionImportIssue(
             lineNumber: lineNumber,
             message:
-                'Поле amount должно быть числом больше 0. Сейчас: "$rawAmount".',
+                'Поле "сумма" должно быть числом больше 0. Сейчас: "$rawAmount".',
           ),
         );
       }
@@ -167,26 +200,32 @@ class TransactionImportService {
         errors.add(
           TransactionImportIssue(
             lineNumber: lineNumber,
-            message: 'Поле category не должно быть пустым.',
+            message: 'Поле "категория" не должно быть пустым.',
           ),
         );
       }
 
-      String? paymentMethodName;
       if (rawMethod.isEmpty) {
-        paymentMethodName = null;
+        errors.add(
+          TransactionImportIssue(
+            lineNumber: lineNumber,
+            message: 'Поле "способ оплаты" не должно быть пустым.',
+          ),
+        );
       } else {
         final normalizedMethod = _normalizeLookupKey(rawMethod);
-        if (!existingMethods.contains(normalizedMethod)) {
-          errors.add(
-            TransactionImportIssue(
-              lineNumber: lineNumber,
-              message:
-                  'Не найден способ оплаты "$rawMethod". Сначала создай его в настройках или оставь поле пустым.',
-            ),
-          );
-        } else {
-          paymentMethodName = rawMethod;
+        if (!existingMethods.contains(normalizedMethod) &&
+            seenNewMethodKeys.add(normalizedMethod)) {
+          newPaymentMethodNames.add(rawMethod);
+        }
+      }
+
+      final tagNames = _parseTagNames(rawTags);
+      for (final tagName in tagNames) {
+        final normalizedTag = _normalizeLookupKey(tagName);
+        if (!existingTags.contains(normalizedTag) &&
+            seenNewTagKeys.add(normalizedTag)) {
+          newTagNames.add(tagName);
         }
       }
 
@@ -199,8 +238,10 @@ class TransactionImportService {
 
       if (date == null ||
           type == null ||
+          rawOperation.isEmpty ||
           amount == null ||
-          rawCategory.isEmpty) {
+          rawCategory.isEmpty ||
+          rawMethod.isEmpty) {
         continue;
       }
 
@@ -211,8 +252,9 @@ class TransactionImportService {
           type: type,
           amount: amount,
           categoryName: rawCategory,
-          paymentMethodName: paymentMethodName,
-          note: rawNote.isEmpty ? null : rawNote,
+          operationText: rawOperation,
+          paymentMethodName: rawMethod,
+          tagNames: tagNames,
         ),
       );
     }
@@ -222,6 +264,8 @@ class TransactionImportService {
       errors: errors,
       rows: List.unmodifiable(preparedRows),
       newCategoryNames: List.unmodifiable(newCategoryNames),
+      newPaymentMethodNames: List.unmodifiable(newPaymentMethodNames),
+      newTagNames: List.unmodifiable(newTagNames),
     );
   }
 
@@ -236,6 +280,8 @@ class TransactionImportService {
       color: const Color(0xFF6CBAD9),
     );
     final createdCategoryNames = <String>[];
+    final createdPaymentMethodNames = <String>[];
+    final createdTagNames = <String>[];
 
     for (final categoryName in preview.newCategoryNames) {
       final existing = appState.findCategoryByName(categoryName);
@@ -245,16 +291,44 @@ class TransactionImportService {
       }
     }
 
+    for (final paymentMethodName in preview.newPaymentMethodNames) {
+      final existing = appState.findPaymentMethodByName(paymentMethodName);
+      if (existing == null) {
+        appState.ensurePaymentMethodByName(paymentMethodName);
+        createdPaymentMethodNames.add(paymentMethodName);
+      }
+    }
+
+    for (final tagName in preview.newTagNames) {
+      final existing = appState.findTagByName(tagName);
+      if (existing == null) {
+        appState.ensureTagByName(
+          tagName,
+          icon: Icons.sell_rounded,
+          color: const Color(0xFFF4A261),
+        );
+        createdTagNames.add(tagName);
+      }
+    }
+
     var addedTransactions = 0;
 
     for (final row in preview.rows) {
       final category = appState.ensureCategoryByName(row.categoryName);
-      final paymentMethod = row.paymentMethodName == null
-          ? appState.defaultPaymentMethod
-          : appState.findPaymentMethodByName(row.paymentMethodName!);
-
-      if (paymentMethod == null) {
-        continue;
+      final paymentMethod = appState.ensurePaymentMethodByName(
+        row.paymentMethodName,
+      );
+      final transactionTags = row.tagNames
+          .map(
+            (tagName) => appState.ensureTagByName(
+              tagName,
+              icon: Icons.sell_rounded,
+              color: const Color(0xFFF4A261),
+            ),
+          )
+          .toList();
+      if (transactionTags.every((tag) => tag.id != importTag.id)) {
+        transactionTags.add(importTag);
       }
 
       final entry = TransactionEntry(
@@ -267,8 +341,8 @@ class TransactionImportService {
         categoryColor: category.color,
         date: row.date,
         paymentMethod: paymentMethod,
-        tags: [importTag],
-        note: row.note,
+        tags: transactionTags,
+        note: row.operationText,
         createdByUserId: appState.currentUser.id,
       );
 
@@ -279,30 +353,52 @@ class TransactionImportService {
     return TransactionImportCommitResult(
       addedTransactions: addedTransactions,
       createdCategoryNames: List.unmodifiable(createdCategoryNames),
+      createdPaymentMethodNames: List.unmodifiable(createdPaymentMethodNames),
+      createdTagNames: List.unmodifiable(createdTagNames),
       importTagName: importTag.name,
     );
   }
 
-  static String buildInstructions() {
-    return [
-      'CSV в UTF-8 с заголовками в первой строке.',
-      'Обязательные колонки: date, type, amount, category.',
-      'Необязательные колонки: payment_method, note.',
-      'Разделитель: ";" или ",".',
-      'Дата: 2026-03-28, 2026-03-28 14:30, 28.03.2026 или 28.03.2026 14:30.',
-      'Сумма: 12.50 или 12,50.',
-      'Пустой payment_method = будет использован способ оплаты по умолчанию.',
-      'Новые категории будут созданы автоматически.',
-      'Каждая импортированная запись получит тег формата import_YYYYMMDD_HHMMSS.',
-      'Лимит: не больше 200 строк данных за один импорт.',
-    ].join('\n');
+  static List<TransactionImportInstructionSection> buildInstructionSections() {
+    return const [
+      TransactionImportInstructionSection(
+        title: 'Подготовь файл',
+        items: [
+          'Формат файла: CSV.',
+          'Кодировка файла: UTF-8.',
+          'Первая строка файла: дата;тип операции;операция;сумма;категория;способ оплаты;теги.',
+          'Разделитель: ;',
+          'Максимум: 500 строк данных без заголовка.',
+        ],
+      ),
+      TransactionImportInstructionSection(
+        title: 'Заполни колонки в первой строке',
+        items: [
+          'дата: дата и время операции. Рекомендуемый формат: YYYY-MM-DD HH:mm. Импорт также принимает записи вида 05.02.2026 0:53:29 и игнорирует секунды.',
+          'тип операции: значение Расход или Доход.',
+          'операция: текст операции. Пример: Билеты в театр.',
+          'сумма: число больше 0 в формате 12.50.',
+          'категория: название категории. Если категории нет, она будет создана после подтверждения.',
+          'способ оплаты: название способа оплаты. Поле не может быть пустым. Если способа оплаты нет, он будет создан после подтверждения.',
+          'теги: список тегов через запятую. Поле можно оставить пустым. Если тегов нет, они будут созданы после подтверждения.',
+        ],
+      ),
+      TransactionImportInstructionSection(
+        title: 'Проверь изменения перед импортом',
+        items: [
+          'Перед импортом приложение покажет новые категории, способы оплаты и теги.',
+          'Новые элементы и записи будут добавлены только после нажатия кнопки Импортировать.',
+          'Каждая импортированная запись получит системный тег формата import_YYYYMMDD_HHMMSS.',
+        ],
+      ),
+    ];
   }
 
   static String sampleCsv() {
     return [
-      canonicalHeaders.join(';'),
-      '2026-03-28 14:25;expense;12.50;Еда;Revolut;Обед',
-      '2026-03-29;expense;48,90;Дом;;Хозяйственные товары',
+      documentHeaders.join(';'),
+      '2026-03-28 14:25;Расход;Билеты в театр;12.50;Развлечения;Основная карта;Театр,Вечер',
+      '05.02.2026 0:53:29;Расход;Такси домой;48.90;Транспорт;Наличные;',
     ].join('\n');
   }
 
@@ -456,7 +552,7 @@ class TransactionImportService {
     }
 
     final dotPattern = RegExp(
-      r'^(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2}))?$',
+      r'^(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$',
     );
     final dotMatch = dotPattern.firstMatch(value);
     if (dotMatch != null) {
@@ -469,7 +565,7 @@ class TransactionImportService {
     }
 
     final slashPattern = RegExp(
-      r'^(\d{4})/(\d{2})/(\d{2})(?:\s+(\d{2}):(\d{2}))?$',
+      r'^(\d{4})/(\d{2})/(\d{2})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$',
     );
     final slashMatch = slashPattern.firstMatch(value);
     if (slashMatch != null) {
@@ -502,6 +598,26 @@ class TransactionImportService {
     return double.tryParse(normalized);
   }
 
+  static List<String> _parseTagNames(String raw) {
+    if (raw.trim().isEmpty) {
+      return const [];
+    }
+
+    final seenKeys = <String>{};
+    final tagNames = <String>[];
+    for (final part in raw.split(',')) {
+      final tagName = part.trim();
+      if (tagName.isEmpty) {
+        continue;
+      }
+      final normalized = _normalizeLookupKey(tagName);
+      if (seenKeys.add(normalized)) {
+        tagNames.add(tagName);
+      }
+    }
+    return List.unmodifiable(tagNames);
+  }
+
   static String _normalizeLookupKey(String value) {
     return value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
   }
@@ -513,20 +629,41 @@ class TransactionImportService {
   static const Map<String, String> _headerAliases = {
     'date': 'date',
     'дата': 'date',
-    'type': 'type',
-    'тип': 'type',
+    'transaction_type': 'transaction_type',
+    'transaction type': 'transaction_type',
+    'type': 'transaction_type',
+    'тип': 'transaction_type',
+    'тип операции': 'transaction_type',
+    'operation': 'operation',
+    'операция': 'operation',
+    'description': 'operation',
+    'описание': 'operation',
+    'комментарий': 'operation',
     'amount': 'amount',
     'сумма': 'amount',
     'category': 'category',
     'категория': 'category',
     'payment_method': 'payment_method',
     'payment method': 'payment_method',
+    'payment': 'payment_method',
     'метод': 'payment_method',
+    'оплата': 'payment_method',
+    'тип платежа': 'payment_method',
     'способ оплаты': 'payment_method',
-    'note': 'note',
-    'description': 'note',
-    'описание': 'note',
-    'комментарий': 'note',
+    'tags': 'tags',
+    'tag': 'tags',
+    'тег': 'tags',
+    'теги': 'tags',
+  };
+
+  static const Map<String, String> _headerLabels = {
+    'date': 'дата',
+    'transaction_type': 'тип операции',
+    'operation': 'операция',
+    'amount': 'сумма',
+    'category': 'категория',
+    'payment_method': 'способ оплаты',
+    'tags': 'теги',
   };
 }
 
@@ -535,6 +672,8 @@ class TransactionImportPreview {
     required this.errors,
     required this.rows,
     required this.newCategoryNames,
+    required this.newPaymentMethodNames,
+    required this.newTagNames,
     this.sourceName,
   });
 
@@ -542,6 +681,8 @@ class TransactionImportPreview {
   final List<TransactionImportIssue> errors;
   final List<PreparedImportTransactionRow> rows;
   final List<String> newCategoryNames;
+  final List<String> newPaymentMethodNames;
+  final List<String> newTagNames;
 
   bool get hasErrors => errors.isNotEmpty;
 }
@@ -553,8 +694,9 @@ class PreparedImportTransactionRow {
     required this.type,
     required this.amount,
     required this.categoryName,
-    this.paymentMethodName,
-    this.note,
+    required this.operationText,
+    required this.paymentMethodName,
+    required this.tagNames,
   });
 
   final int lineNumber;
@@ -562,8 +704,9 @@ class PreparedImportTransactionRow {
   final TransactionType type;
   final double amount;
   final String categoryName;
-  final String? paymentMethodName;
-  final String? note;
+  final String operationText;
+  final String paymentMethodName;
+  final List<String> tagNames;
 }
 
 class TransactionImportIssue {
@@ -584,12 +727,26 @@ class TransactionImportCommitResult {
   const TransactionImportCommitResult({
     required this.addedTransactions,
     required this.createdCategoryNames,
+    required this.createdPaymentMethodNames,
+    required this.createdTagNames,
     required this.importTagName,
   });
 
   final int addedTransactions;
   final List<String> createdCategoryNames;
+  final List<String> createdPaymentMethodNames;
+  final List<String> createdTagNames;
   final String importTagName;
+}
+
+class TransactionImportInstructionSection {
+  const TransactionImportInstructionSection({
+    required this.title,
+    required this.items,
+  });
+
+  final String title;
+  final List<String> items;
 }
 
 class _CsvParseResult {

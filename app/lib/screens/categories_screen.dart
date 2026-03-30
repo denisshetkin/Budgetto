@@ -45,22 +45,110 @@ class CategoriesScreen extends StatelessWidget {
     AppState appState,
     CategoryEntry category,
   ) async {
+    final usedTransactionCount = appState.transactions
+        .where((entry) => entry.categoryId == category.id)
+        .length;
+    final usedPlannedCount = appState.plannedEntries
+        .where((entry) => entry.categoryId == category.id)
+        .length;
+    final totalUsageCount = usedTransactionCount + usedPlannedCount;
+    final replacementOptions = appState.categories
+        .where((item) => item.id != category.id)
+        .toList(growable: false);
+
+    if (totalUsageCount > 0 && replacementOptions.isEmpty) {
+      await showDialog<void>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Нельзя удалить категорию'),
+            content: const Text(
+              'Эта категория уже используется. Сначала создай другую категорию, чтобы перенести в неё записи.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Понятно'),
+              ),
+            ],
+          );
+        },
+      );
+      return;
+    }
+
+    CategoryEntry? replacementCategory = replacementOptions.isNotEmpty
+        ? replacementOptions.first
+        : null;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Удалить категорию?'),
-          content: const Text('Уверен, что хочешь удалить эту категорию?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Отмена'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Удалить'),
-            ),
-          ],
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Удалить категорию?'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    totalUsageCount == 0
+                        ? 'Уверен, что хочешь удалить эту категорию?'
+                        : 'Категория используется в $usedTransactionCount операциях и $usedPlannedCount запланированных записях.',
+                  ),
+                  if (totalUsageCount > 0) ...[
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Перед удалением выбери категорию, в которую нужно перенести эти записи.',
+                    ),
+                    const SizedBox(height: 12),
+                    InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Новая категория',
+                        border: OutlineInputBorder(),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          value: replacementCategory?.id,
+                          items: replacementOptions
+                              .map(
+                                (item) => DropdownMenuItem<String>(
+                                  value: item.id,
+                                  child: Text(item.name),
+                                ),
+                              )
+                              .toList(growable: false),
+                          onChanged: (value) {
+                            replacementCategory = replacementOptions
+                                .where((item) => item.id == value)
+                                .cast<CategoryEntry?>()
+                                .firstWhere(
+                                  (item) => item != null,
+                                  orElse: () => null,
+                                );
+                            setState(() {});
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Отмена'),
+                ),
+                TextButton(
+                  onPressed: totalUsageCount > 0 && replacementCategory == null
+                      ? null
+                      : () => Navigator.of(context).pop(true),
+                  child: const Text('Удалить'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -69,10 +157,26 @@ class CategoriesScreen extends StatelessWidget {
       if (!context.mounted) {
         return;
       }
-      appState.removeCategory(category.id);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Категория удалена')));
+      if (totalUsageCount > 0 && replacementCategory != null) {
+        await appState.replaceCategoryAndRemove(
+          fromCategoryId: category.id,
+          toCategoryId: replacementCategory!.id,
+        );
+      } else {
+        appState.removeCategory(category.id);
+      }
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            totalUsageCount > 0 && replacementCategory != null
+                ? 'Категория удалена, записи перенесены в "${replacementCategory!.name}".'
+                : 'Категория удалена',
+          ),
+        ),
+      );
     }
   }
 
@@ -83,7 +187,8 @@ class CategoriesScreen extends StatelessWidget {
     final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
-      body: SafeArea(top: false,
+      body: SafeArea(
+        top: false,
         child: Column(
           children: [
             AppHeader(
@@ -402,10 +507,7 @@ class _AddCategorySheetState extends State<_AddCategorySheet> {
                     }
                     widget.onSave(name, _selectedIcon, _selectedColor);
                   },
-                  icon: Icon(
-                    Icons.check_rounded,
-                    color: Color(0xFF9AD27A),
-                  ),
+                  icon: Icon(Icons.check_rounded, color: Color(0xFF9AD27A)),
                   iconSize: 32,
                   tooltip: 'Сохранить',
                 ),

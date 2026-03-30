@@ -667,6 +667,82 @@ class AppState extends ChangeNotifier {
     _deleteCategoryRemote(id);
   }
 
+  Future<void> replaceCategoryAndRemove({
+    required String fromCategoryId,
+    required String toCategoryId,
+  }) async {
+    if (fromCategoryId == toCategoryId) {
+      return;
+    }
+
+    final targetIndex = _categories.indexWhere(
+      (category) => category.id == toCategoryId,
+    );
+    if (targetIndex == -1) {
+      return;
+    }
+    final targetCategory = _categories[targetIndex];
+
+    for (var i = 0; i < _transactions.length; i++) {
+      final entry = _transactions[i];
+      if (entry.categoryId != fromCategoryId) {
+        continue;
+      }
+      _transactions[i] = TransactionEntry(
+        id: entry.id,
+        type: entry.type,
+        amount: entry.amount,
+        categoryId: targetCategory.id,
+        categoryName: targetCategory.name,
+        categoryIcon: targetCategory.icon,
+        categoryColor: targetCategory.color,
+        date: entry.date,
+        paymentMethod: entry.paymentMethod,
+        tags: entry.tags,
+        note: entry.note,
+        createdByUserId: entry.createdByUserId,
+      );
+    }
+
+    for (var i = 0; i < _plannedEntries.length; i++) {
+      final entry = _plannedEntries[i];
+      if (entry.categoryId != fromCategoryId) {
+        continue;
+      }
+      final updatedEntry = PlannedEntry(
+        id: entry.id,
+        type: entry.type,
+        amount: entry.amount,
+        categoryId: targetCategory.id,
+        categoryName: targetCategory.name,
+        categoryIcon: targetCategory.icon,
+        categoryColor: targetCategory.color,
+        paymentMethod: entry.paymentMethod,
+        createdAt: entry.createdAt,
+        tags: entry.tags,
+        note: entry.note,
+        scheduledAt: entry.scheduledAt,
+        notify: entry.notify,
+        notificationId: entry.notificationId,
+      );
+      _plannedEntries[i] = updatedEntry;
+      _syncPlannedNotificationUpdate(entry, updatedEntry);
+    }
+
+    _categories.removeWhere((category) => category.id == fromCategoryId);
+    notifyListeners();
+
+    await _reassignTransactionsForCategoryRemote(
+      fromCategoryId: fromCategoryId,
+      targetCategory: targetCategory,
+    );
+    await _reassignPlannedForCategoryRemote(
+      fromCategoryId: fromCategoryId,
+      targetCategory: targetCategory,
+    );
+    await _deleteCategoryRemote(fromCategoryId);
+  }
+
   void reorderCategory(int oldIndex, int newIndex) {
     if (oldIndex < 0 || oldIndex >= _categories.length) {
       return;
@@ -734,6 +810,27 @@ class AppState extends ChangeNotifier {
       }
     }
     return null;
+  }
+
+  PaymentMethod ensurePaymentMethodByName(String name) {
+    final existing = findPaymentMethodByName(name);
+    if (existing != null) {
+      return existing;
+    }
+
+    final normalized = _normalizeLookupName(name);
+    final isCash = normalized == 'cash' || normalized == 'наличные';
+    final entry = PaymentMethod(
+      id: 'method_${DateTime.now().microsecondsSinceEpoch}',
+      name: name.trim(),
+      type: isCash ? PaymentMethodType.cash : PaymentMethodType.card,
+      icon: isCash ? Icons.payments_rounded : Icons.credit_card_rounded,
+      color: isCash ? const Color(0xFF7CC6A6) : const Color(0xFF6CBAD9),
+    );
+    _paymentMethods.add(entry);
+    notifyListeners();
+    _savePaymentMethodRemote(entry);
+    return entry;
   }
 
   void updateTag({
@@ -2737,6 +2834,56 @@ class AppState extends ChangeNotifier {
         'categoryName': category.name,
         'categoryIcon': _iconToMap(category.icon),
         'categoryColor': category.color.value,
+      }, SetOptions(merge: true));
+    }
+    await batch.commit();
+  }
+
+  Future<void> _reassignTransactionsForCategoryRemote({
+    required String fromCategoryId,
+    required CategoryEntry targetCategory,
+  }) async {
+    if (!_syncEnabled || _budgetId == null) {
+      return;
+    }
+    final query = await _db
+        .collection('budgets')
+        .doc(_budgetId)
+        .collection('transactions')
+        .where('categoryId', isEqualTo: fromCategoryId)
+        .get();
+    final batch = _db.batch();
+    for (final doc in query.docs) {
+      batch.set(doc.reference, {
+        'categoryId': targetCategory.id,
+        'categoryName': targetCategory.name,
+        'categoryIcon': _iconToMap(targetCategory.icon),
+        'categoryColor': targetCategory.color.value,
+      }, SetOptions(merge: true));
+    }
+    await batch.commit();
+  }
+
+  Future<void> _reassignPlannedForCategoryRemote({
+    required String fromCategoryId,
+    required CategoryEntry targetCategory,
+  }) async {
+    if (!_syncEnabled || _budgetId == null) {
+      return;
+    }
+    final query = await _db
+        .collection('budgets')
+        .doc(_budgetId)
+        .collection('planned')
+        .where('categoryId', isEqualTo: fromCategoryId)
+        .get();
+    final batch = _db.batch();
+    for (final doc in query.docs) {
+      batch.set(doc.reference, {
+        'categoryId': targetCategory.id,
+        'categoryName': targetCategory.name,
+        'categoryIcon': _iconToMap(targetCategory.icon),
+        'categoryColor': targetCategory.color.value,
       }, SetOptions(merge: true));
     }
     await batch.commit();

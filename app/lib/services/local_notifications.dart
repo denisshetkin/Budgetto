@@ -23,7 +23,7 @@ class LocalNotifications {
     } catch (_) {
       // Fallback to UTC if local timezone is unavailable.
     }
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const android = AndroidInitializationSettings('ic_notification');
     const ios = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -71,6 +71,7 @@ class LocalNotifications {
         'planned_reminders',
         'Регулярные платежи',
         channelDescription: 'Напоминания о регулярных платежах',
+        icon: 'ic_notification',
         importance: Importance.defaultImportance,
         priority: Priority.defaultPriority,
       ),
@@ -101,6 +102,7 @@ class LocalNotifications {
         'custom_reminders',
         'Напоминания',
         channelDescription: 'Напоминания о важных делах',
+        icon: 'ic_notification',
         importance: Importance.defaultImportance,
         priority: Priority.defaultPriority,
       ),
@@ -130,6 +132,7 @@ class LocalNotifications {
         'family_transactions',
         'Семейные траты',
         channelDescription: 'Уведомления о новых расходах в семейном бюджете',
+        icon: 'ic_notification',
         importance: Importance.high,
         priority: Priority.high,
       ),

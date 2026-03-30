@@ -123,7 +123,7 @@ class SettingsScreen extends StatelessWidget {
                   _SettingsMenuItem(
                     icon: Icons.storage_outlined,
                     title: 'Данные',
-                    subtitle: 'Импорт, очистка и сброс приложения',
+                    subtitle: 'Импорт затрат из CSV',
                     iconColor: AppColors.accentExpense,
                     onTap: () =>
                         _openScreen(context, const DataSettingsScreen()),
@@ -543,79 +543,6 @@ class DataSettingsScreen extends StatefulWidget {
 class _DataSettingsScreenState extends State<DataSettingsScreen> {
   bool _importBusy = false;
 
-  Future<void> _confirmClearTransactions(
-    BuildContext context,
-    AppState appState,
-  ) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Очистить операции?'),
-          content: const Text('Все операции будут удалены без восстановления.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Отмена'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Очистить'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirm == true) {
-      await appState.clearTransactions();
-      if (!context.mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Операции очищены')));
-    }
-  }
-
-  Future<void> _confirmResetAccount(
-    BuildContext context,
-    AppState appState,
-  ) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Сбросить приложение?'),
-          content: const Text(
-            'Будет создан новый аккаунт и новый личный бюджет. '
-            'Старые данные останутся в облаке, но будут недоступны.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Отмена'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Сбросить'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirm == true) {
-      await appState.resetAccount();
-      if (!context.mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Аккаунт сброшен')));
-    }
-  }
-
   Future<void> _pickAndImportCsv(AppState appState) async {
     if (_importBusy) {
       return;
@@ -655,6 +582,7 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
         existingPaymentMethodNames: appState.paymentMethods.map(
           (item) => item.name,
         ),
+        existingTagNames: appState.tags.map((item) => item.name),
         sourceName: file.name,
       );
 
@@ -743,19 +671,24 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
                   ],
                   Text('Будет добавлено записей: ${preview.rows.length}'),
                   const SizedBox(height: 8),
-                  Text('Новых категорий: ${preview.newCategoryNames.length}'),
-                  if (preview.newCategoryNames.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    ...preview.newCategoryNames.map(
-                      (name) => Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Text('• $name'),
-                      ),
-                    ),
-                  ],
+                  _PreviewList(
+                    title: 'Новые категории',
+                    items: preview.newCategoryNames,
+                  ),
+                  const SizedBox(height: 12),
+                  _PreviewList(
+                    title: 'Новые способы оплаты',
+                    items: preview.newPaymentMethodNames,
+                  ),
+                  const SizedBox(height: 12),
+                  _PreviewList(title: 'Новые теги', items: preview.newTagNames),
                   const SizedBox(height: 12),
                   const Text(
-                    'Все добавленные записи получат новый тег импорта, чтобы их можно было быстро отфильтровать и удалить.',
+                    'Новые категории, способы оплаты, теги и сами записи будут добавлены только после нажатия кнопки "Импортировать".',
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Все импортированные записи также получат системный тег импорта, чтобы их можно было быстро отфильтровать и удалить.',
                   ),
                 ],
               ),
@@ -817,6 +750,8 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
+    final instructionSections =
+        TransactionImportService.buildInstructionSections();
 
     return Scaffold(
       body: SafeArea(
@@ -824,7 +759,7 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
         child: Column(
           children: [
             AppHeader(
-              title: 'Данные',
+              title: 'Импорт затрат',
               leading: IconButton(
                 onPressed: () => Navigator.of(context).pop(),
                 icon: const Icon(Icons.arrow_back_rounded),
@@ -844,19 +779,46 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 12),
-                        Text(
-                          TransactionImportService.buildInstructions(),
-                          style: Theme.of(context).textTheme.bodyMedium,
+                        ...List.generate(
+                          instructionSections.length,
+                          (index) => Padding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: _InstructionSection(
+                              number: index + 1,
+                              section: instructionSections[index],
+                            ),
+                          ),
                         ),
-                        const SizedBox(height: 12),
-                        SelectableText(
-                          TransactionImportService.sampleCsv(),
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                fontFamily: 'monospace',
-                                color: AppColors.textSecondary,
-                                height: 1.5,
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: AppColors.stroke.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: AppColors.stroke.withValues(alpha: 0.4),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Пример данных в документе',
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(fontWeight: FontWeight.w700),
                               ),
+                              const SizedBox(height: 8),
+                              SelectableText(
+                                TransactionImportService.sampleCsv(),
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      fontFamily: 'monospace',
+                                      color: AppColors.textSecondary,
+                                      height: 1.5,
+                                    ),
+                              ),
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 12),
                         SizedBox(
@@ -884,46 +846,104 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  SoftCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Управление данными',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed: () =>
-                                _confirmClearTransactions(context, appState),
-                            child: const Text('Очистить операции'),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed: () =>
-                                _confirmResetAccount(context, appState),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.accentExpense,
-                            ),
-                            child: const Text('Сбросить и начать заново'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _InstructionSection extends StatelessWidget {
+  const _InstructionSection({required this.number, required this.section});
+
+  final int number;
+  final TransactionImportInstructionSection section;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.chipBlue.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Text(
+            '$number',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                section.title,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              ...section.items.map(
+                (item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('•', style: Theme.of(context).textTheme.bodyMedium),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          item,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.copyWith(height: 1.45),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PreviewList extends StatelessWidget {
+  const _PreviewList({required this.title, required this.items});
+
+  final String title;
+  final List<String> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('$title: ${items.length}'),
+        if (items.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          ...items.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text('• $item'),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

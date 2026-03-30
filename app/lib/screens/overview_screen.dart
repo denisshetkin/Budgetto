@@ -25,11 +25,13 @@ class _OverviewScreenState extends State<OverviewScreen> {
   DateTimeRange? _customRange;
   TransactionType _type = TransactionType.expense;
   OverviewChart _chart = OverviewChart.pie;
+  DateTime _anchorDate = DateTime.now();
 
   Future<void> _pickCustomRange() async {
     final now = DateTime.now();
     final initialRange =
-        _customRange ?? DateTimeRange(start: now.subtract(const Duration(days: 6)), end: now);
+        _customRange ??
+        DateTimeRange(start: now.subtract(const Duration(days: 6)), end: now);
     final picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime(now.year - 5),
@@ -59,29 +61,123 @@ class _OverviewScreenState extends State<OverviewScreen> {
     });
   }
 
+  DateTime _startOfDay(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
+
+  DateTime _startOfWeek(DateTime date) {
+    final day = _startOfDay(date);
+    return day.subtract(Duration(days: day.weekday - DateTime.monday));
+  }
+
+  DateTime _startOfMonth(DateTime date) => DateTime(date.year, date.month);
+
+  DateTime _startOfYear(DateTime date) => DateTime(date.year);
+
+  DateTime _endOfDay(DateTime date) =>
+      DateTime(date.year, date.month, date.day, 23, 59, 59, 999);
+
+  DateTime _endOfWeek(DateTime start) =>
+      DateTime(start.year, start.month, start.day + 6, 23, 59, 59, 999);
+
+  DateTime _endOfMonth(DateTime start) =>
+      DateTime(start.year, start.month + 1, 0, 23, 59, 59, 999);
+
+  DateTime _endOfYear(DateTime start) =>
+      DateTime(start.year, 12, 31, 23, 59, 59, 999);
+
+  DateTime _periodKey(DateTime date, OverviewRange range) {
+    switch (range) {
+      case OverviewRange.day:
+        return _startOfDay(date);
+      case OverviewRange.week:
+        return _startOfWeek(date);
+      case OverviewRange.month:
+        return _startOfMonth(date);
+      case OverviewRange.year:
+        return _startOfYear(date);
+      case OverviewRange.period:
+        final customRange = _customRange;
+        if (customRange == null) {
+          return _startOfDay(DateTime.now());
+        }
+        return _startOfDay(customRange.start);
+    }
+  }
+
+  DateTime _shiftPeriodStart(DateTime date, OverviewRange range, int delta) {
+    switch (range) {
+      case OverviewRange.day:
+        return _startOfDay(date).add(Duration(days: delta));
+      case OverviewRange.week:
+        return _startOfWeek(date).add(Duration(days: 7 * delta));
+      case OverviewRange.month:
+        final start = _startOfMonth(date);
+        return DateTime(start.year, start.month + delta);
+      case OverviewRange.year:
+        final start = _startOfYear(date);
+        return DateTime(start.year + delta);
+      case OverviewRange.period:
+        return date;
+    }
+  }
+
+  void _movePeriod(int delta) {
+    if (_range == OverviewRange.period) {
+      return;
+    }
+    final nextAnchor = _shiftPeriodStart(_anchorDate, _range, delta);
+    final currentKey = _periodKey(DateTime.now(), _range);
+    final nextKey = _periodKey(nextAnchor, _range);
+    if (delta > 0 && nextKey.isAfter(currentKey)) {
+      return;
+    }
+    setState(() {
+      _anchorDate = nextAnchor;
+    });
+  }
+
+  bool _canMoveForward() {
+    if (_range == OverviewRange.period) {
+      return false;
+    }
+    final currentKey = _periodKey(DateTime.now(), _range);
+    final selectedKey = _periodKey(_anchorDate, _range);
+    return selectedKey.isBefore(currentKey);
+  }
+
   DateTimeRange _resolveRange() {
-    final now = DateTime.now();
     switch (_range) {
       case OverviewRange.day:
-        final start = DateTime(now.year, now.month, now.day);
-        return DateTimeRange(start: start, end: now);
+        final start = _startOfDay(_anchorDate);
+        return DateTimeRange(start: start, end: _endOfDay(start));
       case OverviewRange.week:
-        final weekday = now.weekday;
-        final start = now.subtract(Duration(days: weekday - DateTime.monday));
-        return DateTimeRange(
-          start: DateTime(start.year, start.month, start.day),
-          end: now,
-        );
+        final start = _startOfWeek(_anchorDate);
+        return DateTimeRange(start: start, end: _endOfWeek(start));
       case OverviewRange.month:
-        return DateTimeRange(start: DateTime(now.year, now.month), end: now);
+        final start = _startOfMonth(_anchorDate);
+        return DateTimeRange(start: start, end: _endOfMonth(start));
       case OverviewRange.year:
-        return DateTimeRange(start: DateTime(now.year), end: now);
+        final start = _startOfYear(_anchorDate);
+        return DateTimeRange(start: start, end: _endOfYear(start));
       case OverviewRange.period:
-        final range = _customRange ??
-            DateTimeRange(start: now.subtract(const Duration(days: 6)), end: now);
+        final now = DateTime.now();
+        final range =
+            _customRange ??
+            DateTimeRange(
+              start: now.subtract(const Duration(days: 6)),
+              end: now,
+            );
         return DateTimeRange(
           start: DateTime(range.start.year, range.start.month, range.start.day),
-          end: DateTime(range.end.year, range.end.month, range.end.day, 23, 59, 59, 999),
+          end: DateTime(
+            range.end.year,
+            range.end.month,
+            range.end.day,
+            23,
+            59,
+            59,
+            999,
+          ),
         );
     }
   }
@@ -100,12 +196,18 @@ class _OverviewScreenState extends State<OverviewScreen> {
     const horizontalInset = 12.0;
 
     return Scaffold(
-      body: SafeArea(top: false,
+      body: SafeArea(
+        top: false,
         child: Column(
           children: [
             AppHeader(
               title: 'Обзор',
-              padding: const EdgeInsets.fromLTRB(horizontalInset, 12, horizontalInset, 8),
+              padding: const EdgeInsets.fromLTRB(
+                horizontalInset,
+                12,
+                horizontalInset,
+                8,
+              ),
               leading: GradientIcon(
                 icon: Icons.pie_chart,
                 size: 32,
@@ -121,14 +223,14 @@ class _OverviewScreenState extends State<OverviewScreen> {
                   style: ButtonStyle(
                     backgroundColor: WidgetStateProperty.resolveWith((states) {
                       if (states.contains(WidgetState.selected)) {
-                        return accent.withOpacity(0.22);
+                        return accent.withValues(alpha: 0.22);
                       }
                       return AppColors.surface1;
                     }),
                     textStyle: WidgetStatePropertyAll(
                       Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     padding: WidgetStatePropertyAll(
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -164,53 +266,84 @@ class _OverviewScreenState extends State<OverviewScreen> {
             ),
             Expanded(
               child: ListView(
-                padding:
-                    const EdgeInsets.fromLTRB(horizontalInset, 12, horizontalInset, 20),
+                padding: const EdgeInsets.fromLTRB(
+                  horizontalInset,
+                  12,
+                  horizontalInset,
+                  20,
+                ),
                 children: [
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        flex: 3,
-                        child: InkWell(
-                          onTap:
-                              _range == OverviewRange.period ? _pickCustomRange : null,
-                          borderRadius: BorderRadius.circular(16),
-                          child: SoftCard(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 12,
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.date_range_outlined, size: 18),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    rangeLabel,
-                                    style: Theme.of(context).textTheme.bodyMedium,
+                        child: SizedBox(
+                          height: 54,
+                          child: InkWell(
+                            onTap: _range == OverviewRange.period
+                                ? _pickCustomRange
+                                : null,
+                            borderRadius: BorderRadius.circular(16),
+                            child: SoftCard(
+                              padding: const EdgeInsets.only(
+                                left: 2,
+                                right: 14,
+                              ),
+                              child: Row(
+                                children: [
+                                  _PeriodArrowButton(
+                                    icon: Icons.chevron_left_rounded,
+                                    onTap: _range == OverviewRange.period
+                                        ? null
+                                        : () => _movePeriod(-1),
                                   ),
-                                ),
-                                if (_range == OverviewRange.period)
-                                  Icon(
-                                    Icons.chevron_right_rounded,
-                                    color: AppColors.textSecondary,
+                                  const SizedBox(width: 2),
+                                  Expanded(
+                                    child: Text(
+                                      rangeLabel,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                      maxLines: 1,
+                                      softWrap: false,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.center,
+                                    ),
                                   ),
-                              ],
+                                  const SizedBox(width: 2),
+                                  if (_range == OverviewRange.period)
+                                    Icon(
+                                      Icons.chevron_right_rounded,
+                                      color: AppColors.textSecondary,
+                                      size: 22,
+                                    )
+                                  else
+                                    _PeriodArrowButton(
+                                      icon: Icons.chevron_right_rounded,
+                                      offsetX: -2,
+                                      onTap: _canMoveForward()
+                                          ? () => _movePeriod(1)
+                                          : null,
+                                    ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(
-                        flex: 2,
+                      SizedBox(
+                        width: 123,
+                        height: 54,
                         child: SoftCard(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 12,
-                          ),
+                          padding: const EdgeInsets.only(left: 16, right: 10),
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<OverviewRange>(
                               value: _range,
+                              isExpanded: true,
                               isDense: true,
                               icon: const Icon(
                                 Icons.expand_more_rounded,
@@ -219,23 +352,38 @@ class _OverviewScreenState extends State<OverviewScreen> {
                               items: const [
                                 DropdownMenuItem(
                                   value: OverviewRange.day,
-                                  child: Text('День'),
+                                  child: Text(
+                                    'День',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                                 DropdownMenuItem(
                                   value: OverviewRange.week,
-                                  child: Text('Неделя'),
+                                  child: Text(
+                                    'Неделя',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                                 DropdownMenuItem(
                                   value: OverviewRange.month,
-                                  child: Text('Месяц'),
+                                  child: Text(
+                                    'Месяц',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                                 DropdownMenuItem(
                                   value: OverviewRange.year,
-                                  child: Text('Год'),
+                                  child: Text(
+                                    'Год',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                                 DropdownMenuItem(
                                   value: OverviewRange.period,
-                                  child: Text('Период'),
+                                  child: Text(
+                                    'Период',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                               ],
                               onChanged: (next) {
@@ -244,6 +392,9 @@ class _OverviewScreenState extends State<OverviewScreen> {
                                 }
                                 setState(() {
                                   _range = next;
+                                  if (next != OverviewRange.period) {
+                                    _anchorDate = _periodKey(_anchorDate, next);
+                                  }
                                 });
                                 if (next == OverviewRange.period) {
                                   _pickCustomRange();
@@ -273,10 +424,12 @@ class _OverviewScreenState extends State<OverviewScreen> {
                                   vertical: 4,
                                 ),
                               ),
-                              minimumSize:
-                                  WidgetStatePropertyAll(const Size(32, 28)),
-                              backgroundColor:
-                                  WidgetStateProperty.resolveWith((states) {
+                              minimumSize: WidgetStatePropertyAll(
+                                const Size(32, 28),
+                              ),
+                              backgroundColor: WidgetStateProperty.resolveWith((
+                                states,
+                              ) {
                                 if (states.contains(WidgetState.selected)) {
                                   return AppColors.surface2;
                                 }
@@ -315,7 +468,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
                               ? Stack(
                                   alignment: Alignment.center,
                                   children: [
-                                    OverviewPieChart(
+                                    _OverviewPieChart(
                                       slices: slices,
                                       emptyColor: AppColors.surface2,
                                       strokeColor: AppColors.stroke,
@@ -347,7 +500,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
                                     ),
                                   ],
                                 )
-                              : OverviewBarChart(
+                              : _OverviewBarChart(
                                   slices: slices,
                                   emptyColor: AppColors.surface2,
                                   strokeColor: AppColors.stroke,
@@ -357,9 +510,8 @@ class _OverviewScreenState extends State<OverviewScreen> {
                         if (slices.isEmpty)
                           Text(
                             'Нет операций за выбранный период.',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: AppColors.textSecondary,
-                                ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: AppColors.textSecondary),
                           )
                         else
                           Column(
@@ -369,7 +521,10 @@ class _OverviewScreenState extends State<OverviewScreen> {
                                     padding: const EdgeInsets.only(bottom: 10),
                                     child: _CategoryRow(
                                       title: slice.name,
-                                      amount: _formatAmount(slice.amount, symbol),
+                                      amount: _formatAmount(
+                                        slice.amount,
+                                        symbol,
+                                      ),
                                       percent: slice.percent,
                                       color: slice.color,
                                       icon: slice.icon,
@@ -436,11 +591,27 @@ class _OverviewScreenState extends State<OverviewScreen> {
   }
 
   String _formatRange(DateTimeRange range) {
-    final start = range.start;
-    final end = range.end;
-    final startLabel = _formatDate(start, includeYear: start.year != end.year);
-    final endLabel = _formatDate(end, includeYear: true);
-    return '$startLabel — $endLabel';
+    switch (_range) {
+      case OverviewRange.day:
+        return _formatDate(range.start, includeYear: true);
+      case OverviewRange.week:
+        final startLabel = _formatDate(range.start, includeYear: false);
+        final endLabel = _formatDate(range.end, includeYear: true);
+        return '$startLabel - $endLabel';
+      case OverviewRange.month:
+        return _formatMonthYear(range.start);
+      case OverviewRange.year:
+        return range.start.year.toString();
+      case OverviewRange.period:
+        final start = range.start;
+        final end = range.end;
+        final startLabel = _formatDate(
+          start,
+          includeYear: start.year != end.year,
+        );
+        final endLabel = _formatDate(end, includeYear: true);
+        return '$startLabel - $endLabel';
+    }
   }
 
   String _formatDate(DateTime date, {required bool includeYear}) {
@@ -466,16 +637,34 @@ class _OverviewScreenState extends State<OverviewScreen> {
     return '$day $month ${date.year}';
   }
 
+  String _formatMonthYear(DateTime date) {
+    const months = [
+      'январь',
+      'февраль',
+      'март',
+      'апрель',
+      'май',
+      'июнь',
+      'июль',
+      'август',
+      'сентябрь',
+      'октябрь',
+      'ноябрь',
+      'декабрь',
+    ];
+    return '${months[date.month - 1]} ${date.year}';
+  }
+
   String _formatAmount(double amount, String symbol) {
-    final rounded =
-        amount % 1 == 0 ? amount.toStringAsFixed(0) : amount.toStringAsFixed(2);
+    final rounded = amount % 1 == 0
+        ? amount.toStringAsFixed(0)
+        : amount.toStringAsFixed(2);
     return symbol.isEmpty ? rounded : '$rounded $symbol';
   }
 }
 
-class OverviewPieChart extends StatelessWidget {
-  const OverviewPieChart({
-    super.key,
+class _OverviewPieChart extends StatelessWidget {
+  const _OverviewPieChart({
     required this.slices,
     required this.emptyColor,
     required this.strokeColor,
@@ -498,9 +687,8 @@ class OverviewPieChart extends StatelessWidget {
   }
 }
 
-class OverviewBarChart extends StatelessWidget {
-  const OverviewBarChart({
-    super.key,
+class _OverviewBarChart extends StatelessWidget {
+  const _OverviewBarChart({
     required this.slices,
     required this.emptyColor,
     required this.strokeColor,
@@ -550,8 +738,9 @@ class OverviewBarChart extends StatelessWidget {
           ]
         : slices.take(6).toList();
 
-    final maxPercent =
-        bars.map((bar) => bar.percent).fold<double>(0, (a, b) => a > b ? a : b);
+    final maxPercent = bars
+        .map((bar) => bar.percent)
+        .fold<double>(0, (a, b) => a > b ? a : b);
     final normalizedMax = maxPercent == 0 ? 1.0 : maxPercent;
 
     return SizedBox(
@@ -582,6 +771,39 @@ class OverviewBarChart extends StatelessWidget {
                 if (i != bars.length - 1) const SizedBox(width: 10),
               ],
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PeriodArrowButton extends StatelessWidget {
+  const _PeriodArrowButton({
+    required this.icon,
+    required this.onTap,
+    this.offsetX = 0,
+  });
+
+  final IconData icon;
+  final VoidCallback? onTap;
+  final double offsetX;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = onTap == null
+        ? AppColors.textSecondary.withValues(alpha: 0.35)
+        : AppColors.textPrimary;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: SizedBox(
+        width: 20,
+        height: 32,
+        child: Center(
+          child: Transform.translate(
+            offset: Offset(offsetX, 0),
+            child: Icon(icon, size: 34, color: color),
           ),
         ),
       ),
@@ -672,23 +894,20 @@ class _CategoryRow extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: Text(
-            title,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
+          child: Text(title, style: Theme.of(context).textTheme.bodyMedium),
         ),
         Text(
           '$percentLabel%',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
         ),
         const SizedBox(width: 12),
         Text(
           amount,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
       ],
     );
