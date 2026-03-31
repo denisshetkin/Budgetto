@@ -736,43 +736,74 @@ class _OverviewBarChart extends StatelessWidget {
               percent: 0.5,
             ),
           ]
-        : slices.take(6).toList();
+        : slices;
 
     final maxPercent = bars
         .map((bar) => bar.percent)
         .fold<double>(0, (a, b) => a > b ? a : b);
     final normalizedMax = maxPercent == 0 ? 1.0 : maxPercent;
+    const horizontalPadding = 14.0;
+    const spacing = 10.0;
+    const minBarWidth = 28.0;
 
     return SizedBox(
       height: height,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: strokeColor, width: 1),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              for (var i = 0; i < bars.length; i++) ...[
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Container(
-                      height: (bars[i].percent / normalizedMax) * (height - 32),
-                      decoration: BoxDecoration(
-                        color: slices.isEmpty ? emptyColor : bars[i].color,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final contentWidth =
+              bars.length * minBarWidth +
+              (bars.length - 1) * spacing +
+              horizontalPadding * 2;
+          final chartWidth = max(constraints.maxWidth, contentWidth);
+
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: bars.length > 6
+                ? const BouncingScrollPhysics()
+                : const NeverScrollableScrollPhysics(),
+            child: SizedBox(
+              width: chartWidth,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: strokeColor, width: 1),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: horizontalPadding,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      for (var i = 0; i < bars.length; i++) ...[
+                        SizedBox(
+                          width: minBarWidth,
+                          child: Align(
+                            alignment: Alignment.bottomCenter,
+                            child: Container(
+                              height:
+                                  (bars[i].percent / normalizedMax) *
+                                  (height - 32),
+                              decoration: BoxDecoration(
+                                color: slices.isEmpty
+                                    ? emptyColor
+                                    : bars[i].color,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (i != bars.length - 1)
+                          const SizedBox(width: spacing),
+                      ],
+                    ],
                   ),
                 ),
-                if (i != bars.length - 1) const SizedBox(width: 10),
-              ],
-            ],
-          ),
-        ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

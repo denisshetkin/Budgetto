@@ -307,6 +307,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     _toTime = const TimeOfDay(hour: 23, minute: 59);
   }
 
+  void _clearDateFilter() {
+    _selectedMonth = null;
+    _useCustomRange = false;
+    _fromDate = null;
+    _fromTime = null;
+    _toDate = null;
+    _toTime = null;
+  }
+
   bool _isFullMonthRange(
     DateTime? fromDate,
     TimeOfDay? fromTime,
@@ -338,10 +347,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         .fold(0.0, (sum, entry) => sum + entry.amount);
   }
 
-  bool _isSameMonth(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month;
-  }
-
   List<DateTime> _monthOptions() {
     final now = DateTime.now();
     return List.generate(12, (index) => DateTime(now.year, now.month - index));
@@ -363,7 +368,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     if (_filtersInitialized) {
       return;
     }
-    _setMonthFilter(DateTime.now());
     _filtersInitialized = true;
   }
 
@@ -448,14 +452,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final methodsAll =
         _selectedMethodIds.length == appState.paymentMethods.length;
     final tagsAll = _selectedTagIds.length == appState.tags.length;
-    final monthActive =
-        _selectedMonth != null &&
-        !_isSameMonth(_selectedMonth!, DateTime.now());
-    final monthOnly = !_useCustomRange;
     return query ||
         _filterType != FilterType.all ||
-        (monthOnly ? false : (_fromDate != null || _toDate != null)) ||
-        monthActive ||
+        _fromDate != null ||
+        _toDate != null ||
         !categoriesAll ||
         !methodsAll ||
         !tagsAll;
@@ -465,7 +465,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     setState(() {
       _queryController.clear();
       _filterType = FilterType.all;
-      _setMonthFilter(DateTime.now());
+      _clearDateFilter();
       _selectedCategoryIds
         ..clear()
         ..addAll(appState.categories.map((category) => category.id));
@@ -526,7 +526,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Поиск',
+                  'Текст',
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
@@ -679,6 +679,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             final now = DateTime.now();
+            final selectedDate = tempFromDate ?? tempToDate;
             return SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -769,9 +770,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    tempFromDate == null
-                                        ? _monthLabel(now)
-                                        : _monthLabel(tempFromDate!),
+                                    selectedDate == null
+                                        ? 'Выбрать месяц'
+                                        : _monthLabel(selectedDate),
                                     style: Theme.of(context)
                                         .textTheme
                                         .bodyMedium
@@ -865,23 +866,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () {
-                              final month = DateTime.now();
                               setModalState(() {
-                                tempFromDate = _monthStart(month);
-                                tempFromTime = const TimeOfDay(
-                                  hour: 0,
-                                  minute: 0,
-                                );
-                                final end = _monthEnd(month);
-                                tempToDate = DateTime(
-                                  end.year,
-                                  end.month,
-                                  end.day,
-                                );
-                                tempToTime = const TimeOfDay(
-                                  hour: 23,
-                                  minute: 59,
-                                );
+                                tempFromDate = null;
+                                tempFromTime = null;
+                                tempToDate = null;
+                                tempToTime = null;
                               });
                             },
                             child: const Text('Сбросить'),
@@ -892,30 +881,30 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           child: FilledButton(
                             onPressed: () {
                               setState(() {
-                                _fromDate = tempFromDate;
-                                _fromTime = tempFromTime;
-                                _toDate = tempToDate;
-                                _toTime = tempToTime;
-                                if (tempFromDate == null ||
-                                    tempToDate == null) {
-                                  _setMonthFilter(DateTime.now());
-                                } else if (_isFullMonthRange(
-                                  tempFromDate,
-                                  tempFromTime,
-                                  tempToDate,
-                                  tempToTime,
-                                )) {
-                                  _selectedMonth = DateTime(
-                                    tempFromDate!.year,
-                                    tempFromDate!.month,
-                                  );
-                                  _useCustomRange = false;
+                                final selectedDate = tempFromDate ?? tempToDate;
+                                if (selectedDate == null) {
+                                  _clearDateFilter();
                                 } else {
-                                  _selectedMonth = DateTime(
-                                    tempFromDate!.year,
-                                    tempFromDate!.month,
-                                  );
-                                  _useCustomRange = true;
+                                  _fromDate = tempFromDate;
+                                  _fromTime = tempFromTime;
+                                  _toDate = tempToDate;
+                                  _toTime = tempToTime;
+                                  if (tempFromDate != null &&
+                                      tempToDate != null &&
+                                      _isFullMonthRange(
+                                        tempFromDate,
+                                        tempFromTime,
+                                        tempToDate,
+                                        tempToTime,
+                                      )) {
+                                    _setMonthFilter(selectedDate);
+                                  } else {
+                                    _selectedMonth = DateTime(
+                                      selectedDate.year,
+                                      selectedDate.month,
+                                    );
+                                    _useCustomRange = true;
+                                  }
                                 }
                               });
                               Navigator.of(context).pop();
@@ -1412,10 +1401,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final tagsAll = _selectedTagIds.length == appState.tags.length;
     final queryActive = _queryController.text.trim().isNotEmpty;
     final typeActive = _filterType != FilterType.all;
-    final monthActive =
-        _selectedMonth != null &&
-        !_isSameMonth(_selectedMonth!, DateTime.now());
-    final dateActive = _useCustomRange || monthActive;
+    final dateActive = _fromDate != null || _toDate != null;
     final categoryActive = !categoriesAll;
     final methodActive = !methodsAll;
     final tagActive = !tagsAll;
@@ -1430,63 +1416,67 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           color: barBackground,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              child: Row(
-                children: [
-                  _FilterPill(
-                    label: 'Сброс',
-                    active: hasFilter,
-                    accentColor: pillAccent,
-                    emphasized: true,
-                    enabled: hasFilter,
-                    onTap: hasFilter ? () => _resetFilters(appState) : null,
+            child: Row(
+              children: [
+                _ResetFilterButton(
+                  active: hasFilter,
+                  onTap: hasFilter ? () => _resetFilters(appState) : null,
+                ),
+                const SizedBox(width: 10),
+                Container(width: 1, height: 24, color: barLine),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: [
+                        _FilterPill(
+                          label: 'Текст',
+                          active: queryActive,
+                          accentColor: pillAccent,
+                          onTap: _openSearchFilter,
+                        ),
+                        const SizedBox(width: 8),
+                        _FilterPill(
+                          label: 'Тип',
+                          active: typeActive,
+                          accentColor: pillAccent,
+                          onTap: _openTypeFilter,
+                        ),
+                        const SizedBox(width: 8),
+                        _FilterPill(
+                          label: 'Период',
+                          active: dateActive,
+                          accentColor: pillAccent,
+                          onTap: _openDateFilter,
+                        ),
+                        const SizedBox(width: 8),
+                        _FilterPill(
+                          label: 'Категории',
+                          active: categoryActive,
+                          accentColor: pillAccent,
+                          onTap: () => _openCategoryFilter(appState),
+                        ),
+                        const SizedBox(width: 8),
+                        _FilterPill(
+                          label: 'Теги',
+                          active: tagActive,
+                          accentColor: pillAccent,
+                          onTap: () => _openTagFilter(appState),
+                        ),
+                        const SizedBox(width: 8),
+                        _FilterPill(
+                          label: 'Оплата',
+                          active: methodActive,
+                          accentColor: pillAccent,
+                          onTap: () => _openMethodFilter(appState),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  _FilterPill(
-                    label: 'Поиск',
-                    active: queryActive,
-                    accentColor: pillAccent,
-                    onTap: _openSearchFilter,
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterPill(
-                    label: 'Тип',
-                    active: typeActive,
-                    accentColor: pillAccent,
-                    onTap: _openTypeFilter,
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterPill(
-                    label: 'Период',
-                    active: dateActive,
-                    accentColor: pillAccent,
-                    onTap: _openDateFilter,
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterPill(
-                    label: 'Категории',
-                    active: categoryActive,
-                    accentColor: pillAccent,
-                    onTap: () => _openCategoryFilter(appState),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterPill(
-                    label: 'Теги',
-                    active: tagActive,
-                    accentColor: pillAccent,
-                    onTap: () => _openTagFilter(appState),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterPill(
-                    label: 'Оплата',
-                    active: methodActive,
-                    accentColor: pillAccent,
-                    onTap: () => _openMethodFilter(appState),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -1870,6 +1860,40 @@ class _ActionCircle extends StatelessWidget {
           border: Border.all(color: AppColors.stroke, width: 1),
         ),
         child: Icon(icon, color: color, size: 21),
+      ),
+    );
+  }
+}
+
+class _ResetFilterButton extends StatelessWidget {
+  const _ResetFilterButton({required this.active, required this.onTap});
+
+  final bool active;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolvedColor = active
+        ? AppColors.accentExpense
+        : AppColors.textSecondary;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Opacity(
+        opacity: active ? 1 : 0.45,
+        child: Container(
+          height: 38,
+          width: 38,
+          decoration: BoxDecoration(
+            color: AppColors.surface2,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: active ? resolvedColor : AppColors.stroke,
+              width: active ? 1.4 : 1,
+            ),
+          ),
+          child: Icon(Icons.close_rounded, color: resolvedColor, size: 20),
+        ),
       ),
     );
   }
