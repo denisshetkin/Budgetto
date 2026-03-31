@@ -24,3 +24,4 @@ Budgetto — кроссплатформенное приложение для у
 - Дизайн‑система (dark): `docs/design-system.md`
 - Модель данных: `docs/data-model.md`
 - План синка: `docs/sync.md`
+- Дистрибуция и релизы: `docs/release-distribution.md`
