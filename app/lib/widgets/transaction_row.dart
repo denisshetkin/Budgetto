@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../models/tag_entry.dart';
 import '../models/transaction_entry.dart';
@@ -97,7 +98,7 @@ class TransactionRow extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      _formatDateTime(entry.date),
+                      _formatDateTime(context, entry.date),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -131,12 +132,9 @@ class TransactionRow extends StatelessWidget {
     );
   }
 
-  String _formatDateTime(DateTime date) {
-    final day = date.day.toString().padLeft(2, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    final hour = date.hour.toString().padLeft(2, '0');
-    final minute = date.minute.toString().padLeft(2, '0');
-    return '$day.$month $hour:$minute';
+  String _formatDateTime(BuildContext context, DateTime date) {
+    final localeTag = Localizations.localeOf(context).toLanguageTag();
+    return '${DateFormat('d MMM', localeTag).format(date)} ${DateFormat.Hm(localeTag).format(date)}';
   }
 }
 

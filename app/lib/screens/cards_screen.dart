@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../l10n/l10n.dart';
 import '../models/payment_method.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
@@ -45,20 +47,21 @@ class CardsScreen extends StatelessWidget {
     AppState appState,
     PaymentMethod method,
   ) async {
+    final l10n = context.l10n;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Удалить карту?'),
-          content: const Text('Уверен, что хочешь удалить эту карту?'),
+          title: Text(l10n.cardsDeleteTitle),
+          content: Text(l10n.cardsDeleteMessage),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Отмена'),
+              child: Text(l10n.commonCancel),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Удалить'),
+              child: Text(l10n.commonDelete),
             ),
           ],
         );
@@ -72,34 +75,36 @@ class CardsScreen extends StatelessWidget {
       appState.removeCard(method.id);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Карта удалена')));
+      ).showSnackBar(SnackBar(content: Text(l10n.cardsDeleteSuccess)));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
+    final l10n = context.l10n;
     final cards = appState.paymentMethods
         .where((method) => method.type == PaymentMethodType.card)
         .toList();
     final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
-      body: SafeArea(top: false,
+      body: SafeArea(
+        top: false,
         child: Column(
           children: [
             AppHeader(
-              title: 'Карты',
+              title: l10n.cardsTitle,
               leading: canPop
                   ? IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: Icon(Icons.arrow_back),
+                      icon: const Icon(Icons.arrow_back),
                     )
                   : null,
               actions: [
                 IconButton(
                   onPressed: () => _openAddCard(context, appState),
-                  icon: Icon(Icons.add),
+                  icon: const Icon(Icons.add),
                 ),
               ],
             ),
@@ -109,7 +114,7 @@ class CardsScreen extends StatelessWidget {
                 child: cards.isEmpty
                     ? Center(
                         child: Text(
-                          'Пока нет карт',
+                          l10n.cardsEmpty,
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(color: AppColors.textSecondary),
                         ),
@@ -278,6 +283,7 @@ class _AddCardSheetState extends State<_AddCardSheet> {
   }
 
   Future<void> _openColorPicker() async {
+    final l10n = context.l10n;
     final initial = _selectedColor;
     HSVColor hsv = HSVColor.fromColor(initial);
     Color temp = initial;
@@ -286,7 +292,7 @@ class _AddCardSheetState extends State<_AddCardSheet> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Выбор цвета'),
+          title: Text(l10n.editorColorPickerTitle),
           content: StatefulBuilder(
             builder: (context, setDialogState) {
               return Column(
@@ -342,11 +348,11 @@ class _AddCardSheetState extends State<_AddCardSheet> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Отмена'),
+              child: Text(l10n.commonCancel),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(temp),
-              child: const Text('Выбрать'),
+              child: Text(l10n.commonSelect),
             ),
           ],
         );
@@ -362,6 +368,7 @@ class _AddCardSheetState extends State<_AddCardSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -374,8 +381,8 @@ class _AddCardSheetState extends State<_AddCardSheet> {
                 Expanded(
                   child: Text(
                     widget.initialMethod == null
-                        ? 'Новая карта'
-                        : 'Редактировать карту',
+                        ? l10n.cardsNewTitle
+                        : l10n.cardsEditTitle,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -388,7 +395,7 @@ class _AddCardSheetState extends State<_AddCardSheet> {
                     color: AppColors.accentExpense,
                   ),
                   iconSize: 32,
-                  tooltip: 'Отмена',
+                  tooltip: l10n.commonCancel,
                 ),
                 IconButton(
                   onPressed: () {
@@ -400,23 +407,21 @@ class _AddCardSheetState extends State<_AddCardSheet> {
                   },
                   icon: Icon(
                     Icons.check_rounded,
-                    color: Color(0xFF9AD27A),
+                    color: const Color(0xFF9AD27A),
                   ),
                   iconSize: 32,
-                  tooltip: 'Сохранить',
+                  tooltip: l10n.commonSave,
                 ),
               ],
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _controller,
-              decoration: const InputDecoration(
-                hintText: 'Например, Сергей WISE',
-              ),
+              decoration: InputDecoration(hintText: l10n.cardsNameHint),
             ),
             const SizedBox(height: 12),
             Text(
-              'Цвет иконки',
+              l10n.editorIconColorLabel,
               textAlign: TextAlign.center,
               style: Theme.of(
                 context,
@@ -471,7 +476,7 @@ class _AddCardSheetState extends State<_AddCardSheet> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Иконка',
+              l10n.editorIconLabel,
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),

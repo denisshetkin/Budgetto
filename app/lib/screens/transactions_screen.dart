@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../l10n/l10n.dart';
 import '../models/transaction_entry.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
@@ -60,6 +62,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   Future<void> _openBudgetPicker(AppState appState) async {
     final families = appState.availableFamilies;
+    final l10n = context.l10n;
     await showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface1,
@@ -75,7 +78,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Выбери бюджет',
+                  l10n.transactionsBudgetPickerTitle,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -83,8 +86,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 const SizedBox(height: 12),
                 SoftCard(
                   child: ListTile(
-                    title: const Text('Личный бюджет'),
-                    subtitle: const Text('Только для тебя'),
+                    title: Text(l10n.transactionsPersonalBudgetTitle),
+                    subtitle: Text(l10n.transactionsPersonalBudgetSubtitle),
                     trailing: !appState.isFamilyMode
                         ? Icon(
                             Icons.check_circle,
@@ -139,20 +142,21 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     AppState appState,
     TransactionEntry entry,
   ) async {
+    final l10n = context.l10n;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Удалить операцию?'),
-          content: const Text('Уверен, что хочешь удалить эту операцию?'),
+          title: Text(l10n.transactionsDeleteTitle),
+          content: Text(l10n.transactionsDeleteMessage),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Отмена'),
+              child: Text(l10n.commonCancel),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Удалить'),
+              child: Text(l10n.commonDelete),
             ),
           ],
         );
@@ -166,28 +170,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       appState.removeTransaction(entry.id);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Операция удалена')));
+      ).showSnackBar(SnackBar(content: Text(l10n.transactionsDeleted)));
     }
   }
 
-  static const List<String> _monthShortEn = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
   String _formatGroupDate(DateTime date) {
-    final month = _monthShortEn[date.month - 1];
-    return '${date.day} $month ${date.year}';
+    return DateFormat(
+      'd MMM y',
+      Localizations.localeOf(context).toLanguageTag(),
+    ).format(date);
   }
 
   void _openActionsSheet(
@@ -202,6 +193,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
+        final l10n = context.l10n;
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -210,7 +202,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               children: [
                 _SheetAction(
                   icon: Icons.edit,
-                  label: 'Редактировать',
+                  label: l10n.commonEdit,
                   color: AppColors.accentIncome,
                   onTap: () {
                     Navigator.of(context).pop();
@@ -227,7 +219,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 const SizedBox(height: 12),
                 _SheetAction(
                   icon: Icons.delete,
-                  label: 'Удалить',
+                  label: l10n.commonDelete,
                   color: AppColors.accentExpense,
                   onTap: () {
                     Navigator.of(context).pop();
@@ -250,34 +242,23 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   String _monthLabel(DateTime date) {
-    const months = [
-      'Январь',
-      'Февраль',
-      'Март',
-      'Апрель',
-      'Май',
-      'Июнь',
-      'Июль',
-      'Август',
-      'Сентябрь',
-      'Октябрь',
-      'Ноябрь',
-      'Декабрь',
-    ];
-    return '${months[date.month - 1]} ${date.year}';
+    return DateFormat(
+      'LLLL y',
+      Localizations.localeOf(context).toLanguageTag(),
+    ).format(date);
   }
 
   String _formatDate(DateTime date) {
-    final day = date.day.toString().padLeft(2, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    final year = date.year;
-    return '$day.$month.$year';
+    return DateFormat.yMd(
+      Localizations.localeOf(context).toLanguageTag(),
+    ).format(date);
   }
 
   String _formatTime(TimeOfDay time) {
-    final hour = time.hour.toString().padLeft(2, '0');
-    final minute = time.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
+    final date = DateTime(2000, 1, 1, time.hour, time.minute);
+    return DateFormat.Hm(
+      Localizations.localeOf(context).toLanguageTag(),
+    ).format(date);
   }
 
   String _formatDateTime(DateTime date, TimeOfDay? time) {
@@ -505,6 +486,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   Future<void> _openSearchFilter() async {
     final tempQuery = TextEditingController(text: _queryController.text);
+    final l10n = context.l10n;
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -526,7 +508,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Текст',
+                  l10n.transactionsTextTitle,
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
@@ -535,8 +517,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 SoftCard(
                   child: TextField(
                     controller: tempQuery,
-                    decoration: const InputDecoration(
-                      hintText: 'Описание, категория, тег или сумма',
+                    decoration: InputDecoration(
+                      hintText: l10n.transactionsTextHint,
                     ),
                   ),
                 ),
@@ -546,7 +528,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => tempQuery.clear(),
-                        child: const Text('Сбросить'),
+                        child: Text(l10n.commonReset),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -558,7 +540,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           });
                           Navigator.of(context).pop();
                         },
-                        child: const Text('Применить'),
+                        child: Text(l10n.commonApply),
                       ),
                     ),
                   ],
@@ -573,6 +555,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   Future<void> _openTypeFilter() async {
     var tempType = _filterType;
+    final l10n = context.l10n;
     await showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface1,
@@ -590,25 +573,25 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Тип операций',
+                      l10n.transactionsTypeTitle,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 12),
                     SegmentedButton<FilterType>(
-                      segments: const [
+                      segments: [
                         ButtonSegment(
                           value: FilterType.all,
-                          label: Text('Все'),
+                          label: Text(l10n.transactionsTypeAll),
                         ),
                         ButtonSegment(
                           value: FilterType.expense,
-                          label: Text('Расходы'),
+                          label: Text(l10n.transactionsTypeExpenses),
                         ),
                         ButtonSegment(
                           value: FilterType.income,
-                          label: Text('Доходы'),
+                          label: Text(l10n.transactionsTypeIncome),
                         ),
                       ],
                       selected: {tempType},
@@ -628,7 +611,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                 tempType = FilterType.all;
                               });
                             },
-                            child: const Text('Сбросить'),
+                            child: Text(l10n.commonReset),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -640,7 +623,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               });
                               Navigator.of(context).pop();
                             },
-                            child: const Text('Применить'),
+                            child: Text(l10n.commonApply),
                           ),
                         ),
                       ],
@@ -660,6 +643,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     var tempFromTime = _fromTime;
     var tempToDate = _toDate;
     var tempToTime = _toTime;
+    final l10n = context.l10n;
 
     void setRange(DateTime start, DateTime end) {
       tempFromDate = DateTime(start.year, start.month, start.day);
@@ -688,7 +672,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Период',
+                      l10n.transactionsPeriodTitle,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -699,7 +683,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       runSpacing: 8,
                       children: [
                         _QuickChip(
-                          label: 'Последний месяц',
+                          label: l10n.transactionsQuickLastMonth,
                           onTap: () {
                             final start = DateTime(now.year, now.month - 1, 1);
                             final end = DateTime(now.year, now.month, 0);
@@ -707,7 +691,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           },
                         ),
                         _QuickChip(
-                          label: 'Квартал',
+                          label: l10n.transactionsQuickQuarter,
                           onTap: () {
                             final start = DateTime(now.year, now.month - 3, 1);
                             final end = DateTime(now.year, now.month, 0);
@@ -715,7 +699,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           },
                         ),
                         _QuickChip(
-                          label: 'Год',
+                          label: l10n.transactionsQuickYear,
                           onTap: () {
                             final start = DateTime(now.year - 1, now.month, 1);
                             final end = DateTime(now.year, now.month, 0);
@@ -771,7 +755,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                 children: [
                                   Text(
                                     selectedDate == null
-                                        ? 'Выбрать месяц'
+                                        ? l10n.transactionsSelectMonth
                                         : _monthLabel(selectedDate),
                                     style: Theme.of(context)
                                         .textTheme
@@ -799,9 +783,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       child: Column(
                         children: [
                           _DateRow(
-                            label: 'От',
+                            label: l10n.transactionsFrom,
                             value: tempFromDate == null
-                                ? 'Выбери дату'
+                                ? l10n.transactionsChooseDate
                                 : _formatDateTime(tempFromDate!, tempFromTime),
                             onTap: () async {
                               final pickedDate = await showDatePicker(
@@ -829,9 +813,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           ),
                           const SizedBox(height: 8),
                           _DateRow(
-                            label: 'До',
+                            label: l10n.transactionsTo,
                             value: tempToDate == null
-                                ? 'Выбери дату'
+                                ? l10n.transactionsChooseDate
                                 : _formatDateTime(tempToDate!, tempToTime),
                             onTap: () async {
                               final pickedDate = await showDatePicker(
@@ -873,7 +857,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                 tempToTime = null;
                               });
                             },
-                            child: const Text('Сбросить'),
+                            child: Text(l10n.commonReset),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -909,7 +893,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               });
                               Navigator.of(context).pop();
                             },
-                            child: const Text('Применить'),
+                            child: Text(l10n.commonApply),
                           ),
                         ),
                       ],
@@ -926,6 +910,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   Future<void> _openCategoryFilter(AppState appState) async {
     final tempCategoryIds = <String>{..._selectedCategoryIds};
+    final l10n = context.l10n;
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -944,7 +929,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Категории',
+                      l10n.transactionsCategoriesTitle,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -1017,7 +1002,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                   );
                               });
                             },
-                            child: const Text('Сбросить'),
+                            child: Text(l10n.commonReset),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -1031,7 +1016,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               });
                               Navigator.of(context).pop();
                             },
-                            child: const Text('Применить'),
+                            child: Text(l10n.commonApply),
                           ),
                         ),
                       ],
@@ -1048,6 +1033,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   Future<void> _openTagFilter(AppState appState) async {
     final tempTagIds = <String>{..._selectedTagIds};
+    final l10n = context.l10n;
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1066,7 +1052,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Теги',
+                      l10n.transactionsTagsTitle,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -1074,7 +1060,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     const SizedBox(height: 12),
                     if (appState.tags.isEmpty)
                       Text(
-                        'Теги пока не добавлены',
+                        l10n.transactionsTagsEmpty,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -1141,7 +1127,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                   ..addAll(appState.tags.map((t) => t.id));
                               });
                             },
-                            child: const Text('Сбросить'),
+                            child: Text(l10n.commonReset),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -1155,7 +1141,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               });
                               Navigator.of(context).pop();
                             },
-                            child: const Text('Применить'),
+                            child: Text(l10n.commonApply),
                           ),
                         ),
                       ],
@@ -1172,6 +1158,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   Future<void> _openMethodFilter(AppState appState) async {
     final tempMethodIds = <String>{..._selectedMethodIds};
+    final l10n = context.l10n;
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1190,7 +1177,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Способы оплаты',
+                      l10n.transactionsMethodsTitle,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -1261,7 +1248,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                   );
                               });
                             },
-                            child: const Text('Сбросить'),
+                            child: Text(l10n.commonReset),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -1275,7 +1262,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               });
                               Navigator.of(context).pop();
                             },
-                            child: const Text('Применить'),
+                            child: Text(l10n.commonApply),
                           ),
                         ),
                       ],
@@ -1291,6 +1278,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   Widget _buildDisplayBar(AppState appState) {
+    final l10n = context.l10n;
     final barLine = AppColors.stroke;
     final barBackground = AppColors.surface1;
     final pillAccent = AppColors.chipBlue;
@@ -1310,7 +1298,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               child: Row(
                 children: [
                   _FilterPill(
-                    label: 'Итого',
+                    label: l10n.transactionsDisplayTotal,
                     active: _showTotal,
                     accentColor: pillAccent,
                     onTap: () {
@@ -1322,7 +1310,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ),
                   const SizedBox(width: 8),
                   _FilterPill(
-                    label: 'По датам',
+                    label: l10n.transactionsDisplayByDate,
                     active: _groupByDate,
                     accentColor: pillAccent,
                     onTap: () {
@@ -1334,7 +1322,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ),
                   const SizedBox(width: 8),
                   _FilterPill(
-                    label: 'Категории',
+                    label: l10n.transactionsDisplayCategories,
                     active: _showCategoryIcon,
                     accentColor: pillAccent,
                     onTap: () {
@@ -1346,7 +1334,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ),
                   const SizedBox(width: 8),
                   _FilterPill(
-                    label: 'Оплата',
+                    label: l10n.transactionsDisplayPayment,
                     active: _showPaymentIcon,
                     accentColor: pillAccent,
                     onTap: () {
@@ -1358,7 +1346,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ),
                   const SizedBox(width: 8),
                   _FilterPill(
-                    label: 'Теги',
+                    label: l10n.transactionsDisplayTags,
                     active: _showTags,
                     accentColor: pillAccent,
                     onTap: () {
@@ -1371,7 +1359,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   if (appState.isFamilyMode) ...[
                     const SizedBox(width: 8),
                     _FilterPill(
-                      label: 'Автор',
+                      label: l10n.transactionsDisplayAuthor,
                       active: _showAuthors,
                       accentColor: pillAccent,
                       onTap: () {
@@ -1393,6 +1381,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   Widget _buildFilterBar(AppState appState) {
+    final l10n = context.l10n;
     final hasFilter = _isFilterActive(appState);
     final categoriesAll =
         _selectedCategoryIds.length == appState.categories.length;
@@ -1432,42 +1421,42 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     child: Row(
                       children: [
                         _FilterPill(
-                          label: 'Текст',
+                          label: l10n.transactionsTextTitle,
                           active: queryActive,
                           accentColor: pillAccent,
                           onTap: _openSearchFilter,
                         ),
                         const SizedBox(width: 8),
                         _FilterPill(
-                          label: 'Тип',
+                          label: l10n.transactionsTypeTitle,
                           active: typeActive,
                           accentColor: pillAccent,
                           onTap: _openTypeFilter,
                         ),
                         const SizedBox(width: 8),
                         _FilterPill(
-                          label: 'Период',
+                          label: l10n.transactionsPeriodTitle,
                           active: dateActive,
                           accentColor: pillAccent,
                           onTap: _openDateFilter,
                         ),
                         const SizedBox(width: 8),
                         _FilterPill(
-                          label: 'Категории',
+                          label: l10n.transactionsCategoriesTitle,
                           active: categoryActive,
                           accentColor: pillAccent,
                           onTap: () => _openCategoryFilter(appState),
                         ),
                         const SizedBox(width: 8),
                         _FilterPill(
-                          label: 'Теги',
+                          label: l10n.transactionsTagsTitle,
                           active: tagActive,
                           accentColor: pillAccent,
                           onTap: () => _openTagFilter(appState),
                         ),
                         const SizedBox(width: 8),
                         _FilterPill(
-                          label: 'Оплата',
+                          label: l10n.transactionsDisplayPayment,
                           active: methodActive,
                           accentColor: pillAccent,
                           onTap: () => _openMethodFilter(appState),
@@ -1607,9 +1596,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
+    final l10n = context.l10n;
     final budgetLabel = appState.isFamilyMode
-        ? (appState.family?.name ?? 'Общий бюджет')
-        : 'Личный бюджет';
+        ? (appState.family?.name ?? l10n.transactionsFamilyBudgetFallback)
+        : l10n.transactionsPersonalBudgetTitle;
     final budgetIcon = appState.isFamilyMode
         ? Icons.group
         : Icons.person_outline;
@@ -1621,7 +1611,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final balance = income - expense;
     final hasFilter = _isFilterActive(appState);
     final showAuthors = appState.isFamilyMode && _showAuthors;
-    final emptyLabel = hasFilter ? 'Ничего не найдено' : 'Пока нет операций';
+    final emptyLabel = hasFilter
+        ? l10n.transactionsNothingFound
+        : l10n.transactionsNoTransactions;
     final groupedItems = _groupByDate
         ? _groupedItems(filteredTransactions)
         : const <Object>[];
@@ -1632,7 +1624,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         child: Column(
           children: [
             AppHeader(
-              title: 'Операции',
+              title: l10n.transactionsTitle,
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
               leading: Icon(
                 Icons.swap_horiz,
@@ -1673,19 +1665,19 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 _SummaryItem(
-                                  title: 'Доходы',
+                                  title: l10n.overviewIncome,
                                   amount: '+ ${_formatAmount(income, symbol)}',
                                   color: AppColors.accentIncome,
                                 ),
                                 const SizedBox(height: 10),
                                 _SummaryItem(
-                                  title: 'Расходы',
+                                  title: l10n.overviewExpenses,
                                   amount: '- ${_formatAmount(expense, symbol)}',
                                   color: AppColors.accentExpense,
                                 ),
                                 const SizedBox(height: 10),
                                 _SummaryItem(
-                                  title: 'Итого',
+                                  title: l10n.overviewTotal,
                                   amount: _formatAmount(balance, symbol),
                                   color: AppColors.accentTotal,
                                 ),

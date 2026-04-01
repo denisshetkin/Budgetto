@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import 'l10n/app_locale.dart';
+import 'l10n/generated/app_localizations.dart';
 import 'screens/app_shell.dart';
 import 'screens/subscription_screen.dart';
 import 'state/app_state.dart';
@@ -49,11 +52,15 @@ class _SmartWalletAppState extends State<SmartWalletApp> {
         builder: (context, _) {
           AppColors.setThemeMode(_appState.themeMode);
           return MaterialApp(
-            title: 'Budgetto',
+            onGenerateTitle: (context) =>
+                AppLocalizations.of(context)!.appTitle,
             debugShowCheckedModeBanner: false,
             theme: buildLightTheme(),
             darkTheme: buildDarkTheme(),
             themeMode: _appState.themeMode,
+            locale: _appState.locale,
+            supportedLocales: supportedAppLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
             home: _ready
                 ? (_appState.isAccessLocked
                       ? const SubscriptionScreen()

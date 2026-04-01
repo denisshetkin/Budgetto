@@ -1,7 +1,9 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
+import '../l10n/l10n.dart';
 import '../models/transaction_entry.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
@@ -32,14 +34,15 @@ class _OverviewScreenState extends State<OverviewScreen> {
     final initialRange =
         _customRange ??
         DateTimeRange(start: now.subtract(const Duration(days: 6)), end: now);
+    final l10n = context.l10n;
     final picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime(now.year - 5),
       lastDate: DateTime(now.year + 5),
       initialDateRange: initialRange,
-      helpText: 'Выберите период',
-      saveText: 'Готово',
-      cancelText: 'Отмена',
+      helpText: l10n.overviewRangePickHelp,
+      saveText: l10n.overviewRangeSave,
+      cancelText: l10n.overviewRangeCancel,
     );
 
     if (!mounted) {
@@ -185,6 +188,8 @@ class _OverviewScreenState extends State<OverviewScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
+    final l10n = context.l10n;
+    final localeTag = Localizations.localeOf(context).toLanguageTag();
     final symbol = appState.currencySymbol();
     final range = _resolveRange();
     final accent = _type == TransactionType.expense
@@ -192,7 +197,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
         : AppColors.accentIncome;
     final slices = _buildSlices(appState.transactions, range, _type, accent);
     final total = slices.fold<double>(0, (sum, slice) => sum + slice.amount);
-    final rangeLabel = _formatRange(range);
+    final rangeLabel = _formatRange(range, localeTag);
     const horizontalInset = 12.0;
 
     return Scaffold(
@@ -201,7 +206,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
         child: Column(
           children: [
             AppHeader(
-              title: 'Обзор',
+              title: l10n.overviewTitle,
               padding: const EdgeInsets.fromLTRB(
                 horizontalInset,
                 12,
@@ -245,14 +250,14 @@ class _OverviewScreenState extends State<OverviewScreen> {
                       BorderSide(color: AppColors.stroke),
                     ),
                   ),
-                  segments: const [
+                  segments: [
                     ButtonSegment(
                       value: TransactionType.expense,
-                      label: Text('Расходы'),
+                      label: Text(l10n.overviewExpenses),
                     ),
                     ButtonSegment(
                       value: TransactionType.income,
-                      label: Text('Доходы'),
+                      label: Text(l10n.overviewIncome),
                     ),
                   ],
                   selected: {_type},
@@ -349,39 +354,39 @@ class _OverviewScreenState extends State<OverviewScreen> {
                                 Icons.expand_more_rounded,
                                 size: 18,
                               ),
-                              items: const [
+                              items: [
                                 DropdownMenuItem(
                                   value: OverviewRange.day,
                                   child: Text(
-                                    'День',
+                                    l10n.overviewRangeDay,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 DropdownMenuItem(
                                   value: OverviewRange.week,
                                   child: Text(
-                                    'Неделя',
+                                    l10n.overviewRangeWeek,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 DropdownMenuItem(
                                   value: OverviewRange.month,
                                   child: Text(
-                                    'Месяц',
+                                    l10n.overviewRangeMonth,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 DropdownMenuItem(
                                   value: OverviewRange.year,
                                   child: Text(
-                                    'Год',
+                                    l10n.overviewRangeYear,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 DropdownMenuItem(
                                   value: OverviewRange.period,
                                   child: Text(
-                                    'Период',
+                                    l10n.overviewRangePeriod,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
@@ -477,7 +482,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Text(
-                                          'Итого',
+                                          l10n.overviewTotal,
                                           style: Theme.of(context)
                                               .textTheme
                                               .bodySmall
@@ -509,7 +514,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
                         const SizedBox(height: 16),
                         if (slices.isEmpty)
                           Text(
-                            'Нет операций за выбранный период.',
+                            l10n.overviewNoTransactions,
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(color: AppColors.textSecondary),
                           )
@@ -590,16 +595,20 @@ class _OverviewScreenState extends State<OverviewScreen> {
     return Color.lerp(base, accent, 0.35) ?? base;
   }
 
-  String _formatRange(DateTimeRange range) {
+  String _formatRange(DateTimeRange range, String localeTag) {
     switch (_range) {
       case OverviewRange.day:
-        return _formatDate(range.start, includeYear: true);
+        return _formatDate(range.start, localeTag, includeYear: true);
       case OverviewRange.week:
-        final startLabel = _formatDate(range.start, includeYear: false);
-        final endLabel = _formatDate(range.end, includeYear: true);
+        final startLabel = _formatDate(
+          range.start,
+          localeTag,
+          includeYear: false,
+        );
+        final endLabel = _formatDate(range.end, localeTag, includeYear: true);
         return '$startLabel - $endLabel';
       case OverviewRange.month:
-        return _formatMonthYear(range.start);
+        return _formatMonthYear(range.start, localeTag);
       case OverviewRange.year:
         return range.start.year.toString();
       case OverviewRange.period:
@@ -607,52 +616,25 @@ class _OverviewScreenState extends State<OverviewScreen> {
         final end = range.end;
         final startLabel = _formatDate(
           start,
+          localeTag,
           includeYear: start.year != end.year,
         );
-        final endLabel = _formatDate(end, includeYear: true);
+        final endLabel = _formatDate(end, localeTag, includeYear: true);
         return '$startLabel - $endLabel';
     }
   }
 
-  String _formatDate(DateTime date, {required bool includeYear}) {
-    const months = [
-      'янв',
-      'фев',
-      'мар',
-      'апр',
-      'мая',
-      'июн',
-      'июл',
-      'авг',
-      'сен',
-      'окт',
-      'ноя',
-      'дек',
-    ];
-    final day = date.day.toString().padLeft(2, '0');
-    final month = months[date.month - 1];
-    if (!includeYear) {
-      return '$day $month';
-    }
-    return '$day $month ${date.year}';
+  String _formatDate(
+    DateTime date,
+    String localeTag, {
+    required bool includeYear,
+  }) {
+    final pattern = includeYear ? 'd MMM y' : 'd MMM';
+    return DateFormat(pattern, localeTag).format(date);
   }
 
-  String _formatMonthYear(DateTime date) {
-    const months = [
-      'январь',
-      'февраль',
-      'март',
-      'апрель',
-      'май',
-      'июнь',
-      'июль',
-      'август',
-      'сентябрь',
-      'октябрь',
-      'ноябрь',
-      'декабрь',
-    ];
-    return '${months[date.month - 1]} ${date.year}';
+  String _formatMonthYear(DateTime date, String localeTag) {
+    return DateFormat('LLLL y', localeTag).format(date);
   }
 
   String _formatAmount(double amount, String symbol) {

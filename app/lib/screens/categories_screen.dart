@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../l10n/l10n.dart';
 import '../models/category_entry.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
@@ -45,6 +47,7 @@ class CategoriesScreen extends StatelessWidget {
     AppState appState,
     CategoryEntry category,
   ) async {
+    final l10n = context.l10n;
     final usedTransactionCount = appState.transactions
         .where((entry) => entry.categoryId == category.id)
         .length;
@@ -61,14 +64,12 @@ class CategoriesScreen extends StatelessWidget {
         context: context,
         builder: (context) {
           return AlertDialog(
-            title: const Text('Нельзя удалить категорию'),
-            content: const Text(
-              'Эта категория уже используется. Сначала создай другую категорию, чтобы перенести в неё записи.',
-            ),
+            title: Text(l10n.categoriesDeleteBlockedTitle),
+            content: Text(l10n.categoriesDeleteBlockedMessage),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Понятно'),
+                child: Text(l10n.settingsDataUnderstoodButton),
               ),
             ],
           );
@@ -86,26 +87,27 @@ class CategoriesScreen extends StatelessWidget {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('Удалить категорию?'),
+              title: Text(l10n.categoriesDeleteTitle),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     totalUsageCount == 0
-                        ? 'Уверен, что хочешь удалить эту категорию?'
-                        : 'Категория используется в $usedTransactionCount операциях и $usedPlannedCount запланированных записях.',
+                        ? l10n.categoriesDeleteMessage
+                        : l10n.categoriesDeleteUsedMessage(
+                            usedTransactionCount,
+                            usedPlannedCount,
+                          ),
                   ),
                   if (totalUsageCount > 0) ...[
                     const SizedBox(height: 12),
-                    const Text(
-                      'Перед удалением выбери категорию, в которую нужно перенести эти записи.',
-                    ),
+                    Text(l10n.categoriesDeleteReplacementHint),
                     const SizedBox(height: 12),
                     InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'Новая категория',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: l10n.categoriesReplacementLabel,
+                        border: const OutlineInputBorder(),
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
@@ -138,13 +140,13 @@ class CategoriesScreen extends StatelessWidget {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Отмена'),
+                  child: Text(l10n.commonCancel),
                 ),
                 TextButton(
                   onPressed: totalUsageCount > 0 && replacementCategory == null
                       ? null
                       : () => Navigator.of(context).pop(true),
-                  child: const Text('Удалить'),
+                  child: Text(l10n.commonDelete),
                 ),
               ],
             );
@@ -172,8 +174,8 @@ class CategoriesScreen extends StatelessWidget {
         SnackBar(
           content: Text(
             totalUsageCount > 0 && replacementCategory != null
-                ? 'Категория удалена, записи перенесены в "${replacementCategory!.name}".'
-                : 'Категория удалена',
+                ? l10n.categoriesDeleteMovedSuccess(replacementCategory!.name)
+                : l10n.categoriesDeleteSuccess,
           ),
         ),
       );
@@ -183,6 +185,7 @@ class CategoriesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
+    final l10n = context.l10n;
     final categories = appState.categories;
     final canPop = Navigator.of(context).canPop();
 
@@ -192,17 +195,17 @@ class CategoriesScreen extends StatelessWidget {
         child: Column(
           children: [
             AppHeader(
-              title: 'Категории',
+              title: l10n.settingsCategoriesTitle,
               leading: canPop
                   ? IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: Icon(Icons.arrow_back),
+                      icon: const Icon(Icons.arrow_back),
                     )
                   : null,
               actions: [
                 IconButton(
                   onPressed: () => _openAddCategory(context, appState),
-                  icon: Icon(Icons.add),
+                  icon: const Icon(Icons.add),
                 ),
               ],
             ),
@@ -387,6 +390,7 @@ class _AddCategorySheetState extends State<_AddCategorySheet> {
   }
 
   Future<void> _openColorPicker() async {
+    final l10n = context.l10n;
     final initial = _selectedColor;
     HSVColor hsv = HSVColor.fromColor(initial);
     Color temp = initial;
@@ -395,7 +399,7 @@ class _AddCategorySheetState extends State<_AddCategorySheet> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Выбор цвета'),
+          title: Text(l10n.editorColorPickerTitle),
           content: StatefulBuilder(
             builder: (context, setDialogState) {
               return Column(
@@ -451,11 +455,11 @@ class _AddCategorySheetState extends State<_AddCategorySheet> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Отмена'),
+              child: Text(l10n.commonCancel),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(temp),
-              child: const Text('Выбрать'),
+              child: Text(l10n.commonSelect),
             ),
           ],
         );
@@ -471,6 +475,7 @@ class _AddCategorySheetState extends State<_AddCategorySheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -483,8 +488,8 @@ class _AddCategorySheetState extends State<_AddCategorySheet> {
                 Expanded(
                   child: Text(
                     widget.initialCategory == null
-                        ? 'Новая категория'
-                        : 'Редактировать категорию',
+                        ? l10n.categoriesNewTitle
+                        : l10n.categoriesEditTitle,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -497,7 +502,7 @@ class _AddCategorySheetState extends State<_AddCategorySheet> {
                     color: AppColors.accentExpense,
                   ),
                   iconSize: 32,
-                  tooltip: 'Отмена',
+                  tooltip: l10n.commonCancel,
                 ),
                 IconButton(
                   onPressed: () {
@@ -507,19 +512,22 @@ class _AddCategorySheetState extends State<_AddCategorySheet> {
                     }
                     widget.onSave(name, _selectedIcon, _selectedColor);
                   },
-                  icon: Icon(Icons.check_rounded, color: Color(0xFF9AD27A)),
+                  icon: const Icon(
+                    Icons.check_rounded,
+                    color: Color(0xFF9AD27A),
+                  ),
                   iconSize: 32,
-                  tooltip: 'Сохранить',
+                  tooltip: l10n.commonSave,
                 ),
               ],
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _controller,
-              decoration: const InputDecoration(hintText: 'Например, Спорт'),
+              decoration: InputDecoration(hintText: l10n.categoriesNameHint),
             ),
             Text(
-              'Цвет иконки',
+              l10n.editorIconColorLabel,
               textAlign: TextAlign.center,
               style: Theme.of(
                 context,
@@ -574,7 +582,7 @@ class _AddCategorySheetState extends State<_AddCategorySheet> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Иконка',
+              l10n.editorIconLabel,
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),

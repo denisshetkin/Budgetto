@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../models/transaction_entry.dart';
 import '../services/data_export.dart';
 import '../state/app_state.dart';
@@ -48,6 +49,7 @@ class _AppShellState extends State<AppShell> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
+        final l10n = context.l10n;
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -59,7 +61,7 @@ class _AppShellState extends State<AppShell> {
                     Icons.event_note_outlined,
                     color: AppColors.accentTotal,
                   ),
-                  title: const Text('Регулярные платежи'),
+                  title: Text(l10n.appShellPlannedPayments),
                   onTap: () {
                     Navigator.of(context).pop();
                     Navigator.of(context).push(
@@ -72,7 +74,7 @@ class _AppShellState extends State<AppShell> {
                     Icons.notifications,
                     color: AppColors.accentDisplay,
                   ),
-                  title: const Text('Напоминания'),
+                  title: Text(l10n.appShellReminders),
                   onTap: () {
                     Navigator.of(context).pop();
                     Navigator.of(context).push(
@@ -84,7 +86,7 @@ class _AppShellState extends State<AppShell> {
                 ),
                 ListTile(
                   leading: Icon(Icons.fact_check, color: AppColors.chipBlue),
-                  title: const Text('Списки покупок'),
+                  title: Text(l10n.appShellShoppingLists),
                   onTap: () {
                     Navigator.of(context).pop();
                     Navigator.of(context).push(
@@ -97,7 +99,7 @@ class _AppShellState extends State<AppShell> {
                     Icons.file_download_outlined,
                     color: AppColors.accentDisplay,
                   ),
-                  title: const Text('Импорт CSV'),
+                  title: Text(l10n.appShellImportCsv),
                   onTap: () {
                     Navigator.of(context).pop();
                     Navigator.of(context).push(
@@ -112,7 +114,7 @@ class _AppShellState extends State<AppShell> {
                     Icons.file_upload_outlined,
                     color: AppColors.accentTotal,
                   ),
-                  title: const Text('Экспорт CSV'),
+                  title: Text(l10n.appShellExportCsv),
                   onTap: () {
                     Navigator.of(context).pop();
                     DataExport.exportTransactionsCsv(this.context, appState);

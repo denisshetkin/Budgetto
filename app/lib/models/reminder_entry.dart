@@ -1,3 +1,5 @@
+import '../l10n/generated/app_localizations.dart';
+
 enum ReminderFrequency {
   once,
   daily,
@@ -11,21 +13,32 @@ enum ReminderFrequency {
   yearly,
 }
 
-const Map<ReminderFrequency, String> _reminderFrequencyLabels = {
-  ReminderFrequency.once: 'Один раз',
-  ReminderFrequency.daily: 'Каждый день',
-  ReminderFrequency.weekly: 'Каждую неделю',
-  ReminderFrequency.biweekly: 'Каждые 2 недели',
-  ReminderFrequency.fourWeeks: 'Каждые 4 недели',
-  ReminderFrequency.monthly: 'Каждый месяц',
-  ReminderFrequency.everyTwoMonths: 'Каждые 2 месяца',
-  ReminderFrequency.quarterly: 'Каждый квартал',
-  ReminderFrequency.halfYear: 'Каждые полгода',
-  ReminderFrequency.yearly: 'Каждый год',
-};
-
-String reminderFrequencyLabel(ReminderFrequency frequency) {
-  return _reminderFrequencyLabels[frequency] ?? 'Один раз';
+String reminderFrequencyLabel(
+  ReminderFrequency frequency,
+  AppLocalizations l10n,
+) {
+  switch (frequency) {
+    case ReminderFrequency.once:
+      return l10n.reminderFrequencyOnce;
+    case ReminderFrequency.daily:
+      return l10n.reminderFrequencyDaily;
+    case ReminderFrequency.weekly:
+      return l10n.reminderFrequencyWeekly;
+    case ReminderFrequency.biweekly:
+      return l10n.reminderFrequencyBiweekly;
+    case ReminderFrequency.fourWeeks:
+      return l10n.reminderFrequencyFourWeeks;
+    case ReminderFrequency.monthly:
+      return l10n.reminderFrequencyMonthly;
+    case ReminderFrequency.everyTwoMonths:
+      return l10n.reminderFrequencyEveryTwoMonths;
+    case ReminderFrequency.quarterly:
+      return l10n.reminderFrequencyQuarterly;
+    case ReminderFrequency.halfYear:
+      return l10n.reminderFrequencyHalfYear;
+    case ReminderFrequency.yearly:
+      return l10n.reminderFrequencyYearly;
+  }
 }
 
 class ReminderEntry {

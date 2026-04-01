@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../models/transaction_entry.dart';
 import '../state/app_state.dart';
 
@@ -16,17 +17,8 @@ class TransactionImportService {
     'tags',
   ];
 
-  static const List<String> documentHeaders = [
-    'дата',
-    'тип операции',
-    'операция',
-    'сумма',
-    'категория',
-    'способ оплаты',
-    'теги',
-  ];
-
   static TransactionImportPreview analyzeCsv({
+    required AppLocalizations l10n,
     required String csvContent,
     required Iterable<String> existingCategoryNames,
     required Iterable<String> existingPaymentMethodNames,
@@ -37,10 +29,8 @@ class TransactionImportService {
     if (sanitized.trim().isEmpty) {
       return TransactionImportPreview(
         sourceName: sourceName,
-        errors: const [
-          TransactionImportIssue(
-            message: 'Файл пустой. Добавь заголовки и строки данных.',
-          ),
+        errors: [
+          TransactionImportIssue(message: l10n.transactionImportErrorEmptyFile),
         ],
         rows: const [],
         newCategoryNames: const [],
@@ -54,10 +44,9 @@ class TransactionImportService {
     if (parseResult.unclosedQuote) {
       return TransactionImportPreview(
         sourceName: sourceName,
-        errors: const [
+        errors: [
           TransactionImportIssue(
-            message:
-                'CSV содержит незакрытую кавычку. Проверь файл и попробуй снова.',
+            message: l10n.transactionImportErrorUnclosedQuote,
           ),
         ],
         rows: const [],
@@ -70,8 +59,8 @@ class TransactionImportService {
     if (parseResult.rows.isEmpty) {
       return TransactionImportPreview(
         sourceName: sourceName,
-        errors: const [
-          TransactionImportIssue(message: 'Не удалось прочитать строки CSV.'),
+        errors: [
+          TransactionImportIssue(message: l10n.transactionImportErrorReadRows),
         ],
         rows: const [],
         newCategoryNames: const [],
@@ -90,8 +79,9 @@ class TransactionImportService {
       if (!headerMap.containsKey(header)) {
         errors.add(
           TransactionImportIssue(
-            message:
-                'Не найдена обязательная колонка "${_headerLabels[header]}". Используй шаблон из инструкции.',
+            message: l10n.transactionImportMissingRequiredColumn(
+              _headerLabel(header, l10n),
+            ),
           ),
         );
       }
@@ -100,18 +90,17 @@ class TransactionImportService {
     final dataRows = parseResult.rows.skip(1).toList(growable: false);
     if (dataRows.isEmpty) {
       errors.add(
-        const TransactionImportIssue(
-          message:
-              'В файле нет строк с операциями. Добавь хотя бы одну запись.',
-        ),
+        TransactionImportIssue(message: l10n.transactionImportErrorNoDataRows),
       );
     }
 
     if (dataRows.length > maxRows) {
       errors.add(
         TransactionImportIssue(
-          message:
-              'В файле ${dataRows.length} строк, а лимит импорта сейчас $maxRows.',
+          message: l10n.transactionImportErrorRowLimit(
+            dataRows.length,
+            maxRows,
+          ),
         ),
       );
     }
@@ -159,8 +148,7 @@ class TransactionImportService {
         errors.add(
           TransactionImportIssue(
             lineNumber: lineNumber,
-            message:
-                'Не удалось распознать дату "$rawDate". Используй дату со временем, например 2026-02-05 00:53. Секунды можно указывать, они будут проигнорированы.',
+            message: l10n.transactionImportErrorInvalidDate(rawDate),
           ),
         );
       }
@@ -170,8 +158,10 @@ class TransactionImportService {
         errors.add(
           TransactionImportIssue(
             lineNumber: lineNumber,
-            message:
-                'Поле "тип операции" заполнено неверно. Используй значение "Расход" или "Доход".',
+            message: l10n.transactionImportErrorInvalidType(
+              l10n.transactionTypeExpense,
+              l10n.transactionTypeIncome,
+            ),
           ),
         );
       }
@@ -180,7 +170,7 @@ class TransactionImportService {
         errors.add(
           TransactionImportIssue(
             lineNumber: lineNumber,
-            message: 'Поле "операция" не должно быть пустым.',
+            message: l10n.transactionImportErrorOperationRequired,
           ),
         );
       }
@@ -190,8 +180,7 @@ class TransactionImportService {
         errors.add(
           TransactionImportIssue(
             lineNumber: lineNumber,
-            message:
-                'Поле "сумма" должно быть числом больше 0. Сейчас: "$rawAmount".',
+            message: l10n.transactionImportErrorInvalidAmount(rawAmount),
           ),
         );
       }
@@ -200,7 +189,7 @@ class TransactionImportService {
         errors.add(
           TransactionImportIssue(
             lineNumber: lineNumber,
-            message: 'Поле "категория" не должно быть пустым.',
+            message: l10n.transactionImportErrorCategoryRequired,
           ),
         );
       }
@@ -209,7 +198,7 @@ class TransactionImportService {
         errors.add(
           TransactionImportIssue(
             lineNumber: lineNumber,
-            message: 'Поле "способ оплаты" не должно быть пустым.',
+            message: l10n.transactionImportErrorPaymentMethodRequired,
           ),
         );
       } else {
@@ -359,46 +348,66 @@ class TransactionImportService {
     );
   }
 
-  static List<TransactionImportInstructionSection> buildInstructionSections() {
-    return const [
+  static List<TransactionImportInstructionSection> buildInstructionSections(
+    AppLocalizations l10n,
+  ) {
+    final headers = _documentHeaders(l10n).join(';');
+    return [
       TransactionImportInstructionSection(
-        title: 'Подготовь файл',
+        title: l10n.transactionImportInstructionPrepareTitle,
         items: [
-          'Формат файла: CSV.',
-          'Кодировка файла: UTF-8.',
-          'Первая строка файла: дата;тип операции;операция;сумма;категория;способ оплаты;теги.',
-          'Разделитель: ;',
-          'Максимум: 500 строк данных без заголовка.',
+          l10n.transactionImportInstructionFormat,
+          l10n.transactionImportInstructionEncoding,
+          l10n.transactionImportInstructionHeaderRow(headers),
+          l10n.transactionImportInstructionDelimiter,
+          l10n.transactionImportInstructionMaxRows(maxRows),
         ],
       ),
       TransactionImportInstructionSection(
-        title: 'Заполни колонки в первой строке',
+        title: l10n.transactionImportInstructionColumnsTitle,
         items: [
-          'дата: дата и время операции. Рекомендуемый формат: YYYY-MM-DD HH:mm. Импорт также принимает записи вида 05.02.2026 0:53:29 и игнорирует секунды.',
-          'тип операции: значение Расход или Доход.',
-          'операция: текст операции. Пример: Билеты в театр.',
-          'сумма: число больше 0 в формате 12.50.',
-          'категория: название категории. Если категории нет, она будет создана после подтверждения.',
-          'способ оплаты: название способа оплаты. Поле не может быть пустым. Если способа оплаты нет, он будет создан после подтверждения.',
-          'теги: список тегов через запятую. Поле можно оставить пустым. Если тегов нет, они будут созданы после подтверждения.',
+          l10n.transactionImportInstructionDateColumn(
+            _headerLabel('date', l10n),
+          ),
+          l10n.transactionImportInstructionTypeColumn(
+            _headerLabel('transaction_type', l10n),
+            l10n.transactionTypeExpense,
+            l10n.transactionTypeIncome,
+          ),
+          l10n.transactionImportInstructionOperationColumn(
+            _headerLabel('operation', l10n),
+            l10n.transactionImportSampleOperationOne,
+          ),
+          l10n.transactionImportInstructionAmountColumn(
+            _headerLabel('amount', l10n),
+          ),
+          l10n.transactionImportInstructionCategoryColumn(
+            _headerLabel('category', l10n),
+          ),
+          l10n.transactionImportInstructionPaymentMethodColumn(
+            _headerLabel('payment_method', l10n),
+          ),
+          l10n.transactionImportInstructionTagsColumn(
+            _headerLabel('tags', l10n),
+          ),
         ],
       ),
       TransactionImportInstructionSection(
-        title: 'Проверь изменения перед импортом',
+        title: l10n.transactionImportInstructionReviewTitle,
         items: [
-          'Перед импортом приложение покажет новые категории, способы оплаты и теги.',
-          'Новые элементы и записи будут добавлены только после нажатия кнопки Импортировать.',
-          'Каждая импортированная запись получит системный тег формата import_YYYYMMDD_HHMMSS.',
+          l10n.transactionImportInstructionReviewItemOne,
+          l10n.transactionImportInstructionReviewItemTwo,
+          l10n.transactionImportInstructionReviewItemThree,
         ],
       ),
     ];
   }
 
-  static String sampleCsv() {
+  static String sampleCsv(AppLocalizations l10n) {
     return [
-      documentHeaders.join(';'),
-      '2026-03-28 14:25;Расход;Билеты в театр;12.50;Развлечения;Основная карта;Театр,Вечер',
-      '05.02.2026 0:53:29;Расход;Такси домой;48.90;Транспорт;Наличные;',
+      _documentHeaders(l10n).join(';'),
+      '2026-03-28 14:25;${l10n.transactionTypeExpense};${l10n.transactionImportSampleOperationOne};12.50;${l10n.transactionImportSampleCategoryOne};${l10n.transactionImportSamplePaymentMethodOne};${l10n.transactionImportSampleTagsOne}',
+      '05.02.2026 0:53:29;${l10n.transactionTypeExpense};${l10n.transactionImportSampleOperationTwo};48.90;${l10n.transactionImportSampleCategoryTwo};${l10n.transactionImportSamplePaymentMethodTwo};',
     ].join('\n');
   }
 
@@ -622,6 +631,37 @@ class TransactionImportService {
     return value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
   }
 
+  static List<String> _documentHeaders(AppLocalizations l10n) => [
+    _headerLabel('date', l10n),
+    _headerLabel('transaction_type', l10n),
+    _headerLabel('operation', l10n),
+    _headerLabel('amount', l10n),
+    _headerLabel('category', l10n),
+    _headerLabel('payment_method', l10n),
+    _headerLabel('tags', l10n),
+  ];
+
+  static String _headerLabel(String header, AppLocalizations l10n) {
+    switch (header) {
+      case 'date':
+        return l10n.transactionImportColumnDate;
+      case 'transaction_type':
+        return l10n.transactionImportColumnType;
+      case 'operation':
+        return l10n.transactionImportColumnOperation;
+      case 'amount':
+        return l10n.transactionImportColumnAmount;
+      case 'category':
+        return l10n.transactionImportColumnCategory;
+      case 'payment_method':
+        return l10n.transactionImportColumnPaymentMethod;
+      case 'tags':
+        return l10n.transactionImportColumnTags;
+      default:
+        return header;
+    }
+  }
+
   static String _twoDigits(int value) => value.toString().padLeft(2, '0');
 
   static const String _utf8Bom = '\ufeff';
@@ -654,16 +694,6 @@ class TransactionImportService {
     'tag': 'tags',
     'тег': 'tags',
     'теги': 'tags',
-  };
-
-  static const Map<String, String> _headerLabels = {
-    'date': 'дата',
-    'transaction_type': 'тип операции',
-    'operation': 'операция',
-    'amount': 'сумма',
-    'category': 'категория',
-    'payment_method': 'способ оплаты',
-    'tags': 'теги',
   };
 }
 
@@ -715,11 +745,11 @@ class TransactionImportIssue {
   final int? lineNumber;
   final String message;
 
-  String get displayMessage {
+  String displayMessage(AppLocalizations l10n) {
     if (lineNumber == null) {
       return message;
     }
-    return 'Строка $lineNumber: $message';
+    return l10n.transactionImportLineMessage(lineNumber!, message);
   }
 }
 

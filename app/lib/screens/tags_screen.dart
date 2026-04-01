@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../models/tag_entry.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
@@ -9,11 +10,7 @@ import '../widgets/soft_card.dart';
 class TagsScreen extends StatelessWidget {
   const TagsScreen({super.key});
 
-  void _openAddTag(
-    BuildContext context,
-    AppState appState, {
-    TagEntry? tag,
-  }) {
+  void _openAddTag(BuildContext context, AppState appState, {TagEntry? tag}) {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface1,
@@ -27,7 +24,12 @@ class TagsScreen extends StatelessWidget {
             if (tag == null) {
               appState.addTag(name: name, icon: icon, color: color);
             } else {
-              appState.updateTag(id: tag.id, name: name, icon: icon, color: color);
+              appState.updateTag(
+                id: tag.id,
+                name: name,
+                icon: icon,
+                color: color,
+              );
             }
             Navigator.of(context).pop();
           },
@@ -41,20 +43,21 @@ class TagsScreen extends StatelessWidget {
     AppState appState,
     TagEntry tag,
   ) async {
+    final l10n = context.l10n;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Удалить тег?'),
-          content: const Text('Уверен, что хочешь удалить этот тег?'),
+          title: Text(l10n.tagsDeleteTitle),
+          content: Text(l10n.tagsDeleteMessage),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Отмена'),
+              child: Text(l10n.commonCancel),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Удалить'),
+              child: Text(l10n.commonDelete),
             ),
           ],
         );
@@ -68,32 +71,34 @@ class TagsScreen extends StatelessWidget {
       appState.removeTag(tag.id);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Тег удален')));
+      ).showSnackBar(SnackBar(content: Text(l10n.tagsDeleteSuccess)));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
+    final l10n = context.l10n;
     final tags = appState.tags;
     final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
-      body: SafeArea(top: false,
+      body: SafeArea(
+        top: false,
         child: Column(
           children: [
             AppHeader(
-              title: 'Теги',
+              title: l10n.settingsTagsTitle,
               leading: canPop
                   ? IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: Icon(Icons.arrow_back),
+                      icon: const Icon(Icons.arrow_back),
                     )
                   : null,
               actions: [
                 IconButton(
                   onPressed: () => _openAddTag(context, appState),
-                  icon: Icon(Icons.add),
+                  icon: const Icon(Icons.add),
                 ),
               ],
             ),
@@ -103,7 +108,7 @@ class TagsScreen extends StatelessWidget {
                 child: tags.isEmpty
                     ? Center(
                         child: Text(
-                          'Пока нет тегов',
+                          l10n.tagsEmpty,
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(color: AppColors.textSecondary),
                         ),
@@ -131,7 +136,9 @@ class TagsScreen extends StatelessWidget {
                                         width: 32,
                                         decoration: BoxDecoration(
                                           color: AppColors.surface2,
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                         ),
                                         child: Icon(
                                           Icons.tag,
@@ -166,10 +173,11 @@ class TagsScreen extends StatelessWidget {
                                         ),
                                         iconSize: 26,
                                         padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints.tightFor(
-                                          width: 32,
-                                          height: 32,
-                                        ),
+                                        constraints:
+                                            const BoxConstraints.tightFor(
+                                              width: 32,
+                                              height: 32,
+                                            ),
                                       ),
                                       const SizedBox(width: 2),
                                       IconButton(
@@ -184,10 +192,11 @@ class TagsScreen extends StatelessWidget {
                                         ),
                                         iconSize: 26,
                                         padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints.tightFor(
-                                          width: 32,
-                                          height: 32,
-                                        ),
+                                        constraints:
+                                            const BoxConstraints.tightFor(
+                                              width: 32,
+                                              height: 32,
+                                            ),
                                       ),
                                     ],
                                   ),
@@ -218,7 +227,7 @@ class _AddTagSheet extends StatefulWidget {
 
 class _AddTagSheetState extends State<_AddTagSheet> {
   final TextEditingController _controller = TextEditingController();
-  IconData _selectedIcon = Icons.tag;
+  final IconData _selectedIcon = Icons.tag;
   Color _selectedColor = const Color(0xFF6C8BF5);
   bool _initialized = false;
 
@@ -252,6 +261,7 @@ class _AddTagSheetState extends State<_AddTagSheet> {
   }
 
   Future<void> _openColorPicker() async {
+    final l10n = context.l10n;
     final initial = _selectedColor;
     HSVColor hsv = HSVColor.fromColor(initial);
     Color temp = initial;
@@ -260,7 +270,7 @@ class _AddTagSheetState extends State<_AddTagSheet> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Выбор цвета'),
+          title: Text(l10n.editorColorPickerTitle),
           content: StatefulBuilder(
             builder: (context, setDialogState) {
               return Column(
@@ -316,11 +326,11 @@ class _AddTagSheetState extends State<_AddTagSheet> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Отмена'),
+              child: Text(l10n.commonCancel),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(temp),
-              child: const Text('Выбрать'),
+              child: Text(l10n.commonSelect),
             ),
           ],
         );
@@ -336,6 +346,7 @@ class _AddTagSheetState extends State<_AddTagSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -348,8 +359,8 @@ class _AddTagSheetState extends State<_AddTagSheet> {
                 Expanded(
                   child: Text(
                     widget.initialTag == null
-                        ? 'Новый тег'
-                        : 'Редактировать тег',
+                        ? l10n.tagsNewTitle
+                        : l10n.tagsEditTitle,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -362,7 +373,7 @@ class _AddTagSheetState extends State<_AddTagSheet> {
                     color: AppColors.accentExpense,
                   ),
                   iconSize: 32,
-                  tooltip: 'Отмена',
+                  tooltip: l10n.commonCancel,
                 ),
                 IconButton(
                   onPressed: () {
@@ -374,20 +385,20 @@ class _AddTagSheetState extends State<_AddTagSheet> {
                   },
                   icon: Icon(
                     Icons.check_rounded,
-                    color: Color(0xFF9AD27A),
+                    color: const Color(0xFF9AD27A),
                   ),
                   iconSize: 32,
-                  tooltip: 'Сохранить',
+                  tooltip: l10n.commonSave,
                 ),
               ],
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _controller,
-              decoration: const InputDecoration(hintText: 'Например, Работа'),
+              decoration: InputDecoration(hintText: l10n.tagsNameHint),
             ),
             Text(
-              'Цвет иконки',
+              l10n.editorIconColorLabel,
               textAlign: TextAlign.center,
               style: Theme.of(
                 context,

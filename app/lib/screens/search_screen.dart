@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
+import '../l10n/l10n.dart';
 import '../models/transaction_entry.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
@@ -67,6 +69,9 @@ class _SearchScreenState extends State<SearchScreen> {
     if (pickedDate == null) {
       return;
     }
+    if (!mounted) {
+      return;
+    }
     final pickedTime = await showTimePicker(
       context: context,
       initialTime: _fromTime ?? TimeOfDay.fromDateTime(now),
@@ -87,6 +92,9 @@ class _SearchScreenState extends State<SearchScreen> {
       lastDate: DateTime(now.year + 1),
     );
     if (pickedDate == null) {
+      return;
+    }
+    if (!mounted) {
       return;
     }
     final pickedTime = await showTimePicker(
@@ -170,6 +178,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
+    final l10n = context.l10n;
     final transactions = _applyFilters(appState.transactions, appState);
     final symbol = appState.currencySymbol();
     final categories = appState.categories;
@@ -182,7 +191,7 @@ class _SearchScreenState extends State<SearchScreen> {
           padding: const EdgeInsets.all(20),
           children: [
             Text(
-              'Поиск',
+              l10n.searchTitle,
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
@@ -191,21 +200,25 @@ class _SearchScreenState extends State<SearchScreen> {
             SoftCard(
               child: TextField(
                 controller: _queryController,
-                decoration: const InputDecoration(
-                  hintText: 'Поиск по описанию, категории или тегу',
-                ),
+                decoration: InputDecoration(hintText: l10n.searchHint),
                 onChanged: (_) => setState(() {}),
               ),
             ),
             const SizedBox(height: 12),
             SegmentedButton<SearchType>(
-              segments: const [
-                ButtonSegment(value: SearchType.all, label: Text('Все')),
+              segments: [
+                ButtonSegment(
+                  value: SearchType.all,
+                  label: Text(l10n.searchAll),
+                ),
                 ButtonSegment(
                   value: SearchType.expense,
-                  label: Text('Расходы'),
+                  label: Text(l10n.overviewExpenses),
                 ),
-                ButtonSegment(value: SearchType.income, label: Text('Доходы')),
+                ButtonSegment(
+                  value: SearchType.income,
+                  label: Text(l10n.overviewIncome),
+                ),
               ],
               selected: {_type},
               onSelectionChanged: (selection) {
@@ -225,8 +238,10 @@ class _SearchScreenState extends State<SearchScreen> {
                       icon: Icon(Icons.schedule, size: 18),
                       label: Text(
                         _fromDate == null
-                            ? 'От: дата и время'
-                            : 'От: ${_formatDateTime(_fromDate!, _fromTime)}',
+                            ? l10n.searchFromPlaceholder
+                            : l10n.searchFromValue(
+                                _formatDateTime(context, _fromDate!, _fromTime),
+                              ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -246,8 +261,10 @@ class _SearchScreenState extends State<SearchScreen> {
                       icon: Icon(Icons.schedule, size: 18),
                       label: Text(
                         _toDate == null
-                            ? 'До: дата и время'
-                            : 'До: ${_formatDateTime(_toDate!, _toTime)}',
+                            ? l10n.searchToPlaceholder
+                            : l10n.searchToValue(
+                                _formatDateTime(context, _toDate!, _toTime),
+                              ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -271,7 +288,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   context,
                 ).copyWith(dividerColor: Colors.transparent),
                 child: ExpansionTile(
-                  title: const Text('Теги'),
+                  title: Text(l10n.settingsTagsTitle),
                   initiallyExpanded: false,
                   collapsedIconColor: AppColors.textSecondary,
                   iconColor: AppColors.textSecondary,
@@ -293,7 +310,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   children: [
                     if (tags.isEmpty)
                       Text(
-                        'Теги пока не добавлены',
+                        l10n.searchTagsEmpty,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -341,7 +358,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   context,
                 ).copyWith(dividerColor: Colors.transparent),
                 child: ExpansionTile(
-                  title: const Text('Категории'),
+                  title: Text(l10n.settingsCategoriesTitle),
                   initiallyExpanded: false,
                   collapsedIconColor: AppColors.textSecondary,
                   iconColor: AppColors.textSecondary,
@@ -405,7 +422,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   context,
                 ).copyWith(dividerColor: Colors.transparent),
                 child: ExpansionTile(
-                  title: const Text('Способы оплаты'),
+                  title: Text(l10n.settingsPaymentMethodsTitle),
                   initiallyExpanded: false,
                   collapsedIconColor: AppColors.textSecondary,
                   iconColor: AppColors.textSecondary,
@@ -465,7 +482,7 @@ class _SearchScreenState extends State<SearchScreen> {
             if (transactions.isEmpty)
               Center(
                 child: Text(
-                  'Ничего не найдено',
+                  l10n.searchNoResults,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -494,21 +511,19 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  String _formatDate(DateTime date) {
-    final day = date.day.toString().padLeft(2, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    final year = date.year;
-    return '$day.$month.$year';
+  String _formatDate(BuildContext context, DateTime date) {
+    final localeTag = Localizations.localeOf(context).toLanguageTag();
+    return DateFormat('dd.MM.yyyy', localeTag).format(date);
   }
 
-  String _formatTime(TimeOfDay time) {
-    final hour = time.hour.toString().padLeft(2, '0');
-    final minute = time.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
+  String _formatTime(BuildContext context, TimeOfDay time) {
+    final localeTag = Localizations.localeOf(context).toLanguageTag();
+    final date = DateTime(2000, 1, 1, time.hour, time.minute);
+    return DateFormat.Hm(localeTag).format(date);
   }
 
-  String _formatDateTime(DateTime date, TimeOfDay? time) {
+  String _formatDateTime(BuildContext context, DateTime date, TimeOfDay? time) {
     final t = time ?? const TimeOfDay(hour: 0, minute: 0);
-    return '${_formatDate(date)} ${_formatTime(t)}';
+    return '${_formatDate(context, date)} ${_formatTime(context, t)}';
   }
 }

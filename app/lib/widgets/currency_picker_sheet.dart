@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/generated/app_localizations.dart';
+import '../l10n/l10n.dart';
 import '../theme/app_colors.dart';
 
 class CurrencyPickerSheet extends StatelessWidget {
@@ -12,25 +14,25 @@ class CurrencyPickerSheet extends StatelessWidget {
   final String? selectedCode;
   final ValueChanged<String> onSelected;
 
-  static const List<Map<String, String>> _currencies = [
-    {'code': 'USD', 'name': 'Доллар США'},
-    {'code': 'EUR', 'name': 'Евро'},
-    {'code': 'GBP', 'name': 'Фунт стерлингов'},
-    {'code': 'UAH', 'name': 'Гривна'},
-    {'code': 'JPY', 'name': 'Йена'},
-    {'code': 'RUB', 'name': 'Рубль'},
+  static const List<String> _currencies = [
+    'USD',
+    'EUR',
+    'GBP',
+    'UAH',
+    'JPY',
+    'RUB',
   ];
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: _currencies.map((currency) {
-            final code = currency['code']!;
-            final name = currency['name']!;
+          children: _currencies.map((code) {
+            final name = _currencyName(code, l10n);
             final isSelected = code == selectedCode;
 
             return Padding(
@@ -39,27 +41,29 @@ class CurrencyPickerSheet extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 onTap: () => onSelected(code),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.surface2,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isSelected ? AppColors.accentIncome : AppColors.stroke,
+                      color: isSelected
+                          ? AppColors.accentIncome
+                          : AppColors.stroke,
                       width: 1,
                     ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        name,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
+                      Text(name, style: Theme.of(context).textTheme.bodyMedium),
                       Text(
                         code,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ],
                   ),
@@ -70,5 +74,24 @@ class CurrencyPickerSheet extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  static String _currencyName(String code, AppLocalizations l10n) {
+    switch (code) {
+      case 'USD':
+        return l10n.currencyNameUsd;
+      case 'EUR':
+        return l10n.currencyNameEur;
+      case 'GBP':
+        return l10n.currencyNameGbp;
+      case 'UAH':
+        return l10n.currencyNameUah;
+      case 'JPY':
+        return l10n.currencyNameJpy;
+      case 'RUB':
+        return l10n.currencyNameRub;
+      default:
+        return code;
+    }
   }
 }

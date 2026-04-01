@@ -2,9 +2,11 @@ import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../l10n/l10n.dart';
 import '../models/payment_method.dart';
 import '../models/transaction_entry.dart';
 import '../state/app_state.dart';
@@ -16,16 +18,18 @@ class DataExport {
     BuildContext context,
     AppState appState,
   ) async {
+    final l10n = context.l10n;
+    final localeTag = Localizations.localeOf(context).toLanguageTag();
     final transactions = [...appState.transactions]
       ..sort((left, right) => right.date.compareTo(left.date));
     if (transactions.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Нет операций для экспорта')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.dataExportNoTransactions)));
       return;
     }
 
-    final monthOptions = _buildMonthOptions(transactions);
+    final monthOptions = _buildMonthOptions(transactions, localeTag);
     final selectedMonth = await _pickExportMonth(context, monthOptions);
     if (selectedMonth == null || !context.mounted) {
       return;
@@ -35,8 +39,11 @@ class DataExport {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'В месяце ${selectedMonth.label} найдено ${selectedMonth.count} операций. '
-            'Лимит экспорта: $maxExportRows строк.',
+            l10n.dataExportMonthLimitMessage(
+              selectedMonth.label,
+              selectedMonth.count,
+              maxExportRows,
+            ),
           ),
         ),
       );
@@ -52,7 +59,7 @@ class DataExport {
         .toList(growable: false);
     if (filteredTransactions.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Нет операций за выбранный месяц')),
+        SnackBar(content: Text(l10n.dataExportNoTransactionsForMonth)),
       );
       return;
     }
@@ -61,13 +68,13 @@ class DataExport {
     buffer.writeln(
       [
         'ID',
-        'Дата',
-        'Кто',
-        'Метод',
-        'Категория',
-        'Описание',
-        'Тип',
-        'Сумма',
+        l10n.dataExportColumnDate,
+        l10n.dataExportColumnAuthor,
+        l10n.dataExportColumnMethod,
+        l10n.dataExportColumnCategory,
+        l10n.dataExportColumnDescription,
+        l10n.dataExportColumnType,
+        l10n.dataExportColumnAmount,
       ].map(_csvCell).join(';'),
     );
 
@@ -77,12 +84,12 @@ class DataExport {
       buffer.writeln(
         [
           '${i + 1}',
-          _formatExportDate(entry.date),
+          _formatExportDate(entry.date, localeTag),
           author,
-          _methodLabel(entry.paymentMethod),
+          _methodLabel(entry.paymentMethod, l10n),
           entry.categoryName,
           entry.note ?? '',
-          _typeLabel(entry.type),
+          _typeLabel(entry.type, l10n),
           _formatExportAmount(entry.amount),
         ].map(_csvCell).join(';'),
       );
@@ -105,11 +112,7 @@ class DataExport {
 
     if (Platform.isIOS && !isPhysicalDevice) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Экспорт доступен на устройстве. Файл сохранен: ${file.path}',
-          ),
-        ),
+        SnackBar(content: Text(l10n.dataExportSavedOnDevice(file.path))),
       );
       return;
     }
@@ -117,15 +120,15 @@ class DataExport {
     try {
       await Share.shareXFiles([
         XFile(file.path),
-      ], text: 'Экспорт операций Budgetto за ${selectedMonth.label}');
+      ], text: l10n.dataExportShareText(selectedMonth.label));
     } catch (error) {
       debugPrint('Export share failed: $error');
       if (!context.mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Файл сохранен: ${file.path}')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.dataExportFileSaved(file.path))),
+      );
     }
   }
 
@@ -139,9 +142,8 @@ class DataExport {
 
   static String _twoDigits(int value) => value.toString().padLeft(2, '0');
 
-  static String _formatExportDate(DateTime date) {
-    return '${_twoDigits(date.day)}.${_twoDigits(date.month)}.${date.year} '
-        '${_twoDigits(date.hour)}:${_twoDigits(date.minute)}';
+  static String _formatExportDate(DateTime date, String localeTag) {
+    return '${DateFormat.yMd(localeTag).format(date)} ${DateFormat.Hm(localeTag).format(date)}';
   }
 
   static String _formatExportAmount(double amount) {
@@ -151,6 +153,7 @@ class DataExport {
 
   static List<_ExportMonthOption> _buildMonthOptions(
     List<TransactionEntry> transactions,
+    String localeTag,
   ) {
     final counts = <String, int>{};
     for (final entry in transactions) {
@@ -164,6 +167,7 @@ class DataExport {
         year: int.parse(parts[0]),
         month: int.parse(parts[1]),
         count: entry.value,
+        localeTag: localeTag,
       );
     }).toList();
 
@@ -194,14 +198,14 @@ class DataExport {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Выбери месяц для экспорта',
+                  context.l10n.dataExportPickMonthTitle,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Экспортирует только один месяц. Максимум $maxExportRows строк.',
+                  context.l10n.dataExportPickMonthDescription(maxExportRows),
                   style: Theme.of(
                     context,
                   ).textTheme.bodySmall?.copyWith(color: Colors.grey),
@@ -222,8 +226,10 @@ class DataExport {
                         title: Text(option.label),
                         subtitle: Text(
                           isDisabled
-                              ? '${option.count} операций, превышает лимит'
-                              : '${option.count} операций',
+                              ? context.l10n.dataExportMonthCountExceeded(
+                                  option.count,
+                                )
+                              : context.l10n.dataExportMonthCount(option.count),
                         ),
                         trailing: isDisabled
                             ? const Icon(Icons.lock_outline_rounded)
@@ -238,7 +244,7 @@ class DataExport {
                 if (hasLimitedMonths) ...[
                   const SizedBox(height: 12),
                   Text(
-                    'Месяцы с количеством операций больше $maxExportRows недоступны для экспорта.',
+                    context.l10n.dataExportMonthsLimited(maxExportRows),
                     style: Theme.of(
                       context,
                     ).textTheme.bodySmall?.copyWith(color: Colors.grey),
@@ -257,12 +263,16 @@ class DataExport {
     return '"$escaped"';
   }
 
-  static String _methodLabel(PaymentMethod method) {
-    return method.type == PaymentMethodType.cash ? 'Кеш' : 'Карта';
+  static String _methodLabel(PaymentMethod method, dynamic l10n) {
+    return method.type == PaymentMethodType.cash
+        ? l10n.paymentMethodCashLabel
+        : l10n.paymentMethodCardLabel;
   }
 
-  static String _typeLabel(TransactionType type) {
-    return type == TransactionType.income ? 'Доход' : 'Расход';
+  static String _typeLabel(TransactionType type, dynamic l10n) {
+    return type == TransactionType.income
+        ? l10n.transactionTypeIncome
+        : l10n.transactionTypeExpense;
   }
 }
 
@@ -271,31 +281,16 @@ class _ExportMonthOption {
     required this.year,
     required this.month,
     required this.count,
+    required this.localeTag,
   });
 
   final int year;
   final int month;
   final int count;
+  final String localeTag;
 
   String get fileSegment => '$year-${DataExport._twoDigits(month)}';
 
-  String get label => '${_monthName(month)} $year';
-
-  static String _monthName(int month) {
-    const monthNames = [
-      'январь',
-      'февраль',
-      'март',
-      'апрель',
-      'май',
-      'июнь',
-      'июль',
-      'август',
-      'сентябрь',
-      'октябрь',
-      'ноябрь',
-      'декабрь',
-    ];
-    return monthNames[month - 1];
-  }
+  String get label =>
+      DateFormat('LLLL y', localeTag).format(DateTime(year, month));
 }

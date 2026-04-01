@@ -1,0 +1,664 @@
+{
+  "@@locale": "en",
+  "appTitle": "Budgetto",
+  "settingsTitle": "Settings",
+  "settingsPremiumTitle": "Premium",
+  "settingsPremiumSubtitle": "Subscription and app access",
+  "settingsBudgetsTitle": "Budgets",
+  "settingsBudgetsSubtitle": "Limits and goals by category",
+  "settingsPaymentMethodsTitle": "Payment methods",
+  "settingsPaymentMethodsSubtitle": "Cards and accounts for transactions",
+  "settingsCategoriesTitle": "Categories",
+  "settingsCategoriesSubtitle": "Edit the category list",
+  "settingsTagsTitle": "Tags",
+  "settingsTagsSubtitle": "Add and rename tags",
+  "settingsCurrencyTitle": "Currency",
+  "settingsCurrencySubtitle": "Display currency for amounts",
+  "settingsCurrencyNotSelected": "Not selected",
+  "settingsThemeTitle": "Theme",
+  "settingsThemeSubtitle": "Light or dark theme",
+  "settingsThemeDark": "Dark",
+  "settingsThemeLight": "Light",
+  "settingsLanguageTitle": "Language",
+  "settingsLanguageSubtitle": "App display language",
+  "settingsSyncTitle": "Sync",
+  "settingsSyncSubtitle": "Sign in and move progress",
+  "settingsDataTitle": "Data",
+  "settingsDataSubtitle": "Import expenses from CSV",
+  "commonCancel": "Cancel",
+  "commonDelete": "Delete",
+  "commonReset": "Reset",
+  "commonApply": "Apply",
+  "commonSelect": "Select",
+  "commonEdit": "Edit",
+  "commonSave": "Save",
+  "commonCreate": "Create",
+  "commonAdd": "Add",
+  "commonNotAvailable": "—",
+  "themeSettingsSectionTitle": "Appearance",
+  "themeSettingsDescription": "Theme affects the background, cards, and interface accents.",
+  "languageSettingsDescription": "Choose a fixed app language or use the system language.",
+  "languageSystem": "System",
+  "languageEnglish": "English",
+  "languageRussian": "Russian",
+  "accessStatusPremiumActive": "Premium active",
+  "accessStatusLocked": "Access locked",
+  "accessStatusDaysRemaining": "{count} d. left",
+  "@accessStatusDaysRemaining": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "appShellPlannedPayments": "Recurring payments",
+  "appShellReminders": "Reminders",
+  "appShellShoppingLists": "Shopping lists",
+  "appShellImportCsv": "Import CSV",
+  "appShellExportCsv": "Export CSV",
+  "overviewTitle": "Overview",
+  "overviewRangePickHelp": "Choose a period",
+  "overviewRangeSave": "Done",
+  "overviewRangeCancel": "Cancel",
+  "overviewExpenses": "Expenses",
+  "overviewIncome": "Income",
+  "overviewRangeDay": "Day",
+  "overviewRangeWeek": "Week",
+  "overviewRangeMonth": "Month",
+  "overviewRangeYear": "Year",
+  "overviewRangePeriod": "Period",
+  "overviewTotal": "Total",
+  "overviewNoTransactions": "No transactions for the selected period.",
+  "homeBalanceTitle": "Balance",
+  "homeCategoriesTitle": "Categories",
+  "searchTitle": "Search",
+  "searchHint": "Search by description, category, or tag",
+  "searchAll": "All",
+  "searchFromPlaceholder": "From: date and time",
+  "searchFromValue": "From: {value}",
+  "@searchFromValue": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "searchToPlaceholder": "To: date and time",
+  "searchToValue": "To: {value}",
+  "@searchToValue": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "searchTagsEmpty": "No tags added yet",
+  "searchNoResults": "Nothing found",
+  "reportsTitle": "Reports",
+  "reportsByCategoryTitle": "By category",
+  "reportsByTimeTitle": "By time",
+  "reportsCategoryFood": "Food",
+  "reportsCategoryHousing": "Housing",
+  "reportsCategoryTransport": "Transport",
+  "listsEmpty": "No lists yet",
+  "listsDeleteTitle": "Delete list?",
+  "listsDeleteMessage": "Are you sure you want to delete this list?",
+  "listsSummaryEmpty": "No items yet",
+  "listsSummaryProgress": "Checked {done} of {total}",
+  "@listsSummaryProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "listsDefaultTitle": "List",
+  "listsAddTitleOrItemError": "Add a title or a list item",
+  "listsNewTitle": "New list",
+  "listsEditorTitle": "List",
+  "listsNameHint": "List title",
+  "listsItemHint": "List item",
+  "listsAddItem": "Add item",
+  "subscriptionPlanYearlyTitle": "Yearly",
+  "subscriptionPlanYearlyFallback": "$15 / year",
+  "subscriptionPlanBestBadge": "Best value",
+  "subscriptionPlanQuarterlyTitle": "3 months",
+  "subscriptionPlanQuarterlyFallback": "$5 / 3 months",
+  "subscriptionPlanMonthlyTitle": "Monthly",
+  "subscriptionPlanMonthlyFallback": "$2 / month",
+  "subscriptionDateNotSet": "not set",
+  "subscriptionHeadlineActive": "Premium is already active",
+  "subscriptionHeadlineTrial": "First 30 days with no limits",
+  "subscriptionHeadlineExpired": "Trial period has ended",
+  "subscriptionSubheadActive": "All Budgetto features remain fully available.",
+  "subscriptionSubheadTrial": "{count} d. left before subscription starts.",
+  "@subscriptionSubheadTrial": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionSubheadExpired": "Choose a subscription to keep using the app.",
+  "subscriptionUnlimited": "Unlimited",
+  "subscriptionUntil": "Until {date}",
+  "@subscriptionUntil": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "subscriptionSyncBackup": "Sync and backup",
+  "subscriptionExtendedReports": "Advanced reports",
+  "subscriptionIncludedTitle": "What Premium includes",
+  "subscriptionBenefitSync": "Sync across devices",
+  "subscriptionBenefitBackup": "Data backup",
+  "subscriptionBenefitReports": "Advanced reports and analytics",
+  "subscriptionBenefitReminders": "Reminders and planned features without limits",
+  "subscriptionStoreUnavailable": "The payment store is currently unavailable. Data export remains available.",
+  "subscriptionRestorePurchases": "Restore purchases",
+  "subscriptionExportMyData": "Export my data",
+  "subscriptionRenewalNote": "The subscription renews automatically until the user cancels it in the App Store or Google Play.",
+  "subscriptionPlanActive": "Active",
+  "transactionsBudgetPickerTitle": "Choose a budget",
+  "transactionsPersonalBudgetTitle": "Personal budget",
+  "transactionsPersonalBudgetSubtitle": "Only for you",
+  "transactionsDeleteTitle": "Delete transaction?",
+  "transactionsDeleteMessage": "Are you sure you want to delete this transaction?",
+  "transactionsDeleted": "Transaction deleted",
+  "transactionsTextTitle": "Text",
+  "transactionsTextHint": "Description, category, tag, or amount",
+  "transactionsTypeTitle": "Transaction type",
+  "transactionsTypeAll": "All",
+  "transactionsTypeExpenses": "Expenses",
+  "transactionsTypeIncome": "Income",
+  "transactionsPeriodTitle": "Period",
+  "transactionsQuickLastMonth": "Last month",
+  "transactionsQuickQuarter": "Quarter",
+  "transactionsQuickYear": "Year",
+  "transactionsSelectMonth": "Select month",
+  "transactionsFrom": "From",
+  "transactionsTo": "To",
+  "transactionsChooseDate": "Choose a date",
+  "transactionsCategoriesTitle": "Categories",
+  "transactionsTagsTitle": "Tags",
+  "transactionsTagsEmpty": "No tags added yet",
+  "transactionsMethodsTitle": "Payment methods",
+  "transactionsDisplayTotal": "Total",
+  "transactionsDisplayByDate": "By date",
+  "transactionsDisplayCategories": "Categories",
+  "transactionsDisplayPayment": "Payment",
+  "transactionsDisplayTags": "Tags",
+  "transactionsDisplayAuthor": "Author",
+  "transactionsFamilyBudgetFallback": "Shared budget",
+  "transactionsNothingFound": "Nothing found",
+  "transactionsNoTransactions": "No transactions yet",
+  "transactionsTitle": "Transactions",
+  "transactionTypeExpense": "Expense",
+  "transactionTypeIncome": "Income",
+  "formAmountLabel": "Amount",
+  "formDescriptionLabel": "Description",
+  "formPaymentLabel": "Payment",
+  "formCategoryLabel": "Category",
+  "formTagsLabel": "Tags",
+  "formTagsEmpty": "No tags added yet",
+  "formChooseCategoryError": "Choose a category",
+  "formChoosePaymentError": "Choose a payment method",
+  "formAmountPositiveError": "Enter an amount greater than 0",
+  "addTransactionNewTitle": "New {type}",
+  "@addTransactionNewTitle": {
+    "placeholders": {
+      "type": {}
+    }
+  },
+  "addTransactionEditTitle": "Edit transaction",
+  "addTransactionDescriptionHint": "For example, coffee and snack",
+  "plannedTitle": "Recurring payments",
+  "plannedEmpty": "No recurring payments yet",
+  "plannedDeleteTitle": "Delete entry?",
+  "plannedDeleteMessage": "Are you sure you want to delete this entry?",
+  "plannedDeleted": "Payment deleted",
+  "plannedAddToTransactionsTitle": "Add to transactions?",
+  "plannedAddToTransactionsMessage": "Create a transaction from \"{description}\" for {amount}?",
+  "@plannedAddToTransactionsMessage": {
+    "placeholders": {
+      "description": {},
+      "amount": {}
+    }
+  },
+  "plannedAddedToTransactions": "Added to transactions",
+  "plannedActionAddToTransactions": "Add to transactions",
+  "plannedScheduledReminder": "Reminder: {date}",
+  "@plannedScheduledReminder": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "plannedScheduledDate": "Date: {date}",
+  "@plannedScheduledDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "plannedAddToTransactionsTooltip": "Add to transactions",
+  "plannedNotificationsPermissionError": "Allow notifications in device settings",
+  "plannedChooseDateTimeError": "Choose a date and time",
+  "plannedChooseFutureTimeError": "Choose a time in the future",
+  "plannedNewTitle": "New recurring entry",
+  "plannedEditTitle": "Edit entry",
+  "plannedDescriptionHint": "For example, utilities",
+  "plannedWhenLabel": "When",
+  "plannedChooseDateTime": "Choose date and time",
+  "plannedRemindLabel": "Remind me",
+  "remindersTitle": "Reminders",
+  "remindersEmpty": "No reminders yet",
+  "remindersDeleteTitle": "Delete reminder?",
+  "remindersDeleteMessage": "Are you sure you want to delete this reminder?",
+  "remindersPermissionError": "Allow notifications in device settings",
+  "remindersNewTitle": "Create reminder",
+  "remindersEditTitle": "Edit reminder",
+  "remindersNameLabel": "Reminder name",
+  "remindersNameHint": "For example, rent payment",
+  "remindersNameRequired": "This field is required",
+  "remindersFrequencyLabel": "Frequency",
+  "remindersStartDateLabel": "Start date",
+  "remindersTimeLabel": "Time",
+  "remindersCommentLabel": "Comment",
+  "remindersCommentHint": "Comment",
+  "remindersChooseFutureTimeError": "Choose a time in the future",
+  "reminderFrequencyOnce": "Once",
+  "reminderFrequencyDaily": "Every day",
+  "reminderFrequencyWeekly": "Every week",
+  "reminderFrequencyBiweekly": "Every 2 weeks",
+  "reminderFrequencyFourWeeks": "Every 4 weeks",
+  "reminderFrequencyMonthly": "Every month",
+  "reminderFrequencyEveryTwoMonths": "Every 2 months",
+  "reminderFrequencyQuarterly": "Every quarter",
+  "reminderFrequencyHalfYear": "Every half year",
+  "reminderFrequencyYearly": "Every year",
+  "dataExportNoTransactions": "No transactions to export",
+  "dataExportMonthLimitMessage": "{month} has {count} transactions. Export limit: {limit} rows.",
+  "@dataExportMonthLimitMessage": {
+    "placeholders": {
+      "month": {},
+      "count": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "dataExportNoTransactionsForMonth": "No transactions for the selected month",
+  "dataExportColumnDate": "Date",
+  "dataExportColumnAuthor": "Who",
+  "dataExportColumnMethod": "Method",
+  "dataExportColumnCategory": "Category",
+  "dataExportColumnDescription": "Description",
+  "dataExportColumnType": "Type",
+  "dataExportColumnAmount": "Amount",
+  "dataExportSavedOnDevice": "Export is available on a physical device. File saved: {path}",
+  "@dataExportSavedOnDevice": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "dataExportShareText": "Budgetto transaction export for {month}",
+  "@dataExportShareText": {
+    "placeholders": {
+      "month": {}
+    }
+  },
+  "dataExportFileSaved": "File saved: {path}",
+  "@dataExportFileSaved": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "dataExportPickMonthTitle": "Choose a month to export",
+  "dataExportPickMonthDescription": "Exports only one month. Maximum {limit} rows.",
+  "@dataExportPickMonthDescription": {
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "dataExportMonthCountExceeded": "{count} transactions, exceeds limit",
+  "@dataExportMonthCountExceeded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dataExportMonthCount": "{count} transactions",
+  "@dataExportMonthCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dataExportMonthsLimited": "Months with more than {limit} transactions are unavailable for export.",
+  "@dataExportMonthsLimited": {
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "paymentMethodCashLabel": "Cash",
+  "paymentMethodCardLabel": "Card",
+  "currencyNameUsd": "US Dollar",
+  "currencyNameEur": "Euro",
+  "currencyNameGbp": "British Pound",
+  "currencyNameUah": "Ukrainian Hryvnia",
+  "currencyNameJpy": "Japanese Yen",
+  "currencyNameRub": "Russian Ruble",
+  "syncSettingsGoogleConnected": "Google connected",
+  "syncSettingsSignInCanceled": "Sign-in canceled",
+  "syncSettingsGoogleConnectFailed": "Failed to connect Google",
+  "syncSettingsStatusEnabled": "Enabled",
+  "syncSettingsStatusDisabled": "Disabled",
+  "syncSettingsGuest": "Guest",
+  "syncSettingsAccountSectionTitle": "Account",
+  "syncSettingsStatusLabel": "Status",
+  "syncSettingsGoogleSignInButton": "Sign in with Google",
+  "syncSettingsGoogleDescription": "Connect Google to move your progress between devices.",
+  "syncSettingsStatusSectionTitle": "Status",
+  "syncSettingsDataStatusLabel": "Data sync",
+  "syncSettingsCloudDescription": "Sync keeps your data in the cloud and enables a shared budget.",
+  "settingsDataFileReadFailed": "Failed to read the selected file.",
+  "settingsDataImportFailed": "Import failed: {error}",
+  "@settingsDataImportFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "settingsDataErrorsTitle": "Fix CSV errors",
+  "settingsDataValidationFailedNoName": "The file did not pass validation.",
+  "settingsDataValidationFailedWithName": "The file \"{fileName}\" did not pass validation.",
+  "@settingsDataValidationFailedWithName": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "settingsDataUnderstoodButton": "OK",
+  "settingsDataConfirmImportTitle": "Confirm import",
+  "settingsDataFileLabel": "File: {fileName}",
+  "@settingsDataFileLabel": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "settingsDataWillAddCount": "Entries to add: {count}",
+  "@settingsDataWillAddCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsDataNewCategories": "New categories",
+  "settingsDataNewPaymentMethods": "New payment methods",
+  "settingsDataNewTags": "New tags",
+  "settingsDataImportConfirmHint": "New categories, payment methods, tags, and entries will be added only after you press \"Import\".",
+  "settingsDataImportTagHint": "All imported entries will also receive a system import tag so you can filter and remove them quickly.",
+  "settingsDataCancelButton": "Cancel",
+  "settingsDataImportAction": "Import",
+  "settingsDataImportedSuccess": "Imported {count} entries. Tag: {tag}.",
+  "@settingsDataImportedSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "tag": {}
+    }
+  },
+  "settingsDataImportCardTitle": "Import expenses from CSV",
+  "settingsDataSampleTitle": "Sample data",
+  "settingsDataCheckingCsv": "Checking CSV...",
+  "settingsDataChooseCsv": "Choose CSV and validate",
+  "transactionImportErrorEmptyFile": "The file is empty. Add headers and data rows.",
+  "transactionImportErrorUnclosedQuote": "The CSV contains an unclosed quote. Check the file and try again.",
+  "transactionImportErrorReadRows": "Failed to read CSV rows.",
+  "transactionImportMissingRequiredColumn": "Required column \"{column}\" was not found. Use the template from the instructions.",
+  "@transactionImportMissingRequiredColumn": {
+    "placeholders": {
+      "column": {}
+    }
+  },
+  "transactionImportErrorNoDataRows": "The file has no transaction rows. Add at least one entry.",
+  "transactionImportErrorRowLimit": "The file has {count} rows, but the current import limit is {limit}.",
+  "@transactionImportErrorRowLimit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "transactionImportErrorInvalidDate": "Could not recognize the date \"{value}\". Use a date with time, for example 2026-02-05 00:53. Seconds are optional and will be ignored.",
+  "@transactionImportErrorInvalidDate": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "transactionImportErrorInvalidType": "The transaction type field is invalid. Use \"{expense}\" or \"{income}\".",
+  "@transactionImportErrorInvalidType": {
+    "placeholders": {
+      "expense": {},
+      "income": {}
+    }
+  },
+  "transactionImportErrorOperationRequired": "The operation field must not be empty.",
+  "transactionImportErrorInvalidAmount": "The amount field must be a number greater than 0. Current value: \"{value}\".",
+  "@transactionImportErrorInvalidAmount": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "transactionImportErrorCategoryRequired": "The category field must not be empty.",
+  "transactionImportErrorPaymentMethodRequired": "The payment method field must not be empty.",
+  "transactionImportInstructionPrepareTitle": "Prepare the file",
+  "transactionImportInstructionFormat": "File format: CSV.",
+  "transactionImportInstructionEncoding": "File encoding: UTF-8.",
+  "transactionImportInstructionHeaderRow": "First row of the file: {headers}.",
+  "@transactionImportInstructionHeaderRow": {
+    "placeholders": {
+      "headers": {}
+    }
+  },
+  "transactionImportInstructionDelimiter": "Delimiter: ;",
+  "transactionImportInstructionMaxRows": "Maximum: {limit} data rows without the header.",
+  "@transactionImportInstructionMaxRows": {
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "transactionImportInstructionColumnsTitle": "Fill the columns in the first row",
+  "transactionImportInstructionDateColumn": "{column}: the transaction date and time. Recommended format: YYYY-MM-DD HH:mm. The import also accepts values like 05.02.2026 0:53:29 and ignores seconds.",
+  "@transactionImportInstructionDateColumn": {
+    "placeholders": {
+      "column": {}
+    }
+  },
+  "transactionImportInstructionTypeColumn": "{column}: use the value {expense} or {income}.",
+  "@transactionImportInstructionTypeColumn": {
+    "placeholders": {
+      "column": {},
+      "expense": {},
+      "income": {}
+    }
+  },
+  "transactionImportInstructionOperationColumn": "{column}: transaction text. Example: {example}.",
+  "@transactionImportInstructionOperationColumn": {
+    "placeholders": {
+      "column": {},
+      "example": {}
+    }
+  },
+  "transactionImportInstructionAmountColumn": "{column}: a number greater than 0 in the format 12.50.",
+  "@transactionImportInstructionAmountColumn": {
+    "placeholders": {
+      "column": {}
+    }
+  },
+  "transactionImportInstructionCategoryColumn": "{column}: category name. If it does not exist yet, it will be created after confirmation.",
+  "@transactionImportInstructionCategoryColumn": {
+    "placeholders": {
+      "column": {}
+    }
+  },
+  "transactionImportInstructionPaymentMethodColumn": "{column}: payment method name. This field cannot be empty. If it does not exist yet, it will be created after confirmation.",
+  "@transactionImportInstructionPaymentMethodColumn": {
+    "placeholders": {
+      "column": {}
+    }
+  },
+  "transactionImportInstructionTagsColumn": "{column}: a comma-separated list of tags. This field may be empty. Missing tags will be created after confirmation.",
+  "@transactionImportInstructionTagsColumn": {
+    "placeholders": {
+      "column": {}
+    }
+  },
+  "transactionImportInstructionReviewTitle": "Review changes before import",
+  "transactionImportInstructionReviewItemOne": "Before import, the app will show new categories, payment methods, and tags.",
+  "transactionImportInstructionReviewItemTwo": "New items and entries will be added only after you press the Import button.",
+  "transactionImportInstructionReviewItemThree": "Each imported entry will receive a system tag in the format import_YYYYMMDD_HHMMSS.",
+  "transactionImportColumnDate": "date",
+  "transactionImportColumnType": "transaction type",
+  "transactionImportColumnOperation": "operation",
+  "transactionImportColumnAmount": "amount",
+  "transactionImportColumnCategory": "category",
+  "transactionImportColumnPaymentMethod": "payment method",
+  "transactionImportColumnTags": "tags",
+  "transactionImportLineMessage": "Line {lineNumber}: {message}",
+  "@transactionImportLineMessage": {
+    "placeholders": {
+      "lineNumber": {
+        "type": "int"
+      },
+      "message": {}
+    }
+  },
+  "transactionImportSampleOperationOne": "Theater tickets",
+  "transactionImportSampleOperationTwo": "Taxi home",
+  "transactionImportSampleCategoryOne": "Entertainment",
+  "transactionImportSampleCategoryTwo": "Transport",
+  "transactionImportSamplePaymentMethodOne": "Main card",
+  "transactionImportSamplePaymentMethodTwo": "Cash",
+  "transactionImportSampleTagsOne": "Theater,Evening",
+  "notificationChannelPlannedName": "Recurring entries",
+  "notificationChannelPlannedDescription": "Reminders about recurring entries",
+  "notificationChannelReminderName": "Reminders",
+  "notificationChannelReminderDescription": "Reminders about important tasks",
+  "notificationChannelFamilyName": "Family spending",
+  "notificationChannelFamilyDescription": "Notifications about new expenses in the family budget",
+  "editorColorPickerTitle": "Choose a color",
+  "editorIconColorLabel": "Icon color",
+  "editorIconLabel": "Icon",
+  "cardsTitle": "Cards",
+  "cardsEmpty": "No cards yet",
+  "cardsDeleteTitle": "Delete card?",
+  "cardsDeleteMessage": "Are you sure you want to delete this card?",
+  "cardsDeleteSuccess": "Card deleted",
+  "cardsNewTitle": "New card",
+  "cardsEditTitle": "Edit card",
+  "cardsNameHint": "For example, Sergey WISE",
+  "tagsEmpty": "No tags yet",
+  "tagsDeleteTitle": "Delete tag?",
+  "tagsDeleteMessage": "Are you sure you want to delete this tag?",
+  "tagsDeleteSuccess": "Tag deleted",
+  "tagsNewTitle": "New tag",
+  "tagsEditTitle": "Edit tag",
+  "tagsNameHint": "For example, Work",
+  "categoriesDeleteBlockedTitle": "Cannot delete category",
+  "categoriesDeleteBlockedMessage": "This category is already in use. Create another category first so you can move the entries there.",
+  "categoriesDeleteTitle": "Delete category?",
+  "categoriesDeleteMessage": "Are you sure you want to delete this category?",
+  "categoriesDeleteUsedMessage": "This category is used in {transactions} transactions and {planned} planned entries.",
+  "@categoriesDeleteUsedMessage": {
+    "placeholders": {
+      "transactions": {
+        "type": "int"
+      },
+      "planned": {
+        "type": "int"
+      }
+    }
+  },
+  "categoriesDeleteReplacementHint": "Before deleting, choose the category that should receive these entries.",
+  "categoriesReplacementLabel": "New category",
+  "categoriesDeleteMovedSuccess": "Category deleted, entries moved to \"{name}\".",
+  "@categoriesDeleteMovedSuccess": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "categoriesDeleteSuccess": "Category deleted",
+  "categoriesNewTitle": "New category",
+  "categoriesEditTitle": "Edit category",
+  "categoriesNameHint": "For example, Sports",
+  "budgetsReservedSelfName": "i",
+  "budgetsNotificationsPermissionError": "Allow push notifications in device settings",
+  "budgetsCreateTitle": "Add shared budget",
+  "budgetsNameLabel": "Name",
+  "budgetsNameHint": "Budget name",
+  "budgetsMemberNameLabel": "Your name",
+  "budgetsMemberNameHint": "Your name",
+  "budgetsJoinTitle": "Join by code",
+  "budgetsCodeLabel": "Budget code",
+  "budgetsCodeHint": "Budget code",
+  "budgetsCodeNotFound": "Code not found",
+  "budgetsJoinAction": "Join",
+  "budgetsLeaveTitle": "Leave shared budget?",
+  "budgetsLeaveMessage": "Are you sure you want to leave?",
+  "budgetsLeaveAction": "Leave",
+  "budgetsSectionTitle": "Your budgets",
+  "budgetsPersonalTitle": "Personal budget",
+  "budgetsPersonalSubtitle": "Only for you",
+  "budgetsSettingsSectionTitle": "Shared budget settings",
+  "budgetsSavedChanges": "Changes saved",
+  "budgetsCodeCopied": "Code copied",
+  "budgetsCopyCodeTooltip": "Copy code",
+  "budgetsPersonalSettingsTitle": "Personal settings in this budget",
+  "budgetsNotificationsTitle": "Notify me about new expenses",
+  "budgetsNotificationsDescription": "A push notification will arrive when someone from the family adds a new expense to this budget.",
+  "budgetsNotificationsPerUserHint": "This toggle works separately for each participant.",
+  "budgetsMembersTitle": "Members",
+  "budgetsLeaveButton": "Leave shared budget",
+  "appStateSharedBudgetName": "Shared budget",
+  "appStatePersonalBudgetName": "Personal budget",
+  "appStateCashMethodName": "Cash",
+  "appStateUnknownUserName": "No name",
+  "appStatePlannedNotificationTitle": "Recurring entry",
+  "appStateFamilyTransactionTitle": "New family expense",
+  "appStateFamilyTransactionBody": "A new expense appeared in the family budget",
+  "appStateBillingUpdateError": "Failed to update purchase status",
+  "appStateBillingConnectError": "Failed to connect to the store",
+  "appStateBillingProductUnavailable": "This plan is not available in the store yet",
+  "appStateBillingStartPurchaseError": "Failed to start the purchase",
+  "appStateBillingStoreUnavailable": "The store is currently unavailable",
+  "appStateBillingRestoreError": "Failed to restore purchases",
+  "appStateBillingCompletePurchaseError": "Failed to complete the purchase",
+  "appStateCategoryFood": "Food",
+  "appStateCategoryHome": "Housing",
+  "appStateCategoryTransport": "Transport",
+  "appStateCategoryShopping": "Shopping",
+  "appStateCategoryHealth": "Health",
+  "appStateCategoryFun": "Entertainment",
+  "appStateCategoryEducation": "Education",
+  "appStateCategoryGifts": "Gifts",
+  "appStateCategoryTravel": "Travel",
+  "appStateCategoryOther": "Other",
+  "appStateTagWork": "Work",
+  "appStateTagHome": "Home",
+  "appStateTagTravel": "Travel",
+  "appStateTagFamily": "Family",
+  "appStateTagFun": "Entertainment",
+  "appStateTagEatingOut": "Eating out"
+}

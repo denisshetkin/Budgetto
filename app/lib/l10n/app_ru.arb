@@ -1,0 +1,664 @@
+{
+  "@@locale": "ru",
+  "appTitle": "Budgetto",
+  "settingsTitle": "Настройки",
+  "settingsPremiumTitle": "Premium",
+  "settingsPremiumSubtitle": "Подписка и доступ к приложению",
+  "settingsBudgetsTitle": "Бюджеты",
+  "settingsBudgetsSubtitle": "Лимиты и цели по категориям",
+  "settingsPaymentMethodsTitle": "Способы оплаты",
+  "settingsPaymentMethodsSubtitle": "Карты и счета для операций",
+  "settingsCategoriesTitle": "Категории",
+  "settingsCategoriesSubtitle": "Редактировать список категорий",
+  "settingsTagsTitle": "Теги",
+  "settingsTagsSubtitle": "Добавить и переименовать теги",
+  "settingsCurrencyTitle": "Валюта",
+  "settingsCurrencySubtitle": "Валюта отображения суммы",
+  "settingsCurrencyNotSelected": "Не выбрана",
+  "settingsThemeTitle": "Тема",
+  "settingsThemeSubtitle": "Темная или светлая тема",
+  "settingsThemeDark": "Темная",
+  "settingsThemeLight": "Светлая",
+  "settingsLanguageTitle": "Язык",
+  "settingsLanguageSubtitle": "Язык интерфейса приложения",
+  "settingsSyncTitle": "Синхронизация",
+  "settingsSyncSubtitle": "Вход и перенос прогресса",
+  "settingsDataTitle": "Данные",
+  "settingsDataSubtitle": "Импорт затрат из CSV",
+  "commonCancel": "Отмена",
+  "commonDelete": "Удалить",
+  "commonReset": "Сбросить",
+  "commonApply": "Применить",
+  "commonSelect": "Выбрать",
+  "commonEdit": "Редактировать",
+  "commonSave": "Сохранить",
+  "commonCreate": "Создать",
+  "commonAdd": "Добавить",
+  "commonNotAvailable": "—",
+  "themeSettingsSectionTitle": "Оформление",
+  "themeSettingsDescription": "Тема влияет на фон, карточки и оттенки интерфейса.",
+  "languageSettingsDescription": "Выбери фиксированный язык приложения или используй системный язык.",
+  "languageSystem": "Системный",
+  "languageEnglish": "English",
+  "languageRussian": "Русский",
+  "accessStatusPremiumActive": "Premium активен",
+  "accessStatusLocked": "Доступ закрыт",
+  "accessStatusDaysRemaining": "Осталось {count} д.",
+  "@accessStatusDaysRemaining": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "appShellPlannedPayments": "Регулярные платежи",
+  "appShellReminders": "Напоминания",
+  "appShellShoppingLists": "Списки покупок",
+  "appShellImportCsv": "Импорт CSV",
+  "appShellExportCsv": "Экспорт CSV",
+  "overviewTitle": "Обзор",
+  "overviewRangePickHelp": "Выберите период",
+  "overviewRangeSave": "Готово",
+  "overviewRangeCancel": "Отмена",
+  "overviewExpenses": "Расходы",
+  "overviewIncome": "Доходы",
+  "overviewRangeDay": "День",
+  "overviewRangeWeek": "Неделя",
+  "overviewRangeMonth": "Месяц",
+  "overviewRangeYear": "Год",
+  "overviewRangePeriod": "Период",
+  "overviewTotal": "Итого",
+  "overviewNoTransactions": "Нет операций за выбранный период.",
+  "homeBalanceTitle": "Баланс",
+  "homeCategoriesTitle": "Категории",
+  "searchTitle": "Поиск",
+  "searchHint": "Поиск по описанию, категории или тегу",
+  "searchAll": "Все",
+  "searchFromPlaceholder": "От: дата и время",
+  "searchFromValue": "От: {value}",
+  "@searchFromValue": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "searchToPlaceholder": "До: дата и время",
+  "searchToValue": "До: {value}",
+  "@searchToValue": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "searchTagsEmpty": "Теги пока не добавлены",
+  "searchNoResults": "Ничего не найдено",
+  "reportsTitle": "Отчеты",
+  "reportsByCategoryTitle": "По категориям",
+  "reportsByTimeTitle": "По времени",
+  "reportsCategoryFood": "Еда",
+  "reportsCategoryHousing": "Жилье",
+  "reportsCategoryTransport": "Транспорт",
+  "listsEmpty": "Пока нет списков",
+  "listsDeleteTitle": "Удалить список?",
+  "listsDeleteMessage": "Уверен, что хочешь удалить этот список?",
+  "listsSummaryEmpty": "Пока нет пунктов",
+  "listsSummaryProgress": "Отмечено {done} из {total}",
+  "@listsSummaryProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "listsDefaultTitle": "Список",
+  "listsAddTitleOrItemError": "Добавь название или пункт списка",
+  "listsNewTitle": "Новый список",
+  "listsEditorTitle": "Список",
+  "listsNameHint": "Название списка",
+  "listsItemHint": "Пункт списка",
+  "listsAddItem": "Добавить пункт",
+  "subscriptionPlanYearlyTitle": "Годовой",
+  "subscriptionPlanYearlyFallback": "$15 / год",
+  "subscriptionPlanBestBadge": "Лучшая цена",
+  "subscriptionPlanQuarterlyTitle": "3 месяца",
+  "subscriptionPlanQuarterlyFallback": "$5 / 3 месяца",
+  "subscriptionPlanMonthlyTitle": "Месячный",
+  "subscriptionPlanMonthlyFallback": "$2 / месяц",
+  "subscriptionDateNotSet": "не задана",
+  "subscriptionHeadlineActive": "Premium уже активен",
+  "subscriptionHeadlineTrial": "Первые 30 дней без ограничений",
+  "subscriptionHeadlineExpired": "Пробный период закончился",
+  "subscriptionSubheadActive": "Все функции Budgetto остаются доступны без ограничений.",
+  "subscriptionSubheadTrial": "Осталось {count} д. до включения подписки.",
+  "@subscriptionSubheadTrial": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionSubheadExpired": "Чтобы продолжить пользоваться приложением, выбери подписку.",
+  "subscriptionUnlimited": "Без ограничений",
+  "subscriptionUntil": "До {date}",
+  "@subscriptionUntil": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "subscriptionSyncBackup": "Sync и backup",
+  "subscriptionExtendedReports": "Расширенные отчеты",
+  "subscriptionIncludedTitle": "Что входит в Premium",
+  "subscriptionBenefitSync": "Синхронизация между устройствами",
+  "subscriptionBenefitBackup": "Резервное копирование данных",
+  "subscriptionBenefitReports": "Расширенные отчеты и аналитика",
+  "subscriptionBenefitReminders": "Напоминания и planned-функции без лимитов",
+  "subscriptionStoreUnavailable": "Магазин платежей сейчас недоступен. Экспорт данных остается доступным.",
+  "subscriptionRestorePurchases": "Восстановить покупки",
+  "subscriptionExportMyData": "Export my data",
+  "subscriptionRenewalNote": "Подписка продлевается автоматически, пока пользователь не отменит ее в App Store или Google Play.",
+  "subscriptionPlanActive": "Активен",
+  "transactionsBudgetPickerTitle": "Выбери бюджет",
+  "transactionsPersonalBudgetTitle": "Личный бюджет",
+  "transactionsPersonalBudgetSubtitle": "Только для тебя",
+  "transactionsDeleteTitle": "Удалить операцию?",
+  "transactionsDeleteMessage": "Уверен, что хочешь удалить эту операцию?",
+  "transactionsDeleted": "Операция удалена",
+  "transactionsTextTitle": "Текст",
+  "transactionsTextHint": "Описание, категория, тег или сумма",
+  "transactionsTypeTitle": "Тип операций",
+  "transactionsTypeAll": "Все",
+  "transactionsTypeExpenses": "Расходы",
+  "transactionsTypeIncome": "Доходы",
+  "transactionsPeriodTitle": "Период",
+  "transactionsQuickLastMonth": "Последний месяц",
+  "transactionsQuickQuarter": "Квартал",
+  "transactionsQuickYear": "Год",
+  "transactionsSelectMonth": "Выбрать месяц",
+  "transactionsFrom": "От",
+  "transactionsTo": "До",
+  "transactionsChooseDate": "Выбери дату",
+  "transactionsCategoriesTitle": "Категории",
+  "transactionsTagsTitle": "Теги",
+  "transactionsTagsEmpty": "Теги пока не добавлены",
+  "transactionsMethodsTitle": "Способы оплаты",
+  "transactionsDisplayTotal": "Итого",
+  "transactionsDisplayByDate": "По датам",
+  "transactionsDisplayCategories": "Категории",
+  "transactionsDisplayPayment": "Оплата",
+  "transactionsDisplayTags": "Теги",
+  "transactionsDisplayAuthor": "Автор",
+  "transactionsFamilyBudgetFallback": "Общий бюджет",
+  "transactionsNothingFound": "Ничего не найдено",
+  "transactionsNoTransactions": "Пока нет операций",
+  "transactionsTitle": "Операции",
+  "transactionTypeExpense": "Расход",
+  "transactionTypeIncome": "Доход",
+  "formAmountLabel": "Сумма",
+  "formDescriptionLabel": "Описание",
+  "formPaymentLabel": "Оплата",
+  "formCategoryLabel": "Категория",
+  "formTagsLabel": "Теги",
+  "formTagsEmpty": "Теги пока не добавлены",
+  "formChooseCategoryError": "Выберите категорию",
+  "formChoosePaymentError": "Выберите способ оплаты",
+  "formAmountPositiveError": "Введите сумму больше 0",
+  "addTransactionNewTitle": "Новый {type}",
+  "@addTransactionNewTitle": {
+    "placeholders": {
+      "type": {}
+    }
+  },
+  "addTransactionEditTitle": "Редактировать",
+  "addTransactionDescriptionHint": "Например, кофе и перекус",
+  "plannedTitle": "Регулярные платежи",
+  "plannedEmpty": "Пока нет регулярных платежей",
+  "plannedDeleteTitle": "Удалить запись?",
+  "plannedDeleteMessage": "Уверен, что хочешь удалить эту запись?",
+  "plannedDeleted": "Платеж удален",
+  "plannedAddToTransactionsTitle": "Добавить в операции?",
+  "plannedAddToTransactionsMessage": "Создать операцию из записи «{description}» на сумму {amount}?",
+  "@plannedAddToTransactionsMessage": {
+    "placeholders": {
+      "description": {},
+      "amount": {}
+    }
+  },
+  "plannedAddedToTransactions": "Добавлено в операции",
+  "plannedActionAddToTransactions": "Добавить в операции",
+  "plannedScheduledReminder": "Напоминание: {date}",
+  "@plannedScheduledReminder": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "plannedScheduledDate": "Дата: {date}",
+  "@plannedScheduledDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "plannedAddToTransactionsTooltip": "Добавить в операции",
+  "plannedNotificationsPermissionError": "Разрешите уведомления в настройках устройства",
+  "plannedChooseDateTimeError": "Выберите дату и время",
+  "plannedChooseFutureTimeError": "Выберите время в будущем",
+  "plannedNewTitle": "Новая регулярная запись",
+  "plannedEditTitle": "Редактировать запись",
+  "plannedDescriptionHint": "Например, коммуналка",
+  "plannedWhenLabel": "Когда",
+  "plannedChooseDateTime": "Выбрать дату и время",
+  "plannedRemindLabel": "Напомнить",
+  "remindersTitle": "Напоминания",
+  "remindersEmpty": "Пока нет напоминаний",
+  "remindersDeleteTitle": "Удалить напоминание?",
+  "remindersDeleteMessage": "Уверен, что хочешь удалить это напоминание?",
+  "remindersPermissionError": "Разрешите уведомления в настройках устройства",
+  "remindersNewTitle": "Создать напоминание",
+  "remindersEditTitle": "Редактировать напоминание",
+  "remindersNameLabel": "Имя напоминания",
+  "remindersNameHint": "Например, оплата аренды",
+  "remindersNameRequired": "Обязательное поле для заполнения",
+  "remindersFrequencyLabel": "Периодичность",
+  "remindersStartDateLabel": "Дата начала",
+  "remindersTimeLabel": "Время",
+  "remindersCommentLabel": "Комментарий",
+  "remindersCommentHint": "Комментарий",
+  "remindersChooseFutureTimeError": "Выберите время в будущем",
+  "reminderFrequencyOnce": "Один раз",
+  "reminderFrequencyDaily": "Каждый день",
+  "reminderFrequencyWeekly": "Каждую неделю",
+  "reminderFrequencyBiweekly": "Каждые 2 недели",
+  "reminderFrequencyFourWeeks": "Каждые 4 недели",
+  "reminderFrequencyMonthly": "Каждый месяц",
+  "reminderFrequencyEveryTwoMonths": "Каждые 2 месяца",
+  "reminderFrequencyQuarterly": "Каждый квартал",
+  "reminderFrequencyHalfYear": "Каждые полгода",
+  "reminderFrequencyYearly": "Каждый год",
+  "dataExportNoTransactions": "Нет операций для экспорта",
+  "dataExportMonthLimitMessage": "В месяце {month} найдено {count} операций. Лимит экспорта: {limit} строк.",
+  "@dataExportMonthLimitMessage": {
+    "placeholders": {
+      "month": {},
+      "count": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "dataExportNoTransactionsForMonth": "Нет операций за выбранный месяц",
+  "dataExportColumnDate": "Дата",
+  "dataExportColumnAuthor": "Кто",
+  "dataExportColumnMethod": "Метод",
+  "dataExportColumnCategory": "Категория",
+  "dataExportColumnDescription": "Описание",
+  "dataExportColumnType": "Тип",
+  "dataExportColumnAmount": "Сумма",
+  "dataExportSavedOnDevice": "Экспорт доступен на устройстве. Файл сохранен: {path}",
+  "@dataExportSavedOnDevice": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "dataExportShareText": "Экспорт операций Budgetto за {month}",
+  "@dataExportShareText": {
+    "placeholders": {
+      "month": {}
+    }
+  },
+  "dataExportFileSaved": "Файл сохранен: {path}",
+  "@dataExportFileSaved": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "dataExportPickMonthTitle": "Выбери месяц для экспорта",
+  "dataExportPickMonthDescription": "Экспортирует только один месяц. Максимум {limit} строк.",
+  "@dataExportPickMonthDescription": {
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "dataExportMonthCountExceeded": "{count} операций, превышает лимит",
+  "@dataExportMonthCountExceeded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dataExportMonthCount": "{count} операций",
+  "@dataExportMonthCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dataExportMonthsLimited": "Месяцы с количеством операций больше {limit} недоступны для экспорта.",
+  "@dataExportMonthsLimited": {
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "paymentMethodCashLabel": "Кеш",
+  "paymentMethodCardLabel": "Карта",
+  "currencyNameUsd": "Доллар США",
+  "currencyNameEur": "Евро",
+  "currencyNameGbp": "Фунт стерлингов",
+  "currencyNameUah": "Гривна",
+  "currencyNameJpy": "Йена",
+  "currencyNameRub": "Рубль",
+  "syncSettingsGoogleConnected": "Google подключен",
+  "syncSettingsSignInCanceled": "Вход отменен",
+  "syncSettingsGoogleConnectFailed": "Не удалось подключить Google",
+  "syncSettingsStatusEnabled": "Включена",
+  "syncSettingsStatusDisabled": "Выключена",
+  "syncSettingsGuest": "Гость",
+  "syncSettingsAccountSectionTitle": "Аккаунт",
+  "syncSettingsStatusLabel": "Статус",
+  "syncSettingsGoogleSignInButton": "Войти через Google",
+  "syncSettingsGoogleDescription": "Подключи Google, чтобы переносить прогресс между устройствами.",
+  "syncSettingsStatusSectionTitle": "Статус",
+  "syncSettingsDataStatusLabel": "Синхронизация данных",
+  "syncSettingsCloudDescription": "Синхронизация нужна для хранения данных в облаке и совместного бюджета.",
+  "settingsDataFileReadFailed": "Не удалось прочитать выбранный файл.",
+  "settingsDataImportFailed": "Импорт не удался: {error}",
+  "@settingsDataImportFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "settingsDataErrorsTitle": "Исправь ошибки в CSV",
+  "settingsDataValidationFailedNoName": "Файл не прошел валидацию.",
+  "settingsDataValidationFailedWithName": "Файл \"{fileName}\" не прошел валидацию.",
+  "@settingsDataValidationFailedWithName": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "settingsDataUnderstoodButton": "Понятно",
+  "settingsDataConfirmImportTitle": "Подтвердить импорт",
+  "settingsDataFileLabel": "Файл: {fileName}",
+  "@settingsDataFileLabel": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "settingsDataWillAddCount": "Будет добавлено записей: {count}",
+  "@settingsDataWillAddCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsDataNewCategories": "Новые категории",
+  "settingsDataNewPaymentMethods": "Новые способы оплаты",
+  "settingsDataNewTags": "Новые теги",
+  "settingsDataImportConfirmHint": "Новые категории, способы оплаты, теги и сами записи будут добавлены только после нажатия кнопки \"Импортировать\".",
+  "settingsDataImportTagHint": "Все импортированные записи также получат системный тег импорта, чтобы их можно было быстро отфильтровать и удалить.",
+  "settingsDataCancelButton": "Отмена",
+  "settingsDataImportAction": "Импортировать",
+  "settingsDataImportedSuccess": "Импортировано {count} записей. Тег: {tag}.",
+  "@settingsDataImportedSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "tag": {}
+    }
+  },
+  "settingsDataImportCardTitle": "Импорт затрат из CSV",
+  "settingsDataSampleTitle": "Пример данных в документе",
+  "settingsDataCheckingCsv": "Проверяем CSV...",
+  "settingsDataChooseCsv": "Выбрать CSV и проверить",
+  "transactionImportErrorEmptyFile": "Файл пустой. Добавь заголовки и строки данных.",
+  "transactionImportErrorUnclosedQuote": "CSV содержит незакрытую кавычку. Проверь файл и попробуй снова.",
+  "transactionImportErrorReadRows": "Не удалось прочитать строки CSV.",
+  "transactionImportMissingRequiredColumn": "Не найдена обязательная колонка \"{column}\". Используй шаблон из инструкции.",
+  "@transactionImportMissingRequiredColumn": {
+    "placeholders": {
+      "column": {}
+    }
+  },
+  "transactionImportErrorNoDataRows": "В файле нет строк с операциями. Добавь хотя бы одну запись.",
+  "transactionImportErrorRowLimit": "В файле {count} строк, а лимит импорта сейчас {limit}.",
+  "@transactionImportErrorRowLimit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "transactionImportErrorInvalidDate": "Не удалось распознать дату \"{value}\". Используй дату со временем, например 2026-02-05 00:53. Секунды можно указывать, они будут проигнорированы.",
+  "@transactionImportErrorInvalidDate": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "transactionImportErrorInvalidType": "Поле типа операции заполнено неверно. Используй значение \"{expense}\" или \"{income}\".",
+  "@transactionImportErrorInvalidType": {
+    "placeholders": {
+      "expense": {},
+      "income": {}
+    }
+  },
+  "transactionImportErrorOperationRequired": "Поле \"операция\" не должно быть пустым.",
+  "transactionImportErrorInvalidAmount": "Поле \"сумма\" должно быть числом больше 0. Сейчас: \"{value}\".",
+  "@transactionImportErrorInvalidAmount": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "transactionImportErrorCategoryRequired": "Поле \"категория\" не должно быть пустым.",
+  "transactionImportErrorPaymentMethodRequired": "Поле \"способ оплаты\" не должно быть пустым.",
+  "transactionImportInstructionPrepareTitle": "Подготовь файл",
+  "transactionImportInstructionFormat": "Формат файла: CSV.",
+  "transactionImportInstructionEncoding": "Кодировка файла: UTF-8.",
+  "transactionImportInstructionHeaderRow": "Первая строка файла: {headers}.",
+  "@transactionImportInstructionHeaderRow": {
+    "placeholders": {
+      "headers": {}
+    }
+  },
+  "transactionImportInstructionDelimiter": "Разделитель: ;",
+  "transactionImportInstructionMaxRows": "Максимум: {limit} строк данных без заголовка.",
+  "@transactionImportInstructionMaxRows": {
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "transactionImportInstructionColumnsTitle": "Заполни колонки в первой строке",
+  "transactionImportInstructionDateColumn": "{column}: дата и время операции. Рекомендуемый формат: YYYY-MM-DD HH:mm. Импорт также принимает записи вида 05.02.2026 0:53:29 и игнорирует секунды.",
+  "@transactionImportInstructionDateColumn": {
+    "placeholders": {
+      "column": {}
+    }
+  },
+  "transactionImportInstructionTypeColumn": "{column}: значение {expense} или {income}.",
+  "@transactionImportInstructionTypeColumn": {
+    "placeholders": {
+      "column": {},
+      "expense": {},
+      "income": {}
+    }
+  },
+  "transactionImportInstructionOperationColumn": "{column}: текст операции. Пример: {example}.",
+  "@transactionImportInstructionOperationColumn": {
+    "placeholders": {
+      "column": {},
+      "example": {}
+    }
+  },
+  "transactionImportInstructionAmountColumn": "{column}: число больше 0 в формате 12.50.",
+  "@transactionImportInstructionAmountColumn": {
+    "placeholders": {
+      "column": {}
+    }
+  },
+  "transactionImportInstructionCategoryColumn": "{column}: название категории. Если категории нет, она будет создана после подтверждения.",
+  "@transactionImportInstructionCategoryColumn": {
+    "placeholders": {
+      "column": {}
+    }
+  },
+  "transactionImportInstructionPaymentMethodColumn": "{column}: название способа оплаты. Поле не может быть пустым. Если способа оплаты нет, он будет создан после подтверждения.",
+  "@transactionImportInstructionPaymentMethodColumn": {
+    "placeholders": {
+      "column": {}
+    }
+  },
+  "transactionImportInstructionTagsColumn": "{column}: список тегов через запятую. Поле можно оставить пустым. Если тегов нет, они будут созданы после подтверждения.",
+  "@transactionImportInstructionTagsColumn": {
+    "placeholders": {
+      "column": {}
+    }
+  },
+  "transactionImportInstructionReviewTitle": "Проверь изменения перед импортом",
+  "transactionImportInstructionReviewItemOne": "Перед импортом приложение покажет новые категории, способы оплаты и теги.",
+  "transactionImportInstructionReviewItemTwo": "Новые элементы и записи будут добавлены только после нажатия кнопки Импортировать.",
+  "transactionImportInstructionReviewItemThree": "Каждая импортированная запись получит системный тег формата import_YYYYMMDD_HHMMSS.",
+  "transactionImportColumnDate": "дата",
+  "transactionImportColumnType": "тип операции",
+  "transactionImportColumnOperation": "операция",
+  "transactionImportColumnAmount": "сумма",
+  "transactionImportColumnCategory": "категория",
+  "transactionImportColumnPaymentMethod": "способ оплаты",
+  "transactionImportColumnTags": "теги",
+  "transactionImportLineMessage": "Строка {lineNumber}: {message}",
+  "@transactionImportLineMessage": {
+    "placeholders": {
+      "lineNumber": {
+        "type": "int"
+      },
+      "message": {}
+    }
+  },
+  "transactionImportSampleOperationOne": "Билеты в театр",
+  "transactionImportSampleOperationTwo": "Такси домой",
+  "transactionImportSampleCategoryOne": "Развлечения",
+  "transactionImportSampleCategoryTwo": "Транспорт",
+  "transactionImportSamplePaymentMethodOne": "Основная карта",
+  "transactionImportSamplePaymentMethodTwo": "Наличные",
+  "transactionImportSampleTagsOne": "Театр,Вечер",
+  "notificationChannelPlannedName": "Регулярные платежи",
+  "notificationChannelPlannedDescription": "Напоминания о регулярных платежах",
+  "notificationChannelReminderName": "Напоминания",
+  "notificationChannelReminderDescription": "Напоминания о важных делах",
+  "notificationChannelFamilyName": "Семейные траты",
+  "notificationChannelFamilyDescription": "Уведомления о новых расходах в семейном бюджете",
+  "editorColorPickerTitle": "Выбор цвета",
+  "editorIconColorLabel": "Цвет иконки",
+  "editorIconLabel": "Иконка",
+  "cardsTitle": "Карты",
+  "cardsEmpty": "Пока нет карт",
+  "cardsDeleteTitle": "Удалить карту?",
+  "cardsDeleteMessage": "Уверен, что хочешь удалить эту карту?",
+  "cardsDeleteSuccess": "Карта удалена",
+  "cardsNewTitle": "Новая карта",
+  "cardsEditTitle": "Редактировать карту",
+  "cardsNameHint": "Например, Сергей WISE",
+  "tagsEmpty": "Пока нет тегов",
+  "tagsDeleteTitle": "Удалить тег?",
+  "tagsDeleteMessage": "Уверен, что хочешь удалить этот тег?",
+  "tagsDeleteSuccess": "Тег удален",
+  "tagsNewTitle": "Новый тег",
+  "tagsEditTitle": "Редактировать тег",
+  "tagsNameHint": "Например, Работа",
+  "categoriesDeleteBlockedTitle": "Нельзя удалить категорию",
+  "categoriesDeleteBlockedMessage": "Эта категория уже используется. Сначала создай другую категорию, чтобы перенести в нее записи.",
+  "categoriesDeleteTitle": "Удалить категорию?",
+  "categoriesDeleteMessage": "Уверен, что хочешь удалить эту категорию?",
+  "categoriesDeleteUsedMessage": "Категория используется в {transactions} операциях и {planned} запланированных записях.",
+  "@categoriesDeleteUsedMessage": {
+    "placeholders": {
+      "transactions": {
+        "type": "int"
+      },
+      "planned": {
+        "type": "int"
+      }
+    }
+  },
+  "categoriesDeleteReplacementHint": "Перед удалением выбери категорию, в которую нужно перенести эти записи.",
+  "categoriesReplacementLabel": "Новая категория",
+  "categoriesDeleteMovedSuccess": "Категория удалена, записи перенесены в \"{name}\".",
+  "@categoriesDeleteMovedSuccess": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "categoriesDeleteSuccess": "Категория удалена",
+  "categoriesNewTitle": "Новая категория",
+  "categoriesEditTitle": "Редактировать категорию",
+  "categoriesNameHint": "Например, Спорт",
+  "budgetsReservedSelfName": "я",
+  "budgetsNotificationsPermissionError": "Разрешите push-уведомления в настройках устройства",
+  "budgetsCreateTitle": "Добавить общий бюджет",
+  "budgetsNameLabel": "Название",
+  "budgetsNameHint": "Название бюджета",
+  "budgetsMemberNameLabel": "Ваше имя",
+  "budgetsMemberNameHint": "Ваше имя",
+  "budgetsJoinTitle": "Присоединиться по коду",
+  "budgetsCodeLabel": "Код бюджета",
+  "budgetsCodeHint": "Код бюджета",
+  "budgetsCodeNotFound": "Код не найден",
+  "budgetsJoinAction": "Присоединиться",
+  "budgetsLeaveTitle": "Покинуть общий бюджет?",
+  "budgetsLeaveMessage": "Вы уверены, что хотите выйти?",
+  "budgetsLeaveAction": "Выйти",
+  "budgetsSectionTitle": "Ваши бюджеты",
+  "budgetsPersonalTitle": "Личный бюджет",
+  "budgetsPersonalSubtitle": "Только для тебя",
+  "budgetsSettingsSectionTitle": "Настройки общего бюджета",
+  "budgetsSavedChanges": "Изменения сохранены",
+  "budgetsCodeCopied": "Код скопирован",
+  "budgetsCopyCodeTooltip": "Скопировать код",
+  "budgetsPersonalSettingsTitle": "Личные настройки в этом бюджете",
+  "budgetsNotificationsTitle": "Уведомлять меня о новых тратах",
+  "budgetsNotificationsDescription": "Пуш придет, когда кто-то из семьи добавит новый расход в этот бюджет.",
+  "budgetsNotificationsPerUserHint": "У остальных участников этот переключатель работает отдельно.",
+  "budgetsMembersTitle": "Участники",
+  "budgetsLeaveButton": "Покинуть общий бюджет",
+  "appStateSharedBudgetName": "Общий бюджет",
+  "appStatePersonalBudgetName": "Личный бюджет",
+  "appStateCashMethodName": "Наличные",
+  "appStateUnknownUserName": "Без имени",
+  "appStatePlannedNotificationTitle": "Регулярная запись",
+  "appStateFamilyTransactionTitle": "Новая трата в семье",
+  "appStateFamilyTransactionBody": "В семейном бюджете появилась новая трата",
+  "appStateBillingUpdateError": "Не удалось обновить статус покупки",
+  "appStateBillingConnectError": "Не удалось подключить магазин",
+  "appStateBillingProductUnavailable": "Тариф пока недоступен в магазине",
+  "appStateBillingStartPurchaseError": "Не удалось начать покупку",
+  "appStateBillingStoreUnavailable": "Магазин сейчас недоступен",
+  "appStateBillingRestoreError": "Не удалось восстановить покупки",
+  "appStateBillingCompletePurchaseError": "Не удалось завершить покупку",
+  "appStateCategoryFood": "Еда",
+  "appStateCategoryHome": "Жилье",
+  "appStateCategoryTransport": "Транспорт",
+  "appStateCategoryShopping": "Покупки",
+  "appStateCategoryHealth": "Здоровье",
+  "appStateCategoryFun": "Развлечения",
+  "appStateCategoryEducation": "Образование",
+  "appStateCategoryGifts": "Подарки",
+  "appStateCategoryTravel": "Путешествия",
+  "appStateCategoryOther": "Прочее",
+  "appStateTagWork": "Работа",
+  "appStateTagHome": "Дом",
+  "appStateTagTravel": "Путешествия",
+  "appStateTagFamily": "Семья",
+  "appStateTagFun": "Развлечения",
+  "appStateTagEatingOut": "Еда вне дома"
+}

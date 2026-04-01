@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/generated/app_localizations.dart';
+import '../l10n/l10n.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_header.dart';
@@ -27,6 +29,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     AppState appState,
     bool value,
   ) async {
+    final l10n = context.l10n;
     if (_familyNotificationsSaving) {
       return;
     }
@@ -43,17 +46,15 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     });
     if (value && !success) {
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Разрешите push-уведомления в настройках устройства'),
-        ),
+        SnackBar(content: Text(l10n.budgetsNotificationsPermissionError)),
       );
     }
   }
 
-  bool _validateFamilyForm() {
+  bool _validateFamilyForm(AppLocalizations l10n) {
     final memberValid =
         _memberNameController.text.trim().isNotEmpty &&
-        _memberNameController.text.trim().toLowerCase() != 'я';
+        !_isReservedSelfName(_memberNameController.text, l10n);
     final budgetValid = _familyNameController.text.trim().isNotEmpty;
     setState(() {
       _showFamilyErrors = !memberValid || !budgetValid;
@@ -78,7 +79,12 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     );
   }
 
+  bool _isReservedSelfName(String value, AppLocalizations l10n) {
+    return value.trim().toLowerCase() == l10n.budgetsReservedSelfName;
+  }
+
   void _openCreateBudget(BuildContext context, AppState appState) {
+    final l10n = context.l10n;
     final controller = TextEditingController(text: '');
     final nameController = TextEditingController(
       text: _memberNameController.text,
@@ -98,7 +104,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
             final nameError =
                 showErrors &&
                 (nameController.text.trim().isEmpty ||
-                    nameController.text.trim().toLowerCase() == 'я');
+                    _isReservedSelfName(nameController.text, l10n));
             return SafeArea(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
@@ -113,7 +119,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Добавить общий бюджет',
+                        l10n.budgetsCreateTitle,
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.w600),
                       ),
@@ -128,7 +134,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                             SizedBox(
                               width: 130,
                               child: Text(
-                                'Название',
+                                l10n.budgetsNameLabel,
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ),
@@ -136,7 +142,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                               child: TextField(
                                 controller: controller,
                                 decoration: _inlineInputDecoration(
-                                  hint: 'Название бюджета',
+                                  hint: l10n.budgetsNameHint,
                                   showError: budgetError,
                                 ),
                                 onChanged: (_) => refresh(),
@@ -156,7 +162,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                             SizedBox(
                               width: 130,
                               child: Text(
-                                'Ваше имя',
+                                l10n.budgetsMemberNameLabel,
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ),
@@ -164,7 +170,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                               child: TextField(
                                 controller: nameController,
                                 decoration: _inlineInputDecoration(
-                                  hint: 'Ваше имя',
+                                  hint: l10n.budgetsMemberNameHint,
                                   showError: nameError,
                                 ),
                                 onChanged: (_) => refresh(),
@@ -182,8 +188,10 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                             refresh();
                             if (controller.text.trim().isEmpty ||
                                 nameController.text.trim().isEmpty ||
-                                nameController.text.trim().toLowerCase() ==
-                                    'я') {
+                                _isReservedSelfName(
+                                  nameController.text,
+                                  l10n,
+                                )) {
                               return;
                             }
                             Navigator.of(context).pop();
@@ -192,7 +200,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                             );
                             await appState.createFamily(controller.text);
                           },
-                          child: const Text('Создать'),
+                          child: Text(l10n.commonCreate),
                         ),
                       ),
                     ],
@@ -207,6 +215,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
   }
 
   void _openJoinBudget(BuildContext context, AppState appState) {
+    final l10n = context.l10n;
     final controller = TextEditingController();
     final nameController = TextEditingController(
       text: _memberNameController.text,
@@ -226,7 +235,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
             final nameError =
                 showErrors &&
                 (nameController.text.trim().isEmpty ||
-                    nameController.text.trim().toLowerCase() == 'я');
+                    _isReservedSelfName(nameController.text, l10n));
             return SafeArea(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
@@ -241,7 +250,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Присоединиться по коду',
+                        l10n.budgetsJoinTitle,
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.w600),
                       ),
@@ -256,7 +265,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                             SizedBox(
                               width: 130,
                               child: Text(
-                                'Код бюджета',
+                                l10n.budgetsCodeLabel,
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ),
@@ -266,7 +275,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                                 textCapitalization:
                                     TextCapitalization.characters,
                                 decoration: _inlineInputDecoration(
-                                  hint: 'Код бюджета',
+                                  hint: l10n.budgetsCodeHint,
                                   showError: codeError,
                                 ),
                                 onChanged: (_) => refresh(),
@@ -286,7 +295,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                             SizedBox(
                               width: 130,
                               child: Text(
-                                'Ваше имя',
+                                l10n.budgetsMemberNameLabel,
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ),
@@ -294,7 +303,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                               child: TextField(
                                 controller: nameController,
                                 decoration: _inlineInputDecoration(
-                                  hint: 'Ваше имя',
+                                  hint: l10n.budgetsMemberNameHint,
                                   showError: nameError,
                                 ),
                                 onChanged: (_) => refresh(),
@@ -312,8 +321,10 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                             refresh();
                             if (controller.text.trim().isEmpty ||
                                 nameController.text.trim().isEmpty ||
-                                nameController.text.trim().toLowerCase() ==
-                                    'я') {
+                                _isReservedSelfName(
+                                  nameController.text,
+                                  l10n,
+                                )) {
                               return;
                             }
                             Navigator.of(context).pop();
@@ -328,11 +339,13 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                             }
                             if (!success) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Код не найден')),
+                                SnackBar(
+                                  content: Text(l10n.budgetsCodeNotFound),
+                                ),
                               );
                             }
                           },
-                          child: const Text('Присоединиться'),
+                          child: Text(l10n.budgetsJoinAction),
                         ),
                       ),
                     ],
@@ -350,20 +363,21 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     BuildContext context,
     AppState appState,
   ) async {
+    final l10n = context.l10n;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Покинуть общий бюджет?'),
-          content: const Text('Вы уверены, что хотите выйти?'),
+          title: Text(l10n.budgetsLeaveTitle),
+          content: Text(l10n.budgetsLeaveMessage),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Отмена'),
+              child: Text(l10n.commonCancel),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Выйти'),
+              child: Text(l10n.budgetsLeaveAction),
             ),
           ],
         );
@@ -397,6 +411,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
+    final l10n = context.l10n;
     final family = appState.family;
     final sharedBudgets = appState.availableFamilies;
     if (family != null) {
@@ -417,11 +432,11 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
         child: Column(
           children: [
             AppHeader(
-              title: 'Бюджеты',
+              title: l10n.settingsBudgetsTitle,
               leading: Navigator.of(context).canPop()
                   ? IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: Icon(Icons.arrow_back_rounded),
+                      icon: const Icon(Icons.arrow_back_rounded),
                     )
                   : null,
             ),
@@ -433,7 +448,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                     width: double.infinity,
                     child: FilledButton(
                       onPressed: () => _openCreateBudget(context, appState),
-                      child: const Text('Добавить общий бюджет'),
+                      child: Text(l10n.budgetsCreateTitle),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -441,20 +456,20 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                     width: double.infinity,
                     child: OutlinedButton(
                       onPressed: () => _openJoinBudget(context, appState),
-                      child: const Text('Присоединиться по коду'),
+                      child: Text(l10n.budgetsJoinTitle),
                     ),
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Ваши бюджеты',
+                    l10n.budgetsSectionTitle,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 12),
                   _BudgetRow(
-                    title: 'Личный бюджет',
-                    subtitle: 'Только для тебя',
+                    title: l10n.budgetsPersonalTitle,
+                    subtitle: l10n.budgetsPersonalSubtitle,
                     isActive: !appState.isFamilyMode,
                     onTap: () => appState.switchToPersonalBudget(),
                   ),
@@ -478,7 +493,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Настройки общего бюджета',
+                            l10n.budgetsSettingsSectionTitle,
                             style: Theme.of(context).textTheme.bodyLarge
                                 ?.copyWith(fontWeight: FontWeight.w600),
                           ),
@@ -493,7 +508,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                                 SizedBox(
                                   width: 130,
                                   child: Text(
-                                    'Название',
+                                    l10n.budgetsNameLabel,
                                     style: Theme.of(
                                       context,
                                     ).textTheme.bodyMedium,
@@ -503,7 +518,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                                   child: TextField(
                                     controller: _familyNameController,
                                     decoration: _inlineInputDecoration(
-                                      hint: 'Название бюджета',
+                                      hint: l10n.budgetsNameHint,
                                       showError:
                                           _showFamilyErrors &&
                                           _familyNameController.text
@@ -532,7 +547,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                                 SizedBox(
                                   width: 130,
                                   child: Text(
-                                    'Ваше имя',
+                                    l10n.budgetsMemberNameLabel,
                                     style: Theme.of(
                                       context,
                                     ).textTheme.bodyMedium,
@@ -542,16 +557,16 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                                   child: TextField(
                                     controller: _memberNameController,
                                     decoration: _inlineInputDecoration(
-                                      hint: 'Ваше имя',
+                                      hint: l10n.budgetsMemberNameHint,
                                       showError:
                                           _showFamilyErrors &&
                                           (_memberNameController.text
                                                   .trim()
                                                   .isEmpty ||
-                                              _memberNameController.text
-                                                      .trim()
-                                                      .toLowerCase() ==
-                                                  'я'),
+                                              _isReservedSelfName(
+                                                _memberNameController.text,
+                                                l10n,
+                                              )),
                                     ),
                                     onChanged: (_) {
                                       _memberNameDirty = true;
@@ -569,7 +584,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                             width: double.infinity,
                             child: FilledButton(
                               onPressed: () async {
-                                if (!_validateFamilyForm()) {
+                                if (!_validateFamilyForm(l10n)) {
                                   return;
                                 }
                                 if (_familyNameDirty) {
@@ -591,17 +606,17 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                                   _showFamilyErrors = false;
                                 });
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Изменения сохранены'),
+                                  SnackBar(
+                                    content: Text(l10n.budgetsSavedChanges),
                                   ),
                                 );
                               },
-                              child: const Text('Применить изменения'),
+                              child: Text(l10n.commonApply),
                             ),
                           ),
                           const SizedBox(height: 12),
                           _BudgetInfoRow(
-                            title: 'Код',
+                            title: l10n.budgetsCodeLabel,
                             value: family.inviteCode,
                             trailing: IconButton(
                               onPressed: () {
@@ -609,22 +624,19 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                                   ClipboardData(text: family.inviteCode),
                                 );
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Код скопирован'),
+                                  SnackBar(
+                                    content: Text(l10n.budgetsCodeCopied),
                                   ),
                                 );
                               },
-                              icon: Icon(
-                                Icons.copy_rounded,
-                                size: 18,
-                                color: AppColors.textSecondary,
-                              ),
-                              tooltip: 'Скопировать код',
+                              icon: const Icon(Icons.copy_rounded, size: 18),
+                              color: AppColors.textSecondary,
+                              tooltip: l10n.budgetsCopyCodeTooltip,
                             ),
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            'Личные настройки в этом бюджете',
+                            l10n.budgetsPersonalSettingsTitle,
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(fontWeight: FontWeight.w600),
                           ),
@@ -639,7 +651,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Уведомлять меня о новых тратах',
+                                        l10n.budgetsNotificationsTitle,
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodyMedium
@@ -649,7 +661,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                                       ),
                                       const SizedBox(height: 6),
                                       Text(
-                                        'Пуш придет, когда кто-то из семьи добавит новый расход в этот бюджет.',
+                                        l10n.budgetsNotificationsDescription,
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodySmall
@@ -659,7 +671,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        'У остальных участников этот переключатель работает отдельно.',
+                                        l10n.budgetsNotificationsPerUserHint,
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodySmall
@@ -687,7 +699,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                           if (appState.familyMembers.isNotEmpty) ...[
                             const SizedBox(height: 12),
                             Text(
-                              'Участники',
+                              l10n.budgetsMembersTitle,
                               style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(fontWeight: FontWeight.w600),
                             ),
@@ -721,7 +733,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                             child: OutlinedButton(
                               onPressed: () =>
                                   _confirmLeaveBudget(context, appState),
-                              child: const Text('Покинуть общий бюджет'),
+                              child: Text(l10n.budgetsLeaveButton),
                             ),
                           ),
                         ],
@@ -782,7 +794,7 @@ class _BudgetInfoRow extends StatelessWidget {
           child: Text(title, style: Theme.of(context).textTheme.bodyMedium),
         ),
         Text(
-          value ?? '—',
+          value ?? context.l10n.commonNotAvailable,
           style: Theme.of(
             context,
           ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),

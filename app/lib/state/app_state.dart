@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -10,6 +11,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../l10n/app_locale.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/category_entry.dart';
 import '../models/checklist_entry.dart';
 import '../models/family_group.dart';
@@ -64,6 +67,7 @@ class AppState extends ChangeNotifier {
   bool _syncEnabled = false;
   bool _familyNotificationsEnabled = true;
   ThemeMode _themeMode = ThemeMode.dark;
+  Locale? _locale;
   DateTime? _trialStartedAt;
   String? _activeSubscriptionProductId;
   bool _storeAvailable = false;
@@ -73,6 +77,7 @@ class AppState extends ChangeNotifier {
   final Map<String, ProductDetails> _subscriptionProducts = {};
 
   static const _prefFcmToken = 'fcm_last_token';
+  static const _prefLocale = 'locale';
   static const _prefThemeMode = 'theme_mode';
   static const _prefTrialStartedAt = 'trial_started_at';
   static const _prefActiveSubscriptionProductId =
@@ -95,6 +100,7 @@ class AppState extends ChangeNotifier {
   bool get syncEnabled => _syncEnabled;
   bool get familyNotificationsEnabled => _familyNotificationsEnabled;
   ThemeMode get themeMode => _themeMode;
+  Locale? get locale => _locale;
   DateTime? get trialStartedAt => _trialStartedAt;
   DateTime? get trialEndsAt =>
       _trialStartedAt?.add(const Duration(days: _trialDurationDays));
@@ -103,6 +109,27 @@ class AppState extends ChangeNotifier {
   bool get purchasePending => _purchasePending;
   String? get billingError => _billingError;
   bool get hasPremiumAccess => _activeSubscriptionProductId != null;
+  AppLocalizations get _l10n =>
+      lookupAppLocalizations(_locale ?? ui.PlatformDispatcher.instance.locale);
+
+  String get _defaultSharedBudgetName => _l10n.appStateSharedBudgetName;
+  String get _defaultPersonalBudgetName => _l10n.appStatePersonalBudgetName;
+  String get _defaultCashMethodName => _l10n.appStateCashMethodName;
+  String get _defaultUnknownUserName => _l10n.appStateUnknownUserName;
+  String get _plannedNotificationTitle =>
+      _l10n.appStatePlannedNotificationTitle;
+  String get _familyTransactionTitle => _l10n.appStateFamilyTransactionTitle;
+  String get _familyTransactionBody => _l10n.appStateFamilyTransactionBody;
+  String get _billingUpdateError => _l10n.appStateBillingUpdateError;
+  String get _billingConnectError => _l10n.appStateBillingConnectError;
+  String get _billingProductUnavailable =>
+      _l10n.appStateBillingProductUnavailable;
+  String get _billingStartPurchaseError =>
+      _l10n.appStateBillingStartPurchaseError;
+  String get _billingStoreUnavailable => _l10n.appStateBillingStoreUnavailable;
+  String get _billingRestoreError => _l10n.appStateBillingRestoreError;
+  String get _billingCompletePurchaseError =>
+      _l10n.appStateBillingCompletePurchaseError;
   bool get isTrialActive {
     if (hasPremiumAccess) {
       return false;
@@ -131,14 +158,14 @@ class AppState extends ChangeNotifier {
     return (seconds / Duration.secondsPerDay).ceil();
   }
 
-  String get accessStatusLabel {
+  String accessStatusLabel(AppLocalizations l10n) {
     if (hasPremiumAccess) {
-      return 'Premium активен';
+      return l10n.accessStatusPremiumActive;
     }
     if (isTrialActive) {
-      return 'Осталось $trialDaysRemaining д.';
+      return l10n.accessStatusDaysRemaining(trialDaysRemaining);
     }
-    return 'Доступ закрыт';
+    return l10n.accessStatusLocked;
   }
 
   bool get isAnonymousUser => _auth.currentUser?.isAnonymous ?? true;
@@ -240,6 +267,20 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setLocale(Locale? locale) async {
+    if (areLocalesEqual(_locale, locale)) {
+      return;
+    }
+    _locale = locale;
+    final prefs = await SharedPreferences.getInstance();
+    if (locale == null) {
+      await prefs.remove(_prefLocale);
+    } else {
+      await prefs.setString(_prefLocale, locale.languageCode);
+    }
+    notifyListeners();
+  }
+
   Future<bool> setFamilyNotificationsEnabled(bool value) async {
     if (_familyNotificationsEnabled == value) {
       return true;
@@ -297,7 +338,9 @@ class AppState extends ChangeNotifier {
     final user = await _ensureSignedIn();
     final id = 'fam_${DateTime.now().millisecondsSinceEpoch}';
     final code = _createInviteCode();
-    final familyName = name.trim().isEmpty ? 'Общий бюджет' : name.trim();
+    final familyName = name.trim().isEmpty
+        ? _defaultSharedBudgetName
+        : name.trim();
     await _db.collection('budgets').doc(id).set({
       'name': familyName,
       'type': 'family',
@@ -326,7 +369,9 @@ class AppState extends ChangeNotifier {
     if (_family == null || _budgetId == null) {
       return;
     }
-    final trimmed = name.trim().isEmpty ? 'Общий бюджет' : name.trim();
+    final trimmed = name.trim().isEmpty
+        ? _defaultSharedBudgetName
+        : name.trim();
     _family = _family!.copyWith(name: trimmed);
     await _db.collection('budgets').doc(_budgetId).set({
       'name': trimmed,
@@ -359,7 +404,7 @@ class AppState extends ChangeNotifier {
     });
     _family = FamilyGroup(
       id: doc.id,
-      name: (data['name'] as String?) ?? 'Общий бюджет',
+      name: (data['name'] as String?) ?? _defaultSharedBudgetName,
       memberIds: List<String>.from(data['memberIds'] ?? [user.uid]),
       inviteCode: normalized,
     );
@@ -1120,7 +1165,7 @@ class AppState extends ChangeNotifier {
     final id = entry.notificationId!;
     await LocalNotifications.instance.schedulePlanned(
       id: id,
-      title: 'Регулярная запись',
+      title: _plannedNotificationTitle,
       body: _plannedNotificationBody(entry),
       scheduledAt: entry.scheduledAt!,
     );
@@ -1212,7 +1257,9 @@ class AppState extends ChangeNotifier {
     if (comment.isNotEmpty) {
       return comment;
     }
-    return reminderFrequencyLabel(entry.frequency);
+    final locale = _locale ?? ui.PlatformDispatcher.instance.locale;
+    final l10n = lookupAppLocalizations(locale);
+    return reminderFrequencyLabel(entry.frequency, l10n);
   }
 
   DateTime? _nextReminderDate(ReminderEntry entry, DateTime now) {
@@ -1396,6 +1443,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> _loadLocalPreferences() async {
     final prefs = await SharedPreferences.getInstance();
+    _locale = parseAppLocale(prefs.getString(_prefLocale));
     final theme = prefs.getString(_prefThemeMode);
     _themeMode = theme == 'light' ? ThemeMode.light : ThemeMode.dark;
     final storedTrialStartedAt = prefs.getInt(_prefTrialStartedAt);
@@ -1431,7 +1479,7 @@ class AppState extends ChangeNotifier {
       _handlePurchaseUpdates,
       onError: (Object error) {
         _purchasePending = false;
-        _billingError = 'Не удалось обновить статус покупки';
+        _billingError = _billingUpdateError;
         notifyListeners();
       },
     );
@@ -1467,7 +1515,7 @@ class AppState extends ChangeNotifier {
     } catch (_) {
       _storeAvailable = false;
       _subscriptionProducts.clear();
-      _billingError = 'Не удалось подключить магазин';
+      _billingError = _billingConnectError;
     } finally {
       _billingLoading = false;
       notifyListeners();
@@ -1477,7 +1525,7 @@ class AppState extends ChangeNotifier {
   Future<void> purchaseSubscription(String productId) async {
     final product = _subscriptionProducts[productId];
     if (product == null) {
-      _billingError = 'Тариф пока недоступен в магазине';
+      _billingError = _billingProductUnavailable;
       notifyListeners();
       return;
     }
@@ -1490,14 +1538,14 @@ class AppState extends ChangeNotifier {
     );
     if (!started) {
       _purchasePending = false;
-      _billingError = 'Не удалось начать покупку';
+      _billingError = _billingStartPurchaseError;
       notifyListeners();
     }
   }
 
   Future<void> restorePurchases() async {
     if (!_storeAvailable) {
-      _billingError = 'Магазин сейчас недоступен';
+      _billingError = _billingStoreUnavailable;
       notifyListeners();
       return;
     }
@@ -1508,7 +1556,7 @@ class AppState extends ChangeNotifier {
       await _inAppPurchase.restorePurchases();
     } catch (_) {
       _purchasePending = false;
-      _billingError = 'Не удалось восстановить покупки';
+      _billingError = _billingRestoreError;
       notifyListeners();
     }
   }
@@ -1536,7 +1584,7 @@ class AppState extends ChangeNotifier {
         case PurchaseStatus.error:
           _purchasePending = false;
           _billingError =
-              purchase.error?.message ?? 'Не удалось завершить покупку';
+              purchase.error?.message ?? _billingCompletePurchaseError;
           shouldNotify = true;
           break;
         case PurchaseStatus.canceled:
@@ -1747,7 +1795,7 @@ class AppState extends ChangeNotifier {
 
     final budgetId = _db.collection('budgets').doc().id;
     await _db.collection('budgets').doc(budgetId).set({
-      'name': 'Личный бюджет',
+      'name': _defaultPersonalBudgetName,
       'type': 'personal',
       'ownerId': user.uid,
       'memberIds': [user.uid],
@@ -1791,7 +1839,7 @@ class AppState extends ChangeNotifier {
         final memberIds = List<String>.from(data['memberIds'] ?? []);
         _family = FamilyGroup(
           id: snap.id,
-          name: data['name'] as String? ?? 'Общий бюджет',
+          name: data['name'] as String? ?? _defaultSharedBudgetName,
           memberIds: memberIds,
           inviteCode: data['inviteCode'] as String? ?? '',
         );
@@ -1928,7 +1976,7 @@ class AppState extends ChangeNotifier {
             families.add(
               FamilyGroup(
                 id: doc.id,
-                name: data['name'] as String? ?? 'Общий бюджет',
+                name: data['name'] as String? ?? _defaultSharedBudgetName,
                 memberIds: List<String>.from(data['memberIds'] ?? []),
                 inviteCode: data['inviteCode'] as String? ?? '',
               ),
@@ -1988,10 +2036,8 @@ class AppState extends ChangeNotifier {
           ((message.data['transactionId'] as String?)?.hashCode ??
               DateTime.now().millisecondsSinceEpoch) &
           0x7fffffff,
-      title: (title == null || title.isEmpty) ? 'Новая трата в семье' : title,
-      body: (body == null || body.isEmpty)
-          ? 'В семейном бюджете появилась новая трата'
-          : body,
+      title: (title == null || title.isEmpty) ? _familyTransactionTitle : title,
+      body: (body == null || body.isEmpty) ? _familyTransactionBody : body,
     );
   }
 
@@ -2093,7 +2139,7 @@ class AppState extends ChangeNotifier {
         loaded.add(
           UserProfile(
             id: doc.id,
-            name: (doc.data()['name'] as String?) ?? 'Без имени',
+            name: (doc.data()['name'] as String?) ?? _defaultUnknownUserName,
             provider: doc.data()['provider'] as String?,
           ),
         );
@@ -2240,7 +2286,7 @@ class AppState extends ChangeNotifier {
     final data = doc.data()!;
     final method = PaymentMethod(
       id: data['paymentMethodId'] as String? ?? 'cash',
-      name: data['paymentMethodName'] as String? ?? 'Наличные',
+      name: data['paymentMethodName'] as String? ?? _defaultCashMethodName,
       type: _methodTypeFromString(data['paymentMethodType'] as String?),
       icon: _iconFromMap(data['paymentMethodIcon'] as Map<String, dynamic>?),
       color: Color((data['paymentMethodColor'] as num?)?.toInt() ?? 0xFF9AD27A),
@@ -2332,7 +2378,7 @@ class AppState extends ChangeNotifier {
     final createdByUserId = data['createdByUserId'] as String?;
     final method = PaymentMethod(
       id: data['paymentMethodId'] as String? ?? 'cash',
-      name: data['paymentMethodName'] as String? ?? 'Наличные',
+      name: data['paymentMethodName'] as String? ?? _defaultCashMethodName,
       type: _methodTypeFromString(data['paymentMethodType'] as String?),
       icon: _iconFromMap(data['paymentMethodIcon'] as Map<String, dynamic>?),
       color: Color((data['paymentMethodColor'] as num?)?.toInt() ?? 0xFF9AD27A),
@@ -3030,13 +3076,14 @@ class AppState extends ChangeNotifier {
   }
 
   void _seedDefaults() {
+    final l10n = _l10n;
     _paymentMethods.add(
-      const PaymentMethod(
+      PaymentMethod(
         id: 'cash',
-        name: 'Наличные',
+        name: _defaultCashMethodName,
         type: PaymentMethodType.cash,
         icon: Icons.payments_outlined,
-        color: Color(0xFF9AD27A),
+        color: const Color(0xFF9AD27A),
       ),
     );
 
@@ -3067,61 +3114,61 @@ class AppState extends ChangeNotifier {
     _categories.addAll([
       CategoryEntry(
         id: 'food',
-        name: 'Еда',
+        name: l10n.appStateCategoryFood,
         icon: Icons.restaurant_outlined,
         color: _categoryPalette[0],
       ),
       CategoryEntry(
         id: 'home',
-        name: 'Жилье',
+        name: l10n.appStateCategoryHome,
         icon: Icons.home_outlined,
         color: _categoryPalette[1],
       ),
       CategoryEntry(
         id: 'transport',
-        name: 'Транспорт',
+        name: l10n.appStateCategoryTransport,
         icon: Icons.directions_car_outlined,
         color: _categoryPalette[2],
       ),
       CategoryEntry(
         id: 'shopping',
-        name: 'Покупки',
+        name: l10n.appStateCategoryShopping,
         icon: Icons.shopping_bag_outlined,
         color: _categoryPalette[3],
       ),
       CategoryEntry(
         id: 'health',
-        name: 'Здоровье',
+        name: l10n.appStateCategoryHealth,
         icon: Icons.favorite_border,
         color: _categoryPalette[4],
       ),
       CategoryEntry(
         id: 'fun',
-        name: 'Развлечения',
+        name: l10n.appStateCategoryFun,
         icon: Icons.movie_outlined,
         color: _categoryPalette[5],
       ),
       CategoryEntry(
         id: 'education',
-        name: 'Образование',
+        name: l10n.appStateCategoryEducation,
         icon: Icons.school_outlined,
         color: _categoryPalette[6],
       ),
       CategoryEntry(
         id: 'gifts',
-        name: 'Подарки',
+        name: l10n.appStateCategoryGifts,
         icon: Icons.card_giftcard_outlined,
         color: _categoryPalette[7],
       ),
       CategoryEntry(
         id: 'travel',
-        name: 'Путешествия',
+        name: l10n.appStateCategoryTravel,
         icon: Icons.flight_outlined,
         color: _categoryPalette[8],
       ),
       CategoryEntry(
         id: 'other',
-        name: 'Прочее',
+        name: l10n.appStateCategoryOther,
         icon: Icons.more_horiz,
         color: _categoryPalette[9],
       ),
@@ -3130,37 +3177,37 @@ class AppState extends ChangeNotifier {
     _tags.addAll([
       TagEntry(
         id: 'tag_work',
-        name: 'Работа',
+        name: l10n.appStateTagWork,
         icon: Icons.tag,
         color: _categoryPalette[0],
       ),
       TagEntry(
         id: 'tag_home',
-        name: 'Дом',
+        name: l10n.appStateTagHome,
         icon: Icons.tag,
         color: _categoryPalette[1],
       ),
       TagEntry(
         id: 'tag_travel',
-        name: 'Путешествия',
+        name: l10n.appStateTagTravel,
         icon: Icons.tag,
         color: _categoryPalette[2],
       ),
       TagEntry(
         id: 'tag_family',
-        name: 'Семья',
+        name: l10n.appStateTagFamily,
         icon: Icons.tag,
         color: _categoryPalette[3],
       ),
       TagEntry(
         id: 'tag_fun',
-        name: 'Развлечения',
+        name: l10n.appStateTagFun,
         icon: Icons.tag,
         color: _categoryPalette[4],
       ),
       TagEntry(
         id: 'tag_food',
-        name: 'Еда вне дома',
+        name: l10n.appStateTagEatingOut,
         icon: Icons.tag,
         color: _categoryPalette[5],
       ),

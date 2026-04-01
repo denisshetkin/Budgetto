@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
+import '../l10n/l10n.dart';
 import '../models/category_entry.dart';
 import '../models/payment_method.dart';
 import '../models/tag_entry.dart';
@@ -128,20 +130,21 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   void _save() {
     final appState = AppStateScope.of(context);
+    final l10n = context.l10n;
     final raw = _amountController.text.trim().replaceAll(',', '.');
     final amount = double.tryParse(raw);
     if (amount == null || amount <= 0) {
-      _showError('Введите сумму больше 0');
+      _showError(l10n.formAmountPositiveError);
       return;
     }
 
     if (_selectedCategory == null) {
-      _showError('Выберите категорию');
+      _showError(l10n.formChooseCategoryError);
       return;
     }
 
     if (_selectedMethod == null) {
-      _showError('Выберите способ оплаты');
+      _showError(l10n.formChoosePaymentError);
       return;
     }
 
@@ -193,7 +196,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
-    final typeLabel = _type == TransactionType.expense ? 'Расход' : 'Доход';
+    final l10n = context.l10n;
+    final typeLabel = _type == TransactionType.expense
+        ? l10n.transactionTypeExpense
+        : l10n.transactionTypeIncome;
     final accent = _type == TransactionType.expense
         ? AppColors.accentExpense
         : AppColors.accentIncome;
@@ -208,7 +214,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.initialEntry == null ? 'Новый $typeLabel' : 'Редактировать',
+          widget.initialEntry == null
+              ? l10n.addTransactionNewTitle(typeLabel)
+              : l10n.addTransactionEditTitle,
         ),
         backgroundColor: AppColors.surface1,
         surfaceTintColor: Colors.transparent,
@@ -221,18 +229,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         actions: [
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
-            icon: Icon(
-              Icons.close_rounded,
-              color: AppColors.accentExpense,
-            ),
+            icon: Icon(Icons.close_rounded, color: AppColors.accentExpense),
             iconSize: 36,
-            tooltip: 'Отмена',
+            tooltip: l10n.commonCancel,
           ),
           IconButton(
             onPressed: _save,
             icon: Icon(Icons.check_rounded, color: Color(0xFF9AD27A)),
             iconSize: 36,
-            tooltip: 'Сохранить',
+            tooltip: l10n.commonSave,
           ),
           const SizedBox(width: 6),
         ],
@@ -261,10 +266,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                             borderRadius: BorderRadius.circular(16),
                             child: Row(
                               children: [
-                                Icon(
-                                  Icons.calendar_month_outlined,
-                                  size: 18,
-                                ),
+                                Icon(Icons.calendar_month_outlined, size: 18),
                                 const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
@@ -326,14 +328,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                             ),
                           ),
                         ),
-                        segments: const [
+                        segments: [
                           ButtonSegment(
                             value: TransactionType.expense,
-                            label: Text('Расход'),
+                            label: Text(l10n.transactionTypeExpense),
                           ),
                           ButtonSegment(
                             value: TransactionType.income,
-                            label: Text('Доход'),
+                            label: Text(l10n.transactionTypeIncome),
                           ),
                         ],
                         selected: {_type},
@@ -358,7 +360,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     SizedBox(
                       width: leftColumnWidth,
                       child: Text(
-                        'Сумма',
+                        l10n.formAmountLabel,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -409,7 +411,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     SizedBox(
                       width: leftColumnWidth,
                       child: Text(
-                        'Описание',
+                        l10n.formDescriptionLabel,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -427,10 +429,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         child: TextField(
                           controller: _noteController,
                           maxLines: 3,
-                          decoration: const InputDecoration(
-                            hintText: 'Например, кофе и перекус',
+                          decoration: InputDecoration(
+                            hintText: l10n.addTransactionDescriptionHint,
                             isDense: true,
-                            contentPadding: EdgeInsets.symmetric(vertical: 8),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 8,
+                            ),
                           ),
                         ),
                       ),
@@ -440,7 +444,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Оплата',
+                l10n.formPaymentLabel,
                 style: Theme.of(
                   context,
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
@@ -489,7 +493,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Категория',
+                l10n.formCategoryLabel,
                 style: Theme.of(
                   context,
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
@@ -538,7 +542,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Теги',
+                l10n.formTagsLabel,
                 style: Theme.of(
                   context,
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
@@ -546,7 +550,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               const SizedBox(height: 12),
               if (tags.isEmpty)
                 Text(
-                  'Теги пока не добавлены',
+                  l10n.formTagsEmpty,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -605,15 +609,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   String _formatDate(DateTime date) {
-    final day = date.day.toString().padLeft(2, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    final year = date.year;
-    return '$day.$month.$year';
+    return DateFormat.yMd(
+      Localizations.localeOf(context).toLanguageTag(),
+    ).format(date);
   }
 
   String _formatTime(TimeOfDay time) {
-    final hour = time.hour.toString().padLeft(2, '0');
-    final minute = time.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
+    final date = DateTime(2000, 1, 1, time.hour, time.minute);
+    return DateFormat.Hm(
+      Localizations.localeOf(context).toLanguageTag(),
+    ).format(date);
   }
 }

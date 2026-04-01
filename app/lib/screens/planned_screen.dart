@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:intl/intl.dart';
 
+import '../l10n/l10n.dart';
 import '../models/category_entry.dart';
 import '../models/payment_method.dart';
 import '../models/planned_entry.dart';
@@ -20,13 +22,8 @@ typedef _PaymentItem = PaymentMethod;
 
 typedef _TagItem = TagEntry;
 
-String _formatPlannedDate(DateTime value) {
-  final day = value.day.toString().padLeft(2, '0');
-  final month = value.month.toString().padLeft(2, '0');
-  final year = value.year.toString();
-  final hour = value.hour.toString().padLeft(2, '0');
-  final minute = value.minute.toString().padLeft(2, '0');
-  return '$day.$month.$year, $hour:$minute';
+String _formatPlannedDate(DateTime value, String localeTag) {
+  return '${DateFormat.yMd(localeTag).format(value)}, ${DateFormat.Hm(localeTag).format(value)}';
 }
 
 class PlannedScreen extends StatelessWidget {
@@ -58,20 +55,21 @@ class PlannedScreen extends StatelessWidget {
     AppState appState,
     PlannedEntry entry,
   ) async {
+    final l10n = context.l10n;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Удалить запись?'),
-          content: const Text('Уверен, что хочешь удалить эту запись?'),
+          title: Text(l10n.plannedDeleteTitle),
+          content: Text(l10n.plannedDeleteMessage),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Отмена'),
+              child: Text(l10n.commonCancel),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Удалить'),
+              child: Text(l10n.commonDelete),
             ),
           ],
         );
@@ -85,7 +83,7 @@ class PlannedScreen extends StatelessWidget {
       appState.removePlanned(entry.id);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Платеж удален')));
+      ).showSnackBar(SnackBar(content: Text(l10n.plannedDeleted)));
     }
   }
 
@@ -94,6 +92,7 @@ class PlannedScreen extends StatelessWidget {
     AppState appState,
     PlannedEntry entry,
   ) async {
+    final l10n = context.l10n;
     final symbol = appState.currencySymbol();
     final raw = entry.amount % 1 == 0
         ? entry.amount.toStringAsFixed(0)
@@ -106,18 +105,18 @@ class PlannedScreen extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Добавить в операции?'),
+          title: Text(l10n.plannedAddToTransactionsTitle),
           content: Text(
-            'Создать операцию из записи «$description» на сумму $amountLabel?',
+            l10n.plannedAddToTransactionsMessage(description, amountLabel),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Отмена'),
+              child: Text(l10n.commonCancel),
             ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Добавить'),
+              child: Text(l10n.commonAdd),
             ),
           ],
         );
@@ -146,7 +145,7 @@ class PlannedScreen extends StatelessWidget {
     appState.addTransaction(transaction);
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Добавлено в операции')));
+    ).showSnackBar(SnackBar(content: Text(l10n.plannedAddedToTransactions)));
   }
 
   Future<void> _openActionsSheet(
@@ -161,6 +160,7 @@ class PlannedScreen extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
+        final l10n = context.l10n;
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -172,7 +172,7 @@ class PlannedScreen extends StatelessWidget {
                     Icons.add_circle_outline,
                     color: AppColors.accentIncome,
                   ),
-                  title: const Text('Добавить в операции'),
+                  title: Text(l10n.plannedActionAddToTransactions),
                   onTap: () {
                     Navigator.of(context).pop();
                     _addToTransactions(context, appState, entry);
@@ -180,7 +180,7 @@ class PlannedScreen extends StatelessWidget {
                 ),
                 ListTile(
                   leading: Icon(Icons.edit, color: AppColors.accentIncome),
-                  title: const Text('Редактировать'),
+                  title: Text(l10n.commonEdit),
                   onTap: () {
                     Navigator.of(context).pop();
                     _openAddPlanned(context, appState, entry: entry);
@@ -188,7 +188,7 @@ class PlannedScreen extends StatelessWidget {
                 ),
                 ListTile(
                   leading: Icon(Icons.delete, color: AppColors.accentExpense),
-                  title: const Text('Удалить'),
+                  title: Text(l10n.commonDelete),
                   onTap: () {
                     Navigator.of(context).pop();
                     _confirmDelete(context, appState, entry);
@@ -205,6 +205,8 @@ class PlannedScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
+    final l10n = context.l10n;
+    final localeTag = Localizations.localeOf(context).toLanguageTag();
     final entries = appState.plannedEntries;
     final canPop = Navigator.of(context).canPop();
 
@@ -214,7 +216,7 @@ class PlannedScreen extends StatelessWidget {
         child: Column(
           children: [
             AppHeader(
-              title: 'Регулярные платежи',
+              title: l10n.plannedTitle,
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
               leading: canPop
                   ? IconButton(
@@ -239,7 +241,7 @@ class PlannedScreen extends StatelessWidget {
                 child: entries.isEmpty
                     ? Center(
                         child: Text(
-                          'Пока нет регулярных платежей',
+                          l10n.plannedEmpty,
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(color: AppColors.textSecondary),
                           textAlign: TextAlign.center,
@@ -357,8 +359,20 @@ class PlannedScreen extends StatelessWidget {
                                                   const SizedBox(height: 2),
                                                   Text(
                                                     entry.notify
-                                                        ? 'Напоминание: ${_formatPlannedDate(entry.scheduledAt!)}'
-                                                        : 'Дата: ${_formatPlannedDate(entry.scheduledAt!)}',
+                                                        ? l10n.plannedScheduledReminder(
+                                                            _formatPlannedDate(
+                                                              entry
+                                                                  .scheduledAt!,
+                                                              localeTag,
+                                                            ),
+                                                          )
+                                                        : l10n.plannedScheduledDate(
+                                                            _formatPlannedDate(
+                                                              entry
+                                                                  .scheduledAt!,
+                                                              localeTag,
+                                                            ),
+                                                          ),
                                                     style: Theme.of(context)
                                                         .textTheme
                                                         .bodySmall
@@ -422,7 +436,8 @@ class PlannedScreen extends StatelessWidget {
                                                   width: 34,
                                                   height: 34,
                                                 ),
-                                            tooltip: 'Добавить в операции',
+                                            tooltip: l10n
+                                                .plannedAddToTransactionsTooltip,
                                           ),
                                         ],
                                       ),
@@ -567,19 +582,11 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
     });
   }
 
-  String _formatScheduledAt(DateTime value) {
-    final day = value.day.toString().padLeft(2, '0');
-    final month = value.month.toString().padLeft(2, '0');
-    final year = value.year.toString();
-    final hour = value.hour.toString().padLeft(2, '0');
-    final minute = value.minute.toString().padLeft(2, '0');
-    return '$day.$month.$year, $hour:$minute';
-  }
-
   Future<bool> _ensureNotificationsAllowed() async {
+    final l10n = context.l10n;
     final granted = await LocalNotifications.instance.requestPermissions();
     if (!granted) {
-      _showError('Разрешите уведомления в настройках устройства');
+      _showError(l10n.plannedNotificationsPermissionError);
     }
     return granted;
   }
@@ -590,30 +597,31 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
 
   Future<void> _save() async {
     final appState = AppStateScope.of(context);
+    final l10n = context.l10n;
     final raw = _amountController.text.trim().replaceAll(',', '.');
     final amount = double.tryParse(raw);
     if (amount == null || amount <= 0) {
-      _showError('Введите сумму больше 0');
+      _showError(l10n.formAmountPositiveError);
       return;
     }
 
     if (_selectedCategory == null) {
-      _showError('Выберите категорию');
+      _showError(l10n.formChooseCategoryError);
       return;
     }
 
     if (_selectedMethod == null) {
-      _showError('Выберите способ оплаты');
+      _showError(l10n.formChoosePaymentError);
       return;
     }
 
     if (_notify) {
       if (_scheduledAt == null) {
-        _showError('Выберите дату и время');
+        _showError(l10n.plannedChooseDateTimeError);
         return;
       }
       if (_scheduledAt!.isBefore(DateTime.now())) {
-        _showError('Выберите время в будущем');
+        _showError(l10n.plannedChooseFutureTimeError);
         return;
       }
       final allowed = await _ensureNotificationsAllowed();
@@ -659,6 +667,8 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
+    final l10n = context.l10n;
+    final localeTag = Localizations.localeOf(context).toLanguageTag();
     final categories = appState.categories;
     final methods = appState.paymentMethods;
     final tags = appState.tags;
@@ -671,8 +681,8 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
       appBar: AppBar(
         title: Text(
           widget.initialEntry == null
-              ? 'Новая регулярная запись'
-              : 'Редактировать запись',
+              ? l10n.plannedNewTitle
+              : l10n.plannedEditTitle,
         ),
         backgroundColor: AppColors.surface1,
         surfaceTintColor: Colors.transparent,
@@ -687,13 +697,13 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
             onPressed: () => Navigator.of(context).pop(),
             icon: Icon(Icons.close_rounded, color: AppColors.accentExpense),
             iconSize: 36,
-            tooltip: 'Отмена',
+            tooltip: l10n.commonCancel,
           ),
           IconButton(
             onPressed: _save,
             icon: Icon(Icons.check_rounded, color: Color(0xFF9AD27A)),
             iconSize: 36,
-            tooltip: 'Сохранить',
+            tooltip: l10n.commonSave,
           ),
           const SizedBox(width: 6),
         ],
@@ -720,14 +730,14 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
                     ),
                   ),
                 ),
-                segments: const [
+                segments: [
                   ButtonSegment(
                     value: TransactionType.expense,
-                    label: Text('Расход'),
+                    label: Text(l10n.transactionTypeExpense),
                   ),
                   ButtonSegment(
                     value: TransactionType.income,
-                    label: Text('Доход'),
+                    label: Text(l10n.transactionTypeIncome),
                   ),
                 ],
                 selected: {_type},
@@ -748,7 +758,7 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
                     SizedBox(
                       width: 120,
                       child: Text(
-                        'Сумма',
+                        l10n.formAmountLabel,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -799,7 +809,7 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
                     SizedBox(
                       width: 120,
                       child: Text(
-                        'Описание',
+                        l10n.formDescriptionLabel,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -817,10 +827,12 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
                         child: TextField(
                           controller: _noteController,
                           maxLines: 2,
-                          decoration: const InputDecoration(
-                            hintText: 'Например, коммуналка',
+                          decoration: InputDecoration(
+                            hintText: l10n.plannedDescriptionHint,
                             isDense: true,
-                            contentPadding: EdgeInsets.symmetric(vertical: 8),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 8,
+                            ),
                           ),
                         ),
                       ),
@@ -839,7 +851,7 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
                     SizedBox(
                       width: 120,
                       child: Text(
-                        'Когда',
+                        l10n.plannedWhenLabel,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -862,8 +874,8 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
                           ),
                           child: Text(
                             _scheduledAt == null
-                                ? 'Выбрать дату и время'
-                                : _formatScheduledAt(_scheduledAt!),
+                                ? l10n.plannedChooseDateTime
+                                : _formatPlannedDate(_scheduledAt!, localeTag),
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ),
@@ -882,7 +894,7 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Напомнить',
+                        l10n.plannedRemindLabel,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -914,7 +926,7 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Оплата',
+                l10n.formPaymentLabel,
                 style: Theme.of(
                   context,
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
@@ -963,7 +975,7 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Категория',
+                l10n.formCategoryLabel,
                 style: Theme.of(
                   context,
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
@@ -1012,7 +1024,7 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Теги',
+                l10n.formTagsLabel,
                 style: Theme.of(
                   context,
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
@@ -1020,7 +1032,7 @@ class _AddPlannedScreenState extends State<_AddPlannedScreen> {
               const SizedBox(height: 12),
               if (tags.isEmpty)
                 Text(
-                  'Теги пока не добавлены',
+                  l10n.formTagsEmpty,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.textSecondary,
                   ),

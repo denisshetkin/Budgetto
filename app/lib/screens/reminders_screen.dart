@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:intl/intl.dart';
 
+import '../l10n/l10n.dart';
 import '../models/reminder_entry.dart';
 import '../services/local_notifications.dart';
 import '../state/app_state.dart';
@@ -9,21 +11,17 @@ import '../widgets/app_header.dart';
 import '../widgets/slide_action_icon.dart';
 import '../widgets/soft_card.dart';
 
-String _formatDate(DateTime value) {
-  final day = value.day.toString().padLeft(2, '0');
-  final month = value.month.toString().padLeft(2, '0');
-  final year = value.year.toString();
-  return '$day.$month.$year';
+String _formatDate(DateTime value, String localeTag) {
+  return DateFormat.yMd(localeTag).format(value);
 }
 
-String _formatTime(TimeOfDay value) {
-  final hour = value.hour.toString().padLeft(2, '0');
-  final minute = value.minute.toString().padLeft(2, '0');
-  return '$hour:$minute';
+String _formatTime(TimeOfDay value, String localeTag) {
+  final date = DateTime(2000, 1, 1, value.hour, value.minute);
+  return DateFormat.Hm(localeTag).format(date);
 }
 
-String _formatDateTime(DateTime value) {
-  return '${_formatDate(value)}, ${_formatTime(TimeOfDay.fromDateTime(value))}';
+String _formatDateTime(DateTime value, String localeTag) {
+  return '${_formatDate(value, localeTag)}, ${_formatTime(TimeOfDay.fromDateTime(value), localeTag)}';
 }
 
 int _generateNotificationId() {
@@ -47,14 +45,13 @@ class RemindersScreen extends StatelessWidget {
     ReminderEntry entry,
     bool value,
   ) async {
+    final l10n = context.l10n;
     if (value) {
       final allowed = await LocalNotifications.instance.requestPermissions();
       if (!allowed) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Разрешите уведомления в настройках устройства'),
-            ),
+            SnackBar(content: Text(l10n.remindersPermissionError)),
           );
         }
         return;
@@ -63,7 +60,9 @@ class RemindersScreen extends StatelessWidget {
 
     final updated = entry.copyWith(
       enabled: value,
-      notificationId: value ? (entry.notificationId ?? _generateNotificationId()) : null,
+      notificationId: value
+          ? (entry.notificationId ?? _generateNotificationId())
+          : null,
     );
     appState.updateReminder(updated);
   }
@@ -73,20 +72,21 @@ class RemindersScreen extends StatelessWidget {
     AppState appState,
     ReminderEntry entry,
   ) async {
+    final l10n = context.l10n;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Удалить напоминание?'),
-          content: const Text('Уверен, что хочешь удалить это напоминание?'),
+          title: Text(l10n.remindersDeleteTitle),
+          content: Text(l10n.remindersDeleteMessage),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Отмена'),
+              child: Text(l10n.commonCancel),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Удалить'),
+              child: Text(l10n.commonDelete),
             ),
           ],
         );
@@ -110,6 +110,7 @@ class RemindersScreen extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
+        final l10n = context.l10n;
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -117,22 +118,16 @@ class RemindersScreen extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 ListTile(
-                  leading: Icon(
-                    Icons.edit,
-                    color: AppColors.accentIncome,
-                  ),
-                  title: const Text('Редактировать'),
+                  leading: Icon(Icons.edit, color: AppColors.accentIncome),
+                  title: Text(l10n.commonEdit),
                   onTap: () {
                     Navigator.of(context).pop();
                     _openForm(context, entry: entry);
                   },
                 ),
                 ListTile(
-                  leading: Icon(
-                    Icons.delete,
-                    color: AppColors.accentExpense,
-                  ),
-                  title: const Text('Удалить'),
+                  leading: Icon(Icons.delete, color: AppColors.accentExpense),
+                  title: Text(l10n.commonDelete),
                   onTap: () {
                     Navigator.of(context).pop();
                     _confirmDelete(context, appState, entry);
@@ -149,15 +144,18 @@ class RemindersScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
+    final l10n = context.l10n;
+    final localeTag = Localizations.localeOf(context).toLanguageTag();
     final reminders = appState.reminders;
     final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
-      body: SafeArea(top: false,
+      body: SafeArea(
+        top: false,
         child: Column(
           children: [
             AppHeader(
-              title: 'Напоминания',
+              title: l10n.remindersTitle,
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
               leading: canPop
                   ? IconButton(
@@ -185,13 +183,9 @@ class RemindersScreen extends StatelessWidget {
                       child: reminders.isEmpty
                           ? Center(
                               child: Text(
-                                'Пока нет напоминаний',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                      color: AppColors.textSecondary,
-                                    ),
+                                l10n.remindersEmpty,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(color: AppColors.textSecondary),
                                 textAlign: TextAlign.center,
                               ),
                             )
@@ -217,10 +211,8 @@ class RemindersScreen extends StatelessWidget {
                                       extentRatio: 0.26,
                                       children: [
                                         CustomSlidableAction(
-                                          onPressed: (_) => _openForm(
-                                            context,
-                                            entry: entry,
-                                          ),
+                                          onPressed: (_) =>
+                                              _openForm(context, entry: entry),
                                           backgroundColor: Colors.transparent,
                                           autoClose: false,
                                           child: Align(
@@ -250,10 +242,8 @@ class RemindersScreen extends StatelessWidget {
                                       ],
                                     ),
                                     child: GestureDetector(
-                                      onTap: () => _openForm(
-                                        context,
-                                        entry: entry,
-                                      ),
+                                      onTap: () =>
+                                          _openForm(context, entry: entry),
                                       onLongPress: () => _openActionsSheet(
                                         context,
                                         appState,
@@ -280,7 +270,7 @@ class RemindersScreen extends StatelessWidget {
                                                   ),
                                                   const SizedBox(height: 4),
                                                   Text(
-                                                    '${reminderFrequencyLabel(entry.frequency)} • ${_formatDateTime(entry.startsAt)}',
+                                                    '${reminderFrequencyLabel(entry.frequency, l10n)} • ${_formatDateTime(entry.startsAt, localeTag)}',
                                                     style: Theme.of(context)
                                                         .textTheme
                                                         .bodySmall
@@ -405,10 +395,7 @@ class _ReminderFormScreenState extends State<_ReminderFormScreen> {
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _time,
-    );
+    final picked = await showTimePicker(context: context, initialTime: _time);
     if (picked == null) {
       return;
     }
@@ -418,6 +405,7 @@ class _ReminderFormScreenState extends State<_ReminderFormScreen> {
   }
 
   Future<void> _pickFrequency() async {
+    final l10n = context.l10n;
     final selected = await showModalBottomSheet<ReminderFrequency>(
       context: context,
       backgroundColor: AppColors.surface1,
@@ -433,12 +421,9 @@ class _ReminderFormScreenState extends State<_ReminderFormScreen> {
               final isSelected = _frequency == frequency;
               return ListTile(
                 onTap: () => Navigator.of(context).pop(frequency),
-                title: Text(reminderFrequencyLabel(frequency)),
+                title: Text(reminderFrequencyLabel(frequency, l10n)),
                 trailing: isSelected
-                    ? Icon(
-                        Icons.check,
-                        color: AppColors.accentIncome,
-                      )
+                    ? Icon(Icons.check, color: AppColors.accentIncome)
                     : null,
               );
             }).toList(),
@@ -467,14 +452,14 @@ class _ReminderFormScreenState extends State<_ReminderFormScreen> {
     final startsAt = _composeStartDateTime();
     if (_frequency == ReminderFrequency.once &&
         startsAt.isBefore(DateTime.now())) {
-      _showError('Выберите время в будущем');
+      _showError(context.l10n.remindersChooseFutureTimeError);
       return;
     }
 
     if (_enabled) {
       final allowed = await LocalNotifications.instance.requestPermissions();
       if (!allowed) {
-        _showError('Разрешите уведомления в настройках устройства');
+        _showError(context.l10n.remindersPermissionError);
         return;
       }
       _notificationId ??= _generateNotificationId();
@@ -512,20 +497,21 @@ class _ReminderFormScreenState extends State<_ReminderFormScreen> {
     if (entry == null) {
       return;
     }
+    final l10n = context.l10n;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Удалить напоминание?'),
-          content: const Text('Уверен, что хочешь удалить это напоминание?'),
+          title: Text(l10n.remindersDeleteTitle),
+          content: Text(l10n.remindersDeleteMessage),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Отмена'),
+              child: Text(l10n.commonCancel),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Удалить'),
+              child: Text(l10n.commonDelete),
             ),
           ],
         );
@@ -541,22 +527,24 @@ class _ReminderFormScreenState extends State<_ReminderFormScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
+    final localeTag = Localizations.localeOf(context).toLanguageTag();
     final nameError = _showErrors && _nameController.text.trim().isEmpty;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
           widget.initialEntry == null
-              ? 'Создать напоминание'
-              : 'Редактировать напоминание',
+              ? l10n.remindersNewTitle
+              : l10n.remindersEditTitle,
         ),
         backgroundColor: AppColors.surface1,
         surfaceTintColor: Colors.transparent,
@@ -567,22 +555,27 @@ class _ReminderFormScreenState extends State<_ReminderFormScreen> {
           child: Container(height: 1, color: AppColors.stroke),
         ),
       ),
-      body: SafeArea(top: false,
+      body: SafeArea(
+        top: false,
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SoftCard(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 child: Row(
                   children: [
                     SizedBox(
                       width: 150,
                       child: Text(
-                        'Имя напоминания',
-                        style: theme.textTheme.bodyMedium
-                            ?.copyWith(color: AppColors.textSecondary),
+                        l10n.remindersNameLabel,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -590,7 +583,7 @@ class _ReminderFormScreenState extends State<_ReminderFormScreen> {
                       child: TextField(
                         controller: _nameController,
                         decoration: InputDecoration(
-                          hintText: 'Например, оплата аренды',
+                          hintText: l10n.remindersNameHint,
                           hintStyle: TextStyle(
                             color: nameError
                                 ? AppColors.accentExpense
@@ -612,22 +605,27 @@ class _ReminderFormScreenState extends State<_ReminderFormScreen> {
               if (nameError) ...[
                 const SizedBox(height: 6),
                 Text(
-                  'Обязательное поле для заполнения',
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: AppColors.accentExpense),
+                  l10n.remindersNameRequired,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.accentExpense,
+                  ),
                 ),
               ],
               const SizedBox(height: 12),
               SoftCard(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 child: Row(
                   children: [
                     SizedBox(
                       width: 150,
                       child: Text(
-                        'Периодичность',
-                        style: theme.textTheme.bodyMedium
-                            ?.copyWith(color: AppColors.textSecondary),
+                        l10n.remindersFrequencyLabel,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -641,7 +639,7 @@ class _ReminderFormScreenState extends State<_ReminderFormScreen> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  reminderFrequencyLabel(_frequency),
+                                  reminderFrequencyLabel(_frequency, l10n),
                                   style: theme.textTheme.bodyMedium,
                                 ),
                               ),
@@ -659,15 +657,19 @@ class _ReminderFormScreenState extends State<_ReminderFormScreen> {
               ),
               const SizedBox(height: 12),
               SoftCard(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 child: Row(
                   children: [
                     SizedBox(
                       width: 150,
                       child: Text(
-                        'Дата начала',
-                        style: theme.textTheme.bodyMedium
-                            ?.copyWith(color: AppColors.textSecondary),
+                        l10n.remindersStartDateLabel,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -678,7 +680,7 @@ class _ReminderFormScreenState extends State<_ReminderFormScreen> {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 6),
                           child: Text(
-                            _formatDate(_startDate),
+                            _formatDate(_startDate, localeTag),
                             style: theme.textTheme.bodyMedium,
                           ),
                         ),
@@ -689,15 +691,19 @@ class _ReminderFormScreenState extends State<_ReminderFormScreen> {
               ),
               const SizedBox(height: 12),
               SoftCard(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 child: Row(
                   children: [
                     SizedBox(
                       width: 150,
                       child: Text(
-                        'Время',
-                        style: theme.textTheme.bodyMedium
-                            ?.copyWith(color: AppColors.textSecondary),
+                        l10n.remindersTimeLabel,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -708,7 +714,7 @@ class _ReminderFormScreenState extends State<_ReminderFormScreen> {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 6),
                           child: Text(
-                            _formatTime(_time),
+                            _formatTime(_time, localeTag),
                             style: theme.textTheme.bodyMedium,
                           ),
                         ),
@@ -719,16 +725,20 @@ class _ReminderFormScreenState extends State<_ReminderFormScreen> {
               ),
               const SizedBox(height: 12),
               SoftCard(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(
                       width: 150,
                       child: Text(
-                        'Комментарий',
-                        style: theme.textTheme.bodyMedium
-                            ?.copyWith(color: AppColors.textSecondary),
+                        l10n.remindersCommentLabel,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -736,8 +746,8 @@ class _ReminderFormScreenState extends State<_ReminderFormScreen> {
                       child: TextField(
                         controller: _commentController,
                         maxLines: 3,
-                        decoration: const InputDecoration(
-                          hintText: 'Комментарий',
+                        decoration: InputDecoration(
+                          hintText: l10n.remindersCommentHint,
                           isDense: true,
                           border: InputBorder.none,
                         ),
@@ -752,7 +762,9 @@ class _ReminderFormScreenState extends State<_ReminderFormScreen> {
                 child: FilledButton(
                   onPressed: _save,
                   child: Text(
-                    widget.initialEntry == null ? 'Создать' : 'Сохранить',
+                    widget.initialEntry == null
+                        ? l10n.commonCreate
+                        : l10n.commonSave,
                   ),
                 ),
               ),
@@ -765,7 +777,7 @@ class _ReminderFormScreenState extends State<_ReminderFormScreen> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.accentExpense,
                     ),
-                    child: const Text('Удалить'),
+                    child: Text(l10n.commonDelete),
                   ),
                 ),
               ],

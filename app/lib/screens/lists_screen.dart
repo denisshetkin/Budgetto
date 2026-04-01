@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../models/checklist_entry.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
@@ -22,20 +23,21 @@ class ListsScreen extends StatelessWidget {
     AppState appState,
     ChecklistEntry entry,
   ) async {
+    final l10n = context.l10n;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Удалить список?'),
-          content: const Text('Уверен, что хочешь удалить этот список?'),
+          title: Text(l10n.listsDeleteTitle),
+          content: Text(l10n.listsDeleteMessage),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Отмена'),
+              child: Text(l10n.commonCancel),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Удалить'),
+              child: Text(l10n.commonDelete),
             ),
           ],
         );
@@ -47,18 +49,20 @@ class ListsScreen extends StatelessWidget {
     }
   }
 
-  String _summary(ChecklistEntry entry) {
+  String _summary(ChecklistEntry entry, BuildContext context) {
+    final l10n = context.l10n;
     final total = entry.items.length;
     if (total == 0) {
-      return 'Пока нет пунктов';
+      return l10n.listsSummaryEmpty;
     }
     final done = entry.items.where((item) => item.checked).length;
-    return 'Отмечено $done из $total';
+    return l10n.listsSummaryProgress(done, total);
   }
 
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
+    final l10n = context.l10n;
     final lists = appState.checklists;
     final canPop = Navigator.of(context).canPop();
 
@@ -68,7 +72,7 @@ class ListsScreen extends StatelessWidget {
         child: Column(
           children: [
             AppHeader(
-              title: 'Списки',
+              title: l10n.appShellShoppingLists,
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
               leading: canPop
                   ? IconButton(
@@ -89,18 +93,15 @@ class ListsScreen extends StatelessWidget {
                 child: lists.isEmpty
                     ? Center(
                         child: Text(
-                          'Пока нет списков',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
+                          l10n.listsEmpty,
+                          style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(color: AppColors.textSecondary),
                         ),
                       )
                     : ListView.separated(
                         padding: EdgeInsets.zero,
                         itemCount: lists.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: 12),
+                        separatorBuilder: (_, _) => const SizedBox(height: 12),
                         itemBuilder: (context, index) {
                           final entry = lists[index];
                           return GestureDetector(
@@ -129,13 +130,13 @@ class ListsScreen extends StatelessWidget {
                                       children: [
                                         Text(
                                           entry.title,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyLarge,
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodyLarge,
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          _summary(entry),
+                                          _summary(entry, context),
                                           style: Theme.of(context)
                                               .textTheme
                                               .bodySmall
@@ -147,8 +148,11 @@ class ListsScreen extends StatelessWidget {
                                     ),
                                   ),
                                   IconButton(
-                                    onPressed: () =>
-                                        _confirmDelete(context, appState, entry),
+                                    onPressed: () => _confirmDelete(
+                                      context,
+                                      appState,
+                                      entry,
+                                    ),
                                     icon: Icon(
                                       Icons.delete,
                                       color: AppColors.accentExpense,
@@ -191,8 +195,9 @@ class _ChecklistEditorScreenState extends State<ChecklistEditorScreen> {
   @override
   void initState() {
     super.initState();
-    _titleController =
-        TextEditingController(text: widget.initialEntry?.title ?? '');
+    _titleController = TextEditingController(
+      text: widget.initialEntry?.title ?? '',
+    );
     final initialItems = widget.initialEntry?.items ?? [];
     if (initialItems.isEmpty) {
       _items.add(_createEditableItem());
@@ -270,11 +275,7 @@ class _ChecklistEditorScreenState extends State<ChecklistEditorScreen> {
         continue;
       }
       items.add(
-        ChecklistItem(
-          id: item.id,
-          title: title,
-          checked: item.checked,
-        ),
+        ChecklistItem(id: item.id, title: title, checked: item.checked),
       );
     }
 
@@ -282,7 +283,8 @@ class _ChecklistEditorScreenState extends State<ChecklistEditorScreen> {
       return null;
     }
 
-    final fallbackTitle = widget.initialEntry?.title ?? 'Список';
+    final fallbackTitle =
+        widget.initialEntry?.title ?? context.l10n.listsDefaultTitle;
     final title = _titleController.text.trim().isEmpty
         ? fallbackTitle
         : _titleController.text.trim();
@@ -314,12 +316,13 @@ class _ChecklistEditorScreenState extends State<ChecklistEditorScreen> {
 
   Future<void> _save({required bool pop}) async {
     final appState = AppStateScope.of(context);
+    final l10n = context.l10n;
     final entry = _buildEntry();
     if (entry == null) {
       if (pop) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Добавь название или пункт списка')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.listsAddTitleOrItemError)));
       }
       return;
     }
@@ -336,34 +339,40 @@ class _ChecklistEditorScreenState extends State<ChecklistEditorScreen> {
     }
   }
 
-  Future<bool> _handleWillPop() async {
-    await _save(pop: false);
-    return true;
-  }
-
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    final canPop = Navigator.of(context).canPop();
+    final navigator = Navigator.of(context);
+    final canPop = navigator.canPop();
 
-    return WillPopScope(
-      onWillPop: _handleWillPop,
+    return PopScope<void>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) {
+          return;
+        }
+        await _save(pop: false);
+        if (mounted) {
+          navigator.pop();
+        }
+      },
       child: Scaffold(
         body: SafeArea(
           top: false,
           child: Column(
             children: [
-            AppHeader(
-              title: widget.initialEntry == null
-                  ? 'Новый список'
-                  : 'Список',
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-              leading: canPop
-                  ? IconButton(
-                      onPressed: () async {
-                        await _save(pop: false);
+              AppHeader(
+                title: widget.initialEntry == null
+                    ? l10n.listsNewTitle
+                    : l10n.listsEditorTitle,
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                leading: canPop
+                    ? IconButton(
+                        onPressed: () async {
+                          await _save(pop: false);
                           if (mounted) {
-                            Navigator.of(context).pop();
+                            navigator.pop();
                           }
                         },
                         icon: const Icon(Icons.arrow_back),
@@ -372,7 +381,7 @@ class _ChecklistEditorScreenState extends State<ChecklistEditorScreen> {
                 actions: [
                   TextButton(
                     onPressed: () => _save(pop: true),
-                    child: const Text('Сохранить'),
+                    child: Text(l10n.commonSave),
                   ),
                 ],
               ),
@@ -383,8 +392,8 @@ class _ChecklistEditorScreenState extends State<ChecklistEditorScreen> {
                     SoftCard(
                       child: TextField(
                         controller: _titleController,
-                        decoration: const InputDecoration(
-                          hintText: 'Название списка',
+                        decoration: InputDecoration(
+                          hintText: l10n.listsNameHint,
                           border: InputBorder.none,
                         ),
                         style: Theme.of(context).textTheme.titleMedium,
@@ -411,8 +420,8 @@ class _ChecklistEditorScreenState extends State<ChecklistEditorScreen> {
                                 Expanded(
                                   child: TextField(
                                     controller: _items[i].controller,
-                                    decoration: const InputDecoration(
-                                      hintText: 'Пункт списка',
+                                    decoration: InputDecoration(
+                                      hintText: l10n.listsItemHint,
                                       border: InputBorder.none,
                                     ),
                                   ),
@@ -439,11 +448,11 @@ class _ChecklistEditorScreenState extends State<ChecklistEditorScreen> {
                     const SizedBox(height: 12),
                     OutlinedButton.icon(
                       onPressed: _addItem,
-                      icon: Icon(
-                        Icons.add,
-                        color: AppColors.accentIncome,
+                      icon: const Icon(Icons.add),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.accentIncome,
                       ),
-                      label: const Text('Добавить пункт'),
+                      label: Text(l10n.listsAddItem),
                     ),
                   ],
                 ),

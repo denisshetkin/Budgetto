@@ -1,7 +1,11 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+
+import '../l10n/generated/app_localizations.dart';
 
 class LocalNotifications {
   LocalNotifications._();
@@ -66,11 +70,12 @@ class LocalNotifications {
     required DateTime scheduledAt,
   }) async {
     await initialize();
-    const details = NotificationDetails(
+    final l10n = lookupAppLocalizations(ui.PlatformDispatcher.instance.locale);
+    final details = NotificationDetails(
       android: AndroidNotificationDetails(
         'planned_reminders',
-        'Регулярные платежи',
-        channelDescription: 'Напоминания о регулярных платежах',
+        l10n.notificationChannelPlannedName,
+        channelDescription: l10n.notificationChannelPlannedDescription,
         icon: 'ic_notification',
         importance: Importance.defaultImportance,
         priority: Priority.defaultPriority,
@@ -97,11 +102,12 @@ class LocalNotifications {
     required DateTime scheduledAt,
   }) async {
     await initialize();
-    const details = NotificationDetails(
+    final l10n = lookupAppLocalizations(ui.PlatformDispatcher.instance.locale);
+    final details = NotificationDetails(
       android: AndroidNotificationDetails(
         'custom_reminders',
-        'Напоминания',
-        channelDescription: 'Напоминания о важных делах',
+        l10n.notificationChannelReminderName,
+        channelDescription: l10n.notificationChannelReminderDescription,
         icon: 'ic_notification',
         importance: Importance.defaultImportance,
         priority: Priority.defaultPriority,
@@ -127,11 +133,12 @@ class LocalNotifications {
     required String body,
   }) async {
     await initialize();
-    const details = NotificationDetails(
+    final l10n = lookupAppLocalizations(ui.PlatformDispatcher.instance.locale);
+    final details = NotificationDetails(
       android: AndroidNotificationDetails(
         'family_transactions',
-        'Семейные траты',
-        channelDescription: 'Уведомления о новых расходах в семейном бюджете',
+        l10n.notificationChannelFamilyName,
+        channelDescription: l10n.notificationChannelFamilyDescription,
         icon: 'ic_notification',
         importance: Importance.high,
         priority: Priority.high,

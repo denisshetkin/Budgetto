@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:intl/intl.dart';
 
+import '../l10n/l10n.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../services/data_export.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
@@ -10,58 +13,57 @@ import '../widgets/soft_card.dart';
 class SubscriptionScreen extends StatelessWidget {
   const SubscriptionScreen({super.key});
 
-  static const List<_PlanConfig> _plans = [
-    _PlanConfig(
-      productId: AppState.yearlySubscriptionProductId,
-      title: 'Годовой',
-      fallbackPrice: '\$15 / год',
-      badge: 'Лучшая цена',
-    ),
-    _PlanConfig(
-      productId: AppState.quarterlySubscriptionProductId,
-      title: '3 месяца',
-      fallbackPrice: '\$5 / 3 месяца',
-    ),
-    _PlanConfig(
-      productId: AppState.monthlySubscriptionProductId,
-      title: 'Месячный',
-      fallbackPrice: '\$2 / месяц',
-    ),
-  ];
-
-  String _formatDate(DateTime? date) {
+  String _formatDate(DateTime? date, String localeTag, AppLocalizations l10n) {
     if (date == null) {
-      return 'не задана';
+      return l10n.subscriptionDateNotSet;
     }
-    final day = date.day.toString().padLeft(2, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    return '$day.$month.${date.year}';
+    return DateFormat.yMd(localeTag).format(date);
   }
 
-  String _headline(AppState appState) {
+  String _headline(AppState appState, AppLocalizations l10n) {
     if (appState.hasPremiumAccess) {
-      return 'Premium уже активен';
+      return l10n.subscriptionHeadlineActive;
     }
     if (appState.isTrialActive) {
-      return 'Первые 30 дней без ограничений';
+      return l10n.subscriptionHeadlineTrial;
     }
-    return 'Пробный период закончился';
+    return l10n.subscriptionHeadlineExpired;
   }
 
-  String _subhead(AppState appState) {
+  String _subhead(AppState appState, AppLocalizations l10n) {
     if (appState.hasPremiumAccess) {
-      return 'Все функции Budgetto остаются доступны без ограничений.';
+      return l10n.subscriptionSubheadActive;
     }
     if (appState.isTrialActive) {
-      return 'Осталось ${appState.trialDaysRemaining} д. до включения подписки.';
+      return l10n.subscriptionSubheadTrial(appState.trialDaysRemaining);
     }
-    return 'Чтобы продолжить пользоваться приложением, выбери подписку.';
+    return l10n.subscriptionSubheadExpired;
   }
 
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
     final canPop = Navigator.of(context).canPop();
+    final l10n = context.l10n;
+    final localeTag = Localizations.localeOf(context).toLanguageTag();
+    final plans = [
+      _PlanConfig(
+        productId: AppState.yearlySubscriptionProductId,
+        title: l10n.subscriptionPlanYearlyTitle,
+        fallbackPrice: l10n.subscriptionPlanYearlyFallback,
+        badge: l10n.subscriptionPlanBestBadge,
+      ),
+      _PlanConfig(
+        productId: AppState.quarterlySubscriptionProductId,
+        title: l10n.subscriptionPlanQuarterlyTitle,
+        fallbackPrice: l10n.subscriptionPlanQuarterlyFallback,
+      ),
+      _PlanConfig(
+        productId: AppState.monthlySubscriptionProductId,
+        title: l10n.subscriptionPlanMonthlyTitle,
+        fallbackPrice: l10n.subscriptionPlanMonthlyFallback,
+      ),
+    ];
 
     return Scaffold(
       body: SafeArea(
@@ -72,7 +74,7 @@ class SubscriptionScreen extends StatelessWidget {
             return Column(
               children: [
                 AppHeader(
-                  title: 'Premium',
+                  title: l10n.settingsPremiumTitle,
                   padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
                   leading: canPop
                       ? IconButton(
@@ -94,13 +96,13 @@ class SubscriptionScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _headline(appState),
+                              _headline(appState, l10n),
                               style: Theme.of(context).textTheme.titleLarge
                                   ?.copyWith(fontWeight: FontWeight.w700),
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              _subhead(appState),
+                              _subhead(appState, l10n),
                               style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(color: AppColors.textSecondary),
                             ),
@@ -112,16 +114,22 @@ class SubscriptionScreen extends StatelessWidget {
                                 _InfoChip(
                                   icon: Icons.timer_outlined,
                                   label: appState.hasPremiumAccess
-                                      ? 'Без ограничений'
-                                      : 'До ${_formatDate(appState.trialEndsAt)}',
+                                      ? l10n.subscriptionUnlimited
+                                      : l10n.subscriptionUntil(
+                                          _formatDate(
+                                            appState.trialEndsAt,
+                                            localeTag,
+                                            l10n,
+                                          ),
+                                        ),
                                 ),
                                 _InfoChip(
                                   icon: Icons.cloud_sync_outlined,
-                                  label: 'Sync и backup',
+                                  label: l10n.subscriptionSyncBackup,
                                 ),
                                 _InfoChip(
                                   icon: Icons.bar_chart_outlined,
-                                  label: 'Расширенные отчеты',
+                                  label: l10n.subscriptionExtendedReports,
                                 ),
                               ],
                             ),
@@ -134,35 +142,35 @@ class SubscriptionScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Что входит в Premium',
+                              l10n.subscriptionIncludedTitle,
                               style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(fontWeight: FontWeight.w600),
                             ),
                             const SizedBox(height: 12),
-                            const _BenefitRow(
+                            _BenefitRow(
                               icon: Icons.sync_rounded,
-                              text: 'Синхронизация между устройствами',
+                              text: l10n.subscriptionBenefitSync,
                             ),
                             const SizedBox(height: 10),
-                            const _BenefitRow(
+                            _BenefitRow(
                               icon: Icons.cloud_done_outlined,
-                              text: 'Резервное копирование данных',
+                              text: l10n.subscriptionBenefitBackup,
                             ),
                             const SizedBox(height: 10),
-                            const _BenefitRow(
+                            _BenefitRow(
                               icon: Icons.insights_outlined,
-                              text: 'Расширенные отчеты и аналитика',
+                              text: l10n.subscriptionBenefitReports,
                             ),
                             const SizedBox(height: 10),
-                            const _BenefitRow(
+                            _BenefitRow(
                               icon: Icons.notifications_active_outlined,
-                              text: 'Напоминания и planned-функции без лимитов',
+                              text: l10n.subscriptionBenefitReminders,
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 12),
-                      ..._plans.map((plan) {
+                      ...plans.map((plan) {
                         final product = appState.subscriptionProducts
                             .where((item) => item.id == plan.productId)
                             .cast<ProductDetails?>()
@@ -181,6 +189,8 @@ class SubscriptionScreen extends StatelessWidget {
                                 !appState.purchasePending &&
                                 product != null,
                             current: isCurrent,
+                            activeLabel: l10n.subscriptionPlanActive,
+                            selectLabel: l10n.commonSelect,
                             onTap: product == null
                                 ? null
                                 : () => appState.purchaseSubscription(
@@ -202,7 +212,7 @@ class SubscriptionScreen extends StatelessWidget {
                       if (!appState.storeAvailable) ...[
                         SoftCard(
                           child: Text(
-                            'Магазин платежей сейчас недоступен. Экспорт данных остается доступным.',
+                            l10n.subscriptionStoreUnavailable,
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: AppColors.textSecondary),
                           ),
@@ -216,7 +226,7 @@ class SubscriptionScreen extends StatelessWidget {
                               ? null
                               : () => appState.restorePurchases(),
                           icon: const Icon(Icons.restore_rounded),
-                          label: const Text('Восстановить покупки'),
+                          label: Text(l10n.subscriptionRestorePurchases),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -228,12 +238,12 @@ class SubscriptionScreen extends StatelessWidget {
                             appState,
                           ),
                           icon: const Icon(Icons.ios_share),
-                          label: const Text('Export my data'),
+                          label: Text(l10n.subscriptionExportMyData),
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Подписка продлевается автоматически, пока пользователь не отменит ее в App Store или Google Play.',
+                        l10n.subscriptionRenewalNote,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -258,6 +268,8 @@ class _PlanCard extends StatelessWidget {
     required this.price,
     required this.enabled,
     required this.current,
+    required this.activeLabel,
+    required this.selectLabel,
     this.badge,
     this.onTap,
   });
@@ -267,6 +279,8 @@ class _PlanCard extends StatelessWidget {
   final String? badge;
   final bool enabled;
   final bool current;
+  final String activeLabel;
+  final String selectLabel;
   final VoidCallback? onTap;
 
   @override
@@ -323,7 +337,7 @@ class _PlanCard extends StatelessWidget {
           const SizedBox(width: 12),
           FilledButton(
             onPressed: current ? null : (enabled ? onTap : null),
-            child: Text(current ? 'Активен' : 'Выбрать'),
+            child: Text(current ? activeLabel : selectLabel),
           ),
         ],
       ),

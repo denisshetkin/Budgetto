@@ -5,6 +5,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 
+import '../l10n/app_locale.dart';
+import '../l10n/generated/app_localizations.dart';
+import '../l10n/l10n.dart';
 import '../services/transaction_import.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
@@ -27,6 +30,7 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
     final canPop = Navigator.of(context).canPop();
+    final l10n = context.l10n;
 
     return Scaffold(
       body: SafeArea(
@@ -34,7 +38,7 @@ class SettingsScreen extends StatelessWidget {
         child: Column(
           children: [
             AppHeader(
-              title: 'Настройки',
+              title: l10n.settingsTitle,
               padding: EdgeInsets.fromLTRB(12, 12, 12, 8),
               leading: canPop
                   ? IconButton(
@@ -49,9 +53,9 @@ class SettingsScreen extends StatelessWidget {
                 children: [
                   _SettingsMenuItem(
                     icon: Icons.workspace_premium_outlined,
-                    title: 'Premium',
-                    subtitle: 'Подписка и доступ к приложению',
-                    value: appState.accessStatusLabel,
+                    title: l10n.settingsPremiumTitle,
+                    subtitle: l10n.settingsPremiumSubtitle,
+                    value: appState.accessStatusLabel(l10n),
                     iconColor: AppColors.accentTotal,
                     onTap: () =>
                         _openScreen(context, const SubscriptionScreen()),
@@ -59,41 +63,43 @@ class SettingsScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   _SettingsMenuItem(
                     icon: Icons.account_balance_wallet_outlined,
-                    title: 'Бюджеты',
-                    subtitle: 'Лимиты и цели по категориям',
+                    title: l10n.settingsBudgetsTitle,
+                    subtitle: l10n.settingsBudgetsSubtitle,
                     iconColor: AppColors.accentTotal,
                     onTap: () => _openScreen(context, const BudgetsScreen()),
                   ),
                   const SizedBox(height: 8),
                   _SettingsMenuItem(
                     icon: Icons.credit_card_outlined,
-                    title: 'Способы оплаты',
-                    subtitle: 'Карты и счета для операций',
+                    title: l10n.settingsPaymentMethodsTitle,
+                    subtitle: l10n.settingsPaymentMethodsSubtitle,
                     iconColor: AppColors.chipBlue,
                     onTap: () => _openScreen(context, const CardsScreen()),
                   ),
                   const SizedBox(height: 8),
                   _SettingsMenuItem(
                     icon: Icons.category_outlined,
-                    title: 'Категории',
-                    subtitle: 'Редактировать список категорий',
+                    title: l10n.settingsCategoriesTitle,
+                    subtitle: l10n.settingsCategoriesSubtitle,
                     iconColor: AppColors.categoryPalette[4],
                     onTap: () => _openScreen(context, const CategoriesScreen()),
                   ),
                   const SizedBox(height: 8),
                   _SettingsMenuItem(
                     icon: Icons.sell_outlined,
-                    title: 'Теги',
-                    subtitle: 'Добавить и переименовать теги',
+                    title: l10n.settingsTagsTitle,
+                    subtitle: l10n.settingsTagsSubtitle,
                     iconColor: AppColors.categoryPalette[7],
                     onTap: () => _openScreen(context, const TagsScreen()),
                   ),
                   const SizedBox(height: 8),
                   _SettingsMenuItem(
                     icon: Icons.currency_exchange_outlined,
-                    title: 'Валюта',
-                    subtitle: 'Валюта отображения суммы',
-                    value: appState.currencyCode ?? 'Не выбрана',
+                    title: l10n.settingsCurrencyTitle,
+                    subtitle: l10n.settingsCurrencySubtitle,
+                    value:
+                        appState.currencyCode ??
+                        l10n.settingsCurrencyNotSelected,
                     iconColor: AppColors.accentDisplay,
                     onTap: () =>
                         _openScreen(context, const CurrencySettingsScreen()),
@@ -101,20 +107,28 @@ class SettingsScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   _SettingsMenuItem(
                     icon: Icons.dark_mode_outlined,
-                    title: 'Тема',
-                    subtitle: 'Темная или светлая тема',
-                    value: appState.themeMode == ThemeMode.light
-                        ? 'Светлая'
-                        : 'Темная',
+                    title: l10n.settingsThemeTitle,
+                    subtitle: l10n.settingsThemeSubtitle,
+                    value: _themeLabel(appState.themeMode, l10n),
                     iconColor: AppColors.accentNeutral,
                     onTap: () =>
                         _openScreen(context, const ThemeSettingsScreen()),
                   ),
                   const SizedBox(height: 8),
                   _SettingsMenuItem(
+                    icon: Icons.language_outlined,
+                    title: l10n.settingsLanguageTitle,
+                    subtitle: l10n.settingsLanguageSubtitle,
+                    value: _languageLabel(appState.locale, l10n),
+                    iconColor: AppColors.categoryPalette[5],
+                    onTap: () =>
+                        _openScreen(context, const LanguageSettingsScreen()),
+                  ),
+                  const SizedBox(height: 8),
+                  _SettingsMenuItem(
                     icon: Icons.sync_rounded,
-                    title: 'Синхронизация',
-                    subtitle: 'Вход и перенос прогресса',
+                    title: l10n.settingsSyncTitle,
+                    subtitle: l10n.settingsSyncSubtitle,
                     iconColor: AppColors.accentDisplay,
                     onTap: () =>
                         _openScreen(context, const SyncSettingsScreen()),
@@ -122,8 +136,8 @@ class SettingsScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   _SettingsMenuItem(
                     icon: Icons.storage_outlined,
-                    title: 'Данные',
-                    subtitle: 'Импорт затрат из CSV',
+                    title: l10n.settingsDataTitle,
+                    subtitle: l10n.settingsDataSubtitle,
                     iconColor: AppColors.accentExpense,
                     onTap: () =>
                         _openScreen(context, const DataSettingsScreen()),
@@ -135,6 +149,46 @@ class SettingsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+String _themeLabel(ThemeMode mode, AppLocalizations l10n) {
+  return mode == ThemeMode.light
+      ? l10n.settingsThemeLight
+      : l10n.settingsThemeDark;
+}
+
+String _languageLabel(Locale? locale, AppLocalizations l10n) {
+  if (locale == null) {
+    return l10n.languageSystem;
+  }
+
+  switch (locale.languageCode) {
+    case 'ru':
+      return l10n.languageRussian;
+    case 'en':
+      return l10n.languageEnglish;
+    default:
+      return locale.languageCode.toUpperCase();
+  }
+}
+
+String _currencyName(String code, AppLocalizations l10n) {
+  switch (code) {
+    case 'USD':
+      return l10n.currencyNameUsd;
+    case 'EUR':
+      return l10n.currencyNameEur;
+    case 'GBP':
+      return l10n.currencyNameGbp;
+    case 'UAH':
+      return l10n.currencyNameUah;
+    case 'JPY':
+      return l10n.currencyNameJpy;
+    case 'RUB':
+      return l10n.currencyNameRub;
+    default:
+      return code;
   }
 }
 
@@ -223,18 +277,19 @@ class _SettingsMenuItem extends StatelessWidget {
 class CurrencySettingsScreen extends StatelessWidget {
   const CurrencySettingsScreen({super.key});
 
-  static const List<Map<String, String>> _currencies = [
-    {'code': 'USD', 'name': 'Доллар США'},
-    {'code': 'EUR', 'name': 'Евро'},
-    {'code': 'GBP', 'name': 'Фунт стерлингов'},
-    {'code': 'UAH', 'name': 'Гривна'},
-    {'code': 'JPY', 'name': 'Йена'},
-    {'code': 'RUB', 'name': 'Рубль'},
+  static const List<String> _currencies = [
+    'USD',
+    'EUR',
+    'GBP',
+    'UAH',
+    'JPY',
+    'RUB',
   ];
 
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
+    final l10n = context.l10n;
 
     return Scaffold(
       body: SafeArea(
@@ -242,7 +297,7 @@ class CurrencySettingsScreen extends StatelessWidget {
         child: Column(
           children: [
             AppHeader(
-              title: 'Валюта',
+              title: l10n.settingsCurrencyTitle,
               leading: IconButton(
                 onPressed: () => Navigator.of(context).pop(),
                 icon: const Icon(Icons.arrow_back_rounded),
@@ -251,9 +306,8 @@ class CurrencySettingsScreen extends StatelessWidget {
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.all(20),
-                children: _currencies.map((currency) {
-                  final code = currency['code']!;
-                  final name = currency['name']!;
+                children: _currencies.map((code) {
+                  final name = _currencyName(code, l10n);
                   final isSelected = code == appState.currencyCode;
 
                   return Padding(
@@ -312,6 +366,7 @@ class ThemeSettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
+    final l10n = context.l10n;
 
     return Scaffold(
       body: SafeArea(
@@ -319,7 +374,7 @@ class ThemeSettingsScreen extends StatelessWidget {
         child: Column(
           children: [
             AppHeader(
-              title: 'Тема',
+              title: l10n.settingsThemeTitle,
               leading: IconButton(
                 onPressed: () => Navigator.of(context).pop(),
                 icon: const Icon(Icons.arrow_back_rounded),
@@ -334,20 +389,20 @@ class ThemeSettingsScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Оформление',
+                          l10n.themeSettingsSectionTitle,
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 12),
                         SegmentedButton<ThemeMode>(
-                          segments: const [
+                          segments: [
                             ButtonSegment(
                               value: ThemeMode.dark,
-                              label: Text('Темная'),
+                              label: Text(l10n.settingsThemeDark),
                             ),
                             ButtonSegment(
                               value: ThemeMode.light,
-                              label: Text('Светлая'),
+                              label: Text(l10n.settingsThemeLight),
                             ),
                           ],
                           selected: {appState.themeMode},
@@ -357,10 +412,101 @@ class ThemeSettingsScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'Тема влияет на фон, карточки и оттенки интерфейса.',
+                          l10n.themeSettingsDescription,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: AppColors.textSecondary),
                         ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class LanguageSettingsScreen extends StatelessWidget {
+  const LanguageSettingsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = AppStateScope.of(context);
+    final l10n = context.l10n;
+    final localeOptions = <Locale?>[null, ...supportedAppLocales];
+
+    return Scaffold(
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            AppHeader(
+              title: l10n.settingsLanguageTitle,
+              leading: IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.arrow_back_rounded),
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  SoftCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.languageSettingsDescription,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.textSecondary),
+                        ),
+                        const SizedBox(height: 16),
+                        ...localeOptions.map((locale) {
+                          final isSelected = areLocalesEqual(
+                            appState.locale,
+                            locale,
+                          );
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: SoftCard(
+                              padding: EdgeInsets.zero,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(20),
+                                onTap: () => appState.setLocale(locale),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          _languageLabel(locale, l10n),
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodyMedium,
+                                        ),
+                                      ),
+                                      Icon(
+                                        isSelected
+                                            ? Icons.check_circle
+                                            : Icons.circle_outlined,
+                                        color: isSelected
+                                            ? AppColors.accentIncome
+                                            : AppColors.textSecondary,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
                       ],
                     ),
                   ),
@@ -378,6 +524,7 @@ class SyncSettingsScreen extends StatelessWidget {
   const SyncSettingsScreen({super.key});
 
   Future<void> _connectGoogle(BuildContext context, AppState appState) async {
+    final l10n = context.l10n;
     try {
       final connected = await appState.signInWithGoogle();
       if (!context.mounted) {
@@ -385,7 +532,11 @@ class SyncSettingsScreen extends StatelessWidget {
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(connected ? 'Google подключен' : 'Вход отменен'),
+          content: Text(
+            connected
+                ? l10n.syncSettingsGoogleConnected
+                : l10n.syncSettingsSignInCanceled,
+          ),
         ),
       );
     } catch (_) {
@@ -393,7 +544,7 @@ class SyncSettingsScreen extends StatelessWidget {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не удалось подключить Google')),
+        SnackBar(content: Text(l10n.syncSettingsGoogleConnectFailed)),
       );
     }
   }
@@ -401,13 +552,18 @@ class SyncSettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
-    final status = appState.syncEnabled ? 'Включена' : 'Выключена';
+    final l10n = context.l10n;
+    final status = appState.syncEnabled
+        ? l10n.syncSettingsStatusEnabled
+        : l10n.syncSettingsStatusDisabled;
     final statusColor = appState.syncEnabled
         ? AppColors.accentDisplay
         : AppColors.textSecondary;
     final isGoogle = appState.isGoogleSignedIn;
     final email = appState.currentUserEmail ?? '';
-    final accountStatus = isGoogle ? 'Google подключен' : 'Гость';
+    final accountStatus = isGoogle
+        ? l10n.syncSettingsGoogleConnected
+        : l10n.syncSettingsGuest;
     final accountStatusColor = isGoogle
         ? AppColors.accentDisplay
         : AppColors.textSecondary;
@@ -418,7 +574,7 @@ class SyncSettingsScreen extends StatelessWidget {
         child: Column(
           children: [
             AppHeader(
-              title: 'Синхронизация',
+              title: l10n.settingsSyncTitle,
               leading: IconButton(
                 onPressed: () => Navigator.of(context).pop(),
                 icon: const Icon(Icons.arrow_back_rounded),
@@ -433,7 +589,7 @@ class SyncSettingsScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Аккаунт',
+                          l10n.syncSettingsAccountSectionTitle,
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
@@ -442,7 +598,7 @@ class SyncSettingsScreen extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Статус',
+                              l10n.syncSettingsStatusLabel,
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                             Text(
@@ -472,14 +628,14 @@ class SyncSettingsScreen extends StatelessWidget {
                                 : () => _connectGoogle(context, appState),
                             child: Text(
                               isGoogle
-                                  ? 'Google подключен'
-                                  : 'Войти через Google',
+                                  ? l10n.syncSettingsGoogleConnected
+                                  : l10n.syncSettingsGoogleSignInButton,
                             ),
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Подключи Google, чтобы переносить прогресс между устройствами.',
+                          l10n.syncSettingsGoogleDescription,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: AppColors.textSecondary),
                         ),
@@ -492,7 +648,7 @@ class SyncSettingsScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Статус',
+                          l10n.syncSettingsStatusSectionTitle,
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
@@ -501,7 +657,7 @@ class SyncSettingsScreen extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Синхронизация данных',
+                              l10n.syncSettingsDataStatusLabel,
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                             Text(
@@ -516,7 +672,7 @@ class SyncSettingsScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'Синхронизация нужна для хранения данных в облаке и совместного бюджета.',
+                          l10n.syncSettingsCloudDescription,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: AppColors.textSecondary),
                         ),
@@ -568,15 +724,17 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
         return;
       }
 
+      final l10n = context.l10n;
       final file = result.files.single;
       final bytes = file.bytes ?? await _readFileBytes(file.readStream);
       if (bytes == null) {
-        _showMessage('Не удалось прочитать выбранный файл.');
+        _showMessage(l10n.settingsDataFileReadFailed);
         return;
       }
 
       final csvContent = utf8.decode(bytes, allowMalformed: true);
       final preview = TransactionImportService.analyzeCsv(
+        l10n: l10n,
         csvContent: csvContent,
         existingCategoryNames: appState.categories.map((item) => item.name),
         existingPaymentMethodNames: appState.paymentMethods.map(
@@ -598,7 +756,7 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
       await _confirmImportPreview(appState, preview);
     } catch (error) {
       if (mounted) {
-        _showMessage('Импорт не удался: $error');
+        _showMessage(context.l10n.settingsDataImportFailed(error.toString()));
       }
     } finally {
       if (mounted) {
@@ -610,11 +768,12 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
   }
 
   Future<void> _showImportErrors(TransactionImportPreview preview) async {
+    final l10n = context.l10n;
     await showDialog<void>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Исправь ошибки в CSV'),
+          title: Text(l10n.settingsDataErrorsTitle),
           content: SizedBox(
             width: 480,
             child: SingleChildScrollView(
@@ -624,14 +783,16 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
                 children: [
                   Text(
                     preview.sourceName == null
-                        ? 'Файл не прошёл валидацию.'
-                        : 'Файл "${preview.sourceName}" не прошёл валидацию.',
+                        ? l10n.settingsDataValidationFailedNoName
+                        : l10n.settingsDataValidationFailedWithName(
+                            preview.sourceName!,
+                          ),
                   ),
                   const SizedBox(height: 12),
                   ...preview.errors.map(
                     (issue) => Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: Text('• ${issue.displayMessage}'),
+                      child: Text('• ${issue.displayMessage(l10n)}'),
                     ),
                   ),
                 ],
@@ -641,7 +802,7 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Понятно'),
+              child: Text(l10n.settingsDataUnderstoodButton),
             ),
           ],
         );
@@ -653,11 +814,12 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
     AppState appState,
     TransactionImportPreview preview,
   ) async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Подтвердить импорт'),
+          title: Text(l10n.settingsDataConfirmImportTitle),
           content: SizedBox(
             width: 480,
             child: SingleChildScrollView(
@@ -666,30 +828,29 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (preview.sourceName != null) ...[
-                    Text('Файл: ${preview.sourceName}'),
+                    Text(l10n.settingsDataFileLabel(preview.sourceName!)),
                     const SizedBox(height: 12),
                   ],
-                  Text('Будет добавлено записей: ${preview.rows.length}'),
+                  Text(l10n.settingsDataWillAddCount(preview.rows.length)),
                   const SizedBox(height: 8),
                   _PreviewList(
-                    title: 'Новые категории',
+                    title: l10n.settingsDataNewCategories,
                     items: preview.newCategoryNames,
                   ),
                   const SizedBox(height: 12),
                   _PreviewList(
-                    title: 'Новые способы оплаты',
+                    title: l10n.settingsDataNewPaymentMethods,
                     items: preview.newPaymentMethodNames,
                   ),
                   const SizedBox(height: 12),
-                  _PreviewList(title: 'Новые теги', items: preview.newTagNames),
+                  _PreviewList(
+                    title: l10n.settingsDataNewTags,
+                    items: preview.newTagNames,
+                  ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Новые категории, способы оплаты, теги и сами записи будут добавлены только после нажатия кнопки "Импортировать".',
-                  ),
+                  Text(l10n.settingsDataImportConfirmHint),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Все импортированные записи также получат системный тег импорта, чтобы их можно было быстро отфильтровать и удалить.',
-                  ),
+                  Text(l10n.settingsDataImportTagHint),
                 ],
               ),
             ),
@@ -697,11 +858,11 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Отмена'),
+              child: Text(l10n.settingsDataCancelButton),
             ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Импортировать'),
+              child: Text(l10n.settingsDataImportAction),
             ),
           ],
         );
@@ -718,8 +879,10 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
     );
 
     _showMessage(
-      'Импортировано ${result.addedTransactions} записей. '
-      'Тег: ${result.importTagName}.',
+      l10n.settingsDataImportedSuccess(
+        result.addedTransactions,
+        result.importTagName,
+      ),
     );
   }
 
@@ -750,8 +913,9 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
+    final l10n = context.l10n;
     final instructionSections =
-        TransactionImportService.buildInstructionSections();
+        TransactionImportService.buildInstructionSections(l10n);
 
     return Scaffold(
       body: SafeArea(
@@ -759,7 +923,7 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
         child: Column(
           children: [
             AppHeader(
-              title: 'Импорт затрат',
+              title: l10n.settingsDataTitle,
               leading: IconButton(
                 onPressed: () => Navigator.of(context).pop(),
                 icon: const Icon(Icons.arrow_back_rounded),
@@ -774,7 +938,7 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Импорт затрат из CSV',
+                          l10n.settingsDataImportCardTitle,
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
@@ -803,13 +967,13 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Пример данных в документе',
+                                l10n.settingsDataSampleTitle,
                                 style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(fontWeight: FontWeight.w700),
                               ),
                               const SizedBox(height: 8),
                               SelectableText(
-                                TransactionImportService.sampleCsv(),
+                                TransactionImportService.sampleCsv(l10n),
                                 style: Theme.of(context).textTheme.bodySmall
                                     ?.copyWith(
                                       fontFamily: 'monospace',
@@ -838,8 +1002,8 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
                                 : const Icon(Icons.upload_file_rounded),
                             label: Text(
                               _importBusy
-                                  ? 'Проверяем CSV...'
-                                  : 'Выбрать CSV и проверить',
+                                  ? l10n.settingsDataCheckingCsv
+                                  : l10n.settingsDataChooseCsv,
                             ),
                           ),
                         ),
