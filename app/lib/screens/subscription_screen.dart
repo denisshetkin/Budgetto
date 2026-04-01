@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 
 import '../l10n/l10n.dart';
 import '../l10n/generated/app_localizations.dart';
-import '../services/data_export.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_header.dart';
@@ -38,6 +37,16 @@ class SubscriptionScreen extends StatelessWidget {
       return l10n.subscriptionSubheadTrial(appState.trialDaysRemaining);
     }
     return l10n.subscriptionSubheadExpired;
+  }
+
+  String _statusChipLabel(AppState appState, AppLocalizations l10n) {
+    if (appState.hasPremiumAccess) {
+      return l10n.subscriptionPlanActive;
+    }
+    if (appState.isTrialActive) {
+      return l10n.subscriptionChipPremiumAfterTrial;
+    }
+    return l10n.subscriptionChipSubscriptionRequired;
   }
 
   @override
@@ -125,11 +134,11 @@ class SubscriptionScreen extends StatelessWidget {
                                 ),
                                 _InfoChip(
                                   icon: Icons.cloud_sync_outlined,
-                                  label: l10n.subscriptionSyncBackup,
+                                  label: l10n.subscriptionChipFullAccess,
                                 ),
                                 _InfoChip(
-                                  icon: Icons.bar_chart_outlined,
-                                  label: l10n.subscriptionExtendedReports,
+                                  icon: Icons.workspace_premium_outlined,
+                                  label: _statusChipLabel(appState, l10n),
                                 ),
                               ],
                             ),
@@ -142,29 +151,29 @@ class SubscriptionScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              l10n.subscriptionIncludedTitle,
+                              l10n.subscriptionHowItWorksTitle,
                               style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(fontWeight: FontWeight.w600),
                             ),
                             const SizedBox(height: 12),
                             _BenefitRow(
-                              icon: Icons.sync_rounded,
-                              text: l10n.subscriptionBenefitSync,
+                              icon: Icons.all_inclusive_rounded,
+                              text: l10n.subscriptionHowItWorksTrial,
                             ),
                             const SizedBox(height: 10),
                             _BenefitRow(
-                              icon: Icons.cloud_done_outlined,
-                              text: l10n.subscriptionBenefitBackup,
+                              icon: Icons.rule_folder_outlined,
+                              text: l10n.subscriptionHowItWorksNoSplit,
                             ),
                             const SizedBox(height: 10),
                             _BenefitRow(
-                              icon: Icons.insights_outlined,
-                              text: l10n.subscriptionBenefitReports,
+                              icon: Icons.lock_clock_outlined,
+                              text: l10n.subscriptionHowItWorksAfterTrial,
                             ),
                             const SizedBox(height: 10),
                             _BenefitRow(
-                              icon: Icons.notifications_active_outlined,
-                              text: l10n.subscriptionBenefitReminders,
+                              icon: Icons.receipt_long_outlined,
+                              text: l10n.subscriptionHowItWorksBilling,
                             ),
                           ],
                         ),
@@ -227,18 +236,6 @@ class SubscriptionScreen extends StatelessWidget {
                               : () => appState.restorePurchases(),
                           icon: const Icon(Icons.restore_rounded),
                           label: Text(l10n.subscriptionRestorePurchases),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () => DataExport.exportTransactionsCsv(
-                            context,
-                            appState,
-                          ),
-                          icon: const Icon(Icons.ios_share),
-                          label: Text(l10n.subscriptionExportMyData),
                         ),
                       ),
                       const SizedBox(height: 8),

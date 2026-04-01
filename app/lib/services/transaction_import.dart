@@ -6,6 +6,8 @@ import '../state/app_state.dart';
 
 class TransactionImportService {
   static const int maxRows = 500;
+  static const String csvTypeExpense = 'expense';
+  static const String csvTypeIncome = 'income';
 
   static const List<String> requiredHeaders = [
     'date',
@@ -80,7 +82,7 @@ class TransactionImportService {
         errors.add(
           TransactionImportIssue(
             message: l10n.transactionImportMissingRequiredColumn(
-              _headerLabel(header, l10n),
+              _headerLabel(header),
             ),
           ),
         );
@@ -159,8 +161,8 @@ class TransactionImportService {
           TransactionImportIssue(
             lineNumber: lineNumber,
             message: l10n.transactionImportErrorInvalidType(
-              l10n.transactionTypeExpense,
-              l10n.transactionTypeIncome,
+              csvTypeExpense,
+              csvTypeIncome,
             ),
           ),
         );
@@ -351,7 +353,7 @@ class TransactionImportService {
   static List<TransactionImportInstructionSection> buildInstructionSections(
     AppLocalizations l10n,
   ) {
-    final headers = _documentHeaders(l10n).join(';');
+    final headers = _documentHeaders().join(';');
     return [
       TransactionImportInstructionSection(
         title: l10n.transactionImportInstructionPrepareTitle,
@@ -366,30 +368,24 @@ class TransactionImportService {
       TransactionImportInstructionSection(
         title: l10n.transactionImportInstructionColumnsTitle,
         items: [
-          l10n.transactionImportInstructionDateColumn(
-            _headerLabel('date', l10n),
-          ),
+          l10n.transactionImportInstructionDateColumn(_headerLabel('date')),
           l10n.transactionImportInstructionTypeColumn(
-            _headerLabel('transaction_type', l10n),
-            l10n.transactionTypeExpense,
-            l10n.transactionTypeIncome,
+            _headerLabel('transaction_type'),
+            csvTypeExpense,
+            csvTypeIncome,
           ),
           l10n.transactionImportInstructionOperationColumn(
-            _headerLabel('operation', l10n),
+            _headerLabel('operation'),
             l10n.transactionImportSampleOperationOne,
           ),
-          l10n.transactionImportInstructionAmountColumn(
-            _headerLabel('amount', l10n),
-          ),
+          l10n.transactionImportInstructionAmountColumn(_headerLabel('amount')),
           l10n.transactionImportInstructionCategoryColumn(
-            _headerLabel('category', l10n),
+            _headerLabel('category'),
           ),
           l10n.transactionImportInstructionPaymentMethodColumn(
-            _headerLabel('payment_method', l10n),
+            _headerLabel('payment_method'),
           ),
-          l10n.transactionImportInstructionTagsColumn(
-            _headerLabel('tags', l10n),
-          ),
+          l10n.transactionImportInstructionTagsColumn(_headerLabel('tags')),
         ],
       ),
       TransactionImportInstructionSection(
@@ -405,9 +401,9 @@ class TransactionImportService {
 
   static String sampleCsv(AppLocalizations l10n) {
     return [
-      _documentHeaders(l10n).join(';'),
-      '2026-03-28 14:25;${l10n.transactionTypeExpense};${l10n.transactionImportSampleOperationOne};12.50;${l10n.transactionImportSampleCategoryOne};${l10n.transactionImportSamplePaymentMethodOne};${l10n.transactionImportSampleTagsOne}',
-      '05.02.2026 0:53:29;${l10n.transactionTypeExpense};${l10n.transactionImportSampleOperationTwo};48.90;${l10n.transactionImportSampleCategoryTwo};${l10n.transactionImportSamplePaymentMethodTwo};',
+      _documentHeaders().join(';'),
+      '2026-03-28 14:25;$csvTypeExpense;${l10n.transactionImportSampleOperationOne};12.50;${l10n.transactionImportSampleCategoryOne};${l10n.transactionImportSamplePaymentMethodOne};${l10n.transactionImportSampleTagsOne}',
+      '2026-02-05 00:53;$csvTypeExpense;${l10n.transactionImportSampleOperationTwo};48.90;${l10n.transactionImportSampleCategoryTwo};${l10n.transactionImportSamplePaymentMethodTwo};',
     ].join('\n');
   }
 
@@ -593,9 +589,13 @@ class TransactionImportService {
     switch (_normalizeLookupKey(raw)) {
       case 'expense':
       case 'расход':
+      case 'gasto':
+      case 'gastos':
         return TransactionType.expense;
       case 'income':
       case 'доход':
+      case 'ingreso':
+      case 'ingresos':
         return TransactionType.income;
       default:
         return null;
@@ -631,32 +631,32 @@ class TransactionImportService {
     return value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
   }
 
-  static List<String> _documentHeaders(AppLocalizations l10n) => [
-    _headerLabel('date', l10n),
-    _headerLabel('transaction_type', l10n),
-    _headerLabel('operation', l10n),
-    _headerLabel('amount', l10n),
-    _headerLabel('category', l10n),
-    _headerLabel('payment_method', l10n),
-    _headerLabel('tags', l10n),
+  static List<String> _documentHeaders() => [
+    _headerLabel('date'),
+    _headerLabel('transaction_type'),
+    _headerLabel('operation'),
+    _headerLabel('amount'),
+    _headerLabel('category'),
+    _headerLabel('payment_method'),
+    _headerLabel('tags'),
   ];
 
-  static String _headerLabel(String header, AppLocalizations l10n) {
+  static String _headerLabel(String header) {
     switch (header) {
       case 'date':
-        return l10n.transactionImportColumnDate;
+        return 'date';
       case 'transaction_type':
-        return l10n.transactionImportColumnType;
+        return 'transaction_type';
       case 'operation':
-        return l10n.transactionImportColumnOperation;
+        return 'operation';
       case 'amount':
-        return l10n.transactionImportColumnAmount;
+        return 'amount';
       case 'category':
-        return l10n.transactionImportColumnCategory;
+        return 'category';
       case 'payment_method':
-        return l10n.transactionImportColumnPaymentMethod;
+        return 'payment_method';
       case 'tags':
-        return l10n.transactionImportColumnTags;
+        return 'tags';
       default:
         return header;
     }
@@ -669,20 +669,28 @@ class TransactionImportService {
   static const Map<String, String> _headerAliases = {
     'date': 'date',
     'дата': 'date',
+    'fecha': 'date',
     'transaction_type': 'transaction_type',
     'transaction type': 'transaction_type',
     'type': 'transaction_type',
     'тип': 'transaction_type',
     'тип операции': 'transaction_type',
+    'tipo de transaccion': 'transaction_type',
+    'tipo de transacción': 'transaction_type',
     'operation': 'operation',
     'операция': 'operation',
     'description': 'operation',
     'описание': 'operation',
     'комментарий': 'operation',
+    'operacion': 'operation',
+    'operación': 'operation',
     'amount': 'amount',
     'сумма': 'amount',
+    'importe': 'amount',
     'category': 'category',
     'категория': 'category',
+    'categoria': 'category',
+    'categoría': 'category',
     'payment_method': 'payment_method',
     'payment method': 'payment_method',
     'payment': 'payment_method',
@@ -690,10 +698,14 @@ class TransactionImportService {
     'оплата': 'payment_method',
     'тип платежа': 'payment_method',
     'способ оплаты': 'payment_method',
+    'metodo de pago': 'payment_method',
+    'método de pago': 'payment_method',
     'tags': 'tags',
     'tag': 'tags',
     'тег': 'tags',
     'теги': 'tags',
+    'etiquetas': 'tags',
+    'etiqueta': 'tags',
   };
 }
 

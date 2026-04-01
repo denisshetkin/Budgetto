@@ -7,19 +7,29 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../l10n/l10n.dart';
-import '../models/payment_method.dart';
 import '../models/transaction_entry.dart';
 import '../state/app_state.dart';
 
 class DataExport {
   static const int maxExportRows = 500;
+  static const String _csvHeaderId = 'id';
+  static const String _csvHeaderDate = 'date';
+  static const String _csvHeaderType = 'transaction_type';
+  static const String _csvHeaderOperation = 'operation';
+  static const String _csvHeaderAmount = 'amount';
+  static const String _csvHeaderCategory = 'category';
+  static const String _csvHeaderPaymentMethod = 'payment_method';
+  static const String _csvHeaderTags = 'tags';
+  static const String _csvHeaderAuthor = 'author';
+  static const String _csvTypeExpense = 'expense';
+  static const String _csvTypeIncome = 'income';
 
   static Future<void> exportTransactionsCsv(
     BuildContext context,
     AppState appState,
   ) async {
-    final l10n = context.l10n;
     final localeTag = Localizations.localeOf(context).toLanguageTag();
+    final l10n = context.l10n;
     final transactions = [...appState.transactions]
       ..sort((left, right) => right.date.compareTo(left.date));
     if (transactions.isEmpty) {
@@ -67,30 +77,35 @@ class DataExport {
     final buffer = StringBuffer();
     buffer.writeln(
       [
-        'ID',
-        l10n.dataExportColumnDate,
-        l10n.dataExportColumnAuthor,
-        l10n.dataExportColumnMethod,
-        l10n.dataExportColumnCategory,
-        l10n.dataExportColumnDescription,
-        l10n.dataExportColumnType,
-        l10n.dataExportColumnAmount,
+        _csvHeaderId,
+        _csvHeaderDate,
+        _csvHeaderType,
+        _csvHeaderOperation,
+        _csvHeaderAmount,
+        _csvHeaderCategory,
+        _csvHeaderPaymentMethod,
+        _csvHeaderTags,
+        _csvHeaderAuthor,
       ].map(_csvCell).join(';'),
     );
 
-    for (var i = 0; i < filteredTransactions.length; i++) {
-      final entry = filteredTransactions[i];
+    for (final entry in filteredTransactions) {
       final author = appState.memberName(entry.createdByUserId) ?? '';
+      final operation = (entry.note ?? '').trim().isNotEmpty
+          ? entry.note!.trim()
+          : entry.categoryName;
+      final tags = entry.tags.map((tag) => tag.name).join(',');
       buffer.writeln(
         [
-          '${i + 1}',
-          _formatExportDate(entry.date, localeTag),
-          author,
-          _methodLabel(entry.paymentMethod, l10n),
-          entry.categoryName,
-          entry.note ?? '',
-          _typeLabel(entry.type, l10n),
+          entry.id,
+          _formatExportDate(entry.date),
+          _typeLabel(entry.type),
+          operation,
           _formatExportAmount(entry.amount),
+          entry.categoryName,
+          entry.paymentMethod.name,
+          tags,
+          author,
         ].map(_csvCell).join(';'),
       );
     }
@@ -142,13 +157,12 @@ class DataExport {
 
   static String _twoDigits(int value) => value.toString().padLeft(2, '0');
 
-  static String _formatExportDate(DateTime date, String localeTag) {
-    return '${DateFormat.yMd(localeTag).format(date)} ${DateFormat.Hm(localeTag).format(date)}';
+  static String _formatExportDate(DateTime date) {
+    return DateFormat('yyyy-MM-dd HH:mm').format(date);
   }
 
   static String _formatExportAmount(double amount) {
-    final fixed = amount.toStringAsFixed(2);
-    return fixed.replaceAll('.', ',');
+    return amount.toStringAsFixed(2);
   }
 
   static List<_ExportMonthOption> _buildMonthOptions(
@@ -190,67 +204,85 @@ class DataExport {
         final hasLimitedMonths = options.any(
           (option) => option.count > maxExportRows,
         );
+        final exportableOptions = options
+            .where((option) => option.count <= maxExportRows)
+            .toList(growable: false);
+        _ExportMonthOption? selectedOption = exportableOptions.isNotEmpty
+            ? exportableOptions.first
+            : null;
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  context.l10n.dataExportPickMonthTitle,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  context.l10n.dataExportPickMonthDescription(maxExportRows),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.grey),
-                ),
-                const SizedBox(height: 12),
-                Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: options.length,
-                    separatorBuilder: (context, index) =>
-                        const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final option = options[index];
-                      final isDisabled = option.count > maxExportRows;
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        enabled: !isDisabled,
-                        title: Text(option.label),
-                        subtitle: Text(
-                          isDisabled
-                              ? context.l10n.dataExportMonthCountExceeded(
-                                  option.count,
-                                )
-                              : context.l10n.dataExportMonthCount(option.count),
-                        ),
-                        trailing: isDisabled
-                            ? const Icon(Icons.lock_outline_rounded)
-                            : const Icon(Icons.chevron_right_rounded),
-                        onTap: isDisabled
-                            ? null
-                            : () => Navigator.of(context).pop(option),
-                      );
-                    },
-                  ),
-                ),
-                if (hasLimitedMonths) ...[
-                  const SizedBox(height: 12),
+          child: StatefulBuilder(
+            builder: (context, setState) => Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    context.l10n.dataExportMonthsLimited(maxExportRows),
+                    context.l10n.dataExportPickMonthTitle,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    context.l10n.dataExportPickMonthDescription(maxExportRows),
                     style: Theme.of(
                       context,
                     ).textTheme.bodySmall?.copyWith(color: Colors.grey),
                   ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<_ExportMonthOption>(
+                    initialValue: selectedOption,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: context.l10n.dataExportSelectMonthLabel,
+                    ),
+                    items: exportableOptions
+                        .map(
+                          (option) => DropdownMenuItem<_ExportMonthOption>(
+                            value: option,
+                            child: Text(option.label),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: exportableOptions.isEmpty
+                        ? null
+                        : (value) => setState(() => selectedOption = value),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    selectedOption == null
+                        ? context.l10n.dataExportNoAvailableMonths
+                        : context.l10n.dataExportMonthCount(
+                            selectedOption!.count,
+                          ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                  ),
+                  if (hasLimitedMonths) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      context.l10n.dataExportMonthsLimited(maxExportRows),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: selectedOption == null
+                          ? null
+                          : () => Navigator.of(context).pop(selectedOption),
+                      icon: const Icon(Icons.file_download_outlined),
+                      label: Text(context.l10n.dataExportExportAction),
+                    ),
+                  ),
                 ],
-              ],
+              ),
             ),
           ),
         );
@@ -263,16 +295,8 @@ class DataExport {
     return '"$escaped"';
   }
 
-  static String _methodLabel(PaymentMethod method, dynamic l10n) {
-    return method.type == PaymentMethodType.cash
-        ? l10n.paymentMethodCashLabel
-        : l10n.paymentMethodCardLabel;
-  }
-
-  static String _typeLabel(TransactionType type, dynamic l10n) {
-    return type == TransactionType.income
-        ? l10n.transactionTypeIncome
-        : l10n.transactionTypeExpense;
+  static String _typeLabel(TransactionType type) {
+    return type == TransactionType.income ? _csvTypeIncome : _csvTypeExpense;
   }
 }
 

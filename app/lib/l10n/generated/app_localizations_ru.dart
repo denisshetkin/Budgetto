@@ -134,6 +134,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get languageRussian => 'Русский';
 
   @override
+  String get languageSpanish => 'Español';
+
+  @override
   String get accessStatusPremiumActive => 'Premium активен';
 
   @override
@@ -316,26 +319,26 @@ class AppLocalizationsRu extends AppLocalizations {
   String get subscriptionDateNotSet => 'не задана';
 
   @override
-  String get subscriptionHeadlineActive => 'Premium уже активен';
+  String get subscriptionHeadlineActive => 'Premium активен';
 
   @override
-  String get subscriptionHeadlineTrial => 'Первые 30 дней без ограничений';
+  String get subscriptionHeadlineTrial => 'Первые 30 дней дают полный доступ';
 
   @override
   String get subscriptionHeadlineExpired => 'Пробный период закончился';
 
   @override
   String get subscriptionSubheadActive =>
-      'Все функции Budgetto остаются доступны без ограничений.';
+      'Premium сохраняет полный доступ к Budgetto после пробного периода.';
 
   @override
   String subscriptionSubheadTrial(int count) {
-    return 'Осталось $count д. до включения подписки.';
+    return 'Осталось $count д. полного доступа до того, как потребуется Premium.';
   }
 
   @override
   String get subscriptionSubheadExpired =>
-      'Чтобы продолжить пользоваться приложением, выбери подписку.';
+      'Чтобы продолжить пользоваться Budgetto после пробного периода, выбери подписку.';
 
   @override
   String get subscriptionUnlimited => 'Без ограничений';
@@ -346,36 +349,39 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get subscriptionSyncBackup => 'Sync и backup';
+  String get subscriptionChipFullAccess => 'Полный доступ';
 
   @override
-  String get subscriptionExtendedReports => 'Расширенные отчеты';
+  String get subscriptionChipPremiumAfterTrial => 'Premium после trial';
 
   @override
-  String get subscriptionIncludedTitle => 'Что входит в Premium';
+  String get subscriptionChipSubscriptionRequired => 'Нужна подписка';
 
   @override
-  String get subscriptionBenefitSync => 'Синхронизация между устройствами';
+  String get subscriptionHowItWorksTitle => 'Как работает доступ';
 
   @override
-  String get subscriptionBenefitBackup => 'Резервное копирование данных';
+  String get subscriptionHowItWorksTrial =>
+      'Первые 30 дней дают полный доступ ко всему приложению.';
 
   @override
-  String get subscriptionBenefitReports => 'Расширенные отчеты и аналитика';
+  String get subscriptionHowItWorksNoSplit =>
+      'Во время trial у приложения нет разделения на базовые и Premium-функции.';
 
   @override
-  String get subscriptionBenefitReminders =>
-      'Напоминания и planned-функции без лимитов';
+  String get subscriptionHowItWorksAfterTrial =>
+      'После окончания trial нужна активная подписка Premium, чтобы продолжить пользоваться Budgetto.';
+
+  @override
+  String get subscriptionHowItWorksBilling =>
+      'В любой момент можно выбрать месячный, квартальный или годовой тариф.';
 
   @override
   String get subscriptionStoreUnavailable =>
-      'Магазин платежей сейчас недоступен. Экспорт данных остается доступным.';
+      'Магазин платежей сейчас недоступен. Попробуй позже.';
 
   @override
   String get subscriptionRestorePurchases => 'Восстановить покупки';
-
-  @override
-  String get subscriptionExportMyData => 'Export my data';
 
   @override
   String get subscriptionRenewalNote =>
@@ -736,6 +742,16 @@ class AppLocalizationsRu extends AppLocalizations {
   String dataExportPickMonthDescription(int limit) {
     return 'Экспортирует только один месяц. Максимум $limit строк.';
   }
+
+  @override
+  String get dataExportSelectMonthLabel => 'Месяц';
+
+  @override
+  String get dataExportExportAction => 'Экспортировать CSV';
+
+  @override
+  String get dataExportNoAvailableMonths =>
+      'Сейчас нет месяцев, доступных для экспорта';
 
   @override
   String dataExportMonthCountExceeded(int count) {

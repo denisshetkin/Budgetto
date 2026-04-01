@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations_en.dart';
+import 'app_localizations_es.dart';
 import 'app_localizations_ru.dart';
 
 // ignore_for_file: type=lint
@@ -95,6 +96,7 @@ abstract class AppLocalizations {
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
+    Locale('es'),
     Locale('ru'),
   ];
 
@@ -343,6 +345,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Russian'**
   String get languageRussian;
+
+  /// No description provided for @languageSpanish.
+  ///
+  /// In en, this message translates to:
+  /// **'Spanish'**
+  String get languageSpanish;
 
   /// No description provided for @accessStatusPremiumActive.
   ///
@@ -695,13 +703,13 @@ abstract class AppLocalizations {
   /// No description provided for @subscriptionHeadlineActive.
   ///
   /// In en, this message translates to:
-  /// **'Premium is already active'**
+  /// **'Premium is active'**
   String get subscriptionHeadlineActive;
 
   /// No description provided for @subscriptionHeadlineTrial.
   ///
   /// In en, this message translates to:
-  /// **'First 30 days with no limits'**
+  /// **'The first 30 days include full access'**
   String get subscriptionHeadlineTrial;
 
   /// No description provided for @subscriptionHeadlineExpired.
@@ -713,19 +721,19 @@ abstract class AppLocalizations {
   /// No description provided for @subscriptionSubheadActive.
   ///
   /// In en, this message translates to:
-  /// **'All Budgetto features remain fully available.'**
+  /// **'Premium keeps full access to Budgetto after the trial.'**
   String get subscriptionSubheadActive;
 
   /// No description provided for @subscriptionSubheadTrial.
   ///
   /// In en, this message translates to:
-  /// **'{count} d. left before subscription starts.'**
+  /// **'{count} d. of full access left before Premium is required.'**
   String subscriptionSubheadTrial(int count);
 
   /// No description provided for @subscriptionSubheadExpired.
   ///
   /// In en, this message translates to:
-  /// **'Choose a subscription to keep using the app.'**
+  /// **'To keep using Budgetto after the trial, choose a subscription.'**
   String get subscriptionSubheadExpired;
 
   /// No description provided for @subscriptionUnlimited.
@@ -740,52 +748,58 @@ abstract class AppLocalizations {
   /// **'Until {date}'**
   String subscriptionUntil(Object date);
 
-  /// No description provided for @subscriptionSyncBackup.
+  /// No description provided for @subscriptionChipFullAccess.
   ///
   /// In en, this message translates to:
-  /// **'Sync and backup'**
-  String get subscriptionSyncBackup;
+  /// **'Full access'**
+  String get subscriptionChipFullAccess;
 
-  /// No description provided for @subscriptionExtendedReports.
+  /// No description provided for @subscriptionChipPremiumAfterTrial.
   ///
   /// In en, this message translates to:
-  /// **'Advanced reports'**
-  String get subscriptionExtendedReports;
+  /// **'Premium after trial'**
+  String get subscriptionChipPremiumAfterTrial;
 
-  /// No description provided for @subscriptionIncludedTitle.
+  /// No description provided for @subscriptionChipSubscriptionRequired.
   ///
   /// In en, this message translates to:
-  /// **'What Premium includes'**
-  String get subscriptionIncludedTitle;
+  /// **'Subscription required'**
+  String get subscriptionChipSubscriptionRequired;
 
-  /// No description provided for @subscriptionBenefitSync.
+  /// No description provided for @subscriptionHowItWorksTitle.
   ///
   /// In en, this message translates to:
-  /// **'Sync across devices'**
-  String get subscriptionBenefitSync;
+  /// **'How access works'**
+  String get subscriptionHowItWorksTitle;
 
-  /// No description provided for @subscriptionBenefitBackup.
+  /// No description provided for @subscriptionHowItWorksTrial.
   ///
   /// In en, this message translates to:
-  /// **'Data backup'**
-  String get subscriptionBenefitBackup;
+  /// **'The first 30 days include full access to the entire app.'**
+  String get subscriptionHowItWorksTrial;
 
-  /// No description provided for @subscriptionBenefitReports.
+  /// No description provided for @subscriptionHowItWorksNoSplit.
   ///
   /// In en, this message translates to:
-  /// **'Advanced reports and analytics'**
-  String get subscriptionBenefitReports;
+  /// **'During the trial there is no split between basic and Premium features.'**
+  String get subscriptionHowItWorksNoSplit;
 
-  /// No description provided for @subscriptionBenefitReminders.
+  /// No description provided for @subscriptionHowItWorksAfterTrial.
   ///
   /// In en, this message translates to:
-  /// **'Reminders and planned features without limits'**
-  String get subscriptionBenefitReminders;
+  /// **'After the trial ends, an active Premium subscription is required to continue using Budgetto.'**
+  String get subscriptionHowItWorksAfterTrial;
+
+  /// No description provided for @subscriptionHowItWorksBilling.
+  ///
+  /// In en, this message translates to:
+  /// **'You can choose monthly, quarterly, or yearly billing at any time.'**
+  String get subscriptionHowItWorksBilling;
 
   /// No description provided for @subscriptionStoreUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'The payment store is currently unavailable. Data export remains available.'**
+  /// **'The payment store is currently unavailable. Try again later.'**
   String get subscriptionStoreUnavailable;
 
   /// No description provided for @subscriptionRestorePurchases.
@@ -793,12 +807,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Restore purchases'**
   String get subscriptionRestorePurchases;
-
-  /// No description provided for @subscriptionExportMyData.
-  ///
-  /// In en, this message translates to:
-  /// **'Export my data'**
-  String get subscriptionExportMyData;
 
   /// No description provided for @subscriptionRenewalNote.
   ///
@@ -1471,6 +1479,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Exports only one month. Maximum {limit} rows.'**
   String dataExportPickMonthDescription(int limit);
+
+  /// No description provided for @dataExportSelectMonthLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get dataExportSelectMonthLabel;
+
+  /// No description provided for @dataExportExportAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Export CSV'**
+  String get dataExportExportAction;
+
+  /// No description provided for @dataExportNoAvailableMonths.
+  ///
+  /// In en, this message translates to:
+  /// **'No months are currently available for export'**
+  String get dataExportNoAvailableMonths;
 
   /// No description provided for @dataExportMonthCountExceeded.
   ///
@@ -2595,7 +2621,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en', 'ru'].contains(locale.languageCode);
+      <String>['en', 'es', 'ru'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -2606,6 +2632,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   switch (locale.languageCode) {
     case 'en':
       return AppLocalizationsEn();
+    case 'es':
+      return AppLocalizationsEs();
     case 'ru':
       return AppLocalizationsRu();
   }

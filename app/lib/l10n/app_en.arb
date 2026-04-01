@@ -41,6 +41,7 @@
   "languageSystem": "System",
   "languageEnglish": "English",
   "languageRussian": "Russian",
+  "languageSpanish": "Spanish",
   "accessStatusPremiumActive": "Premium active",
   "accessStatusLocked": "Access locked",
   "accessStatusDaysRemaining": "{count} d. left",
@@ -126,11 +127,11 @@
   "subscriptionPlanMonthlyTitle": "Monthly",
   "subscriptionPlanMonthlyFallback": "$2 / month",
   "subscriptionDateNotSet": "not set",
-  "subscriptionHeadlineActive": "Premium is already active",
-  "subscriptionHeadlineTrial": "First 30 days with no limits",
+  "subscriptionHeadlineActive": "Premium is active",
+  "subscriptionHeadlineTrial": "The first 30 days include full access",
   "subscriptionHeadlineExpired": "Trial period has ended",
-  "subscriptionSubheadActive": "All Budgetto features remain fully available.",
-  "subscriptionSubheadTrial": "{count} d. left before subscription starts.",
+  "subscriptionSubheadActive": "Premium keeps full access to Budgetto after the trial.",
+  "subscriptionSubheadTrial": "{count} d. of full access left before Premium is required.",
   "@subscriptionSubheadTrial": {
     "placeholders": {
       "count": {
@@ -138,7 +139,7 @@
       }
     }
   },
-  "subscriptionSubheadExpired": "Choose a subscription to keep using the app.",
+  "subscriptionSubheadExpired": "To keep using Budgetto after the trial, choose a subscription.",
   "subscriptionUnlimited": "Unlimited",
   "subscriptionUntil": "Until {date}",
   "@subscriptionUntil": {
@@ -146,16 +147,16 @@
       "date": {}
     }
   },
-  "subscriptionSyncBackup": "Sync and backup",
-  "subscriptionExtendedReports": "Advanced reports",
-  "subscriptionIncludedTitle": "What Premium includes",
-  "subscriptionBenefitSync": "Sync across devices",
-  "subscriptionBenefitBackup": "Data backup",
-  "subscriptionBenefitReports": "Advanced reports and analytics",
-  "subscriptionBenefitReminders": "Reminders and planned features without limits",
-  "subscriptionStoreUnavailable": "The payment store is currently unavailable. Data export remains available.",
+  "subscriptionChipFullAccess": "Full access",
+  "subscriptionChipPremiumAfterTrial": "Premium after trial",
+  "subscriptionChipSubscriptionRequired": "Subscription required",
+  "subscriptionHowItWorksTitle": "How access works",
+  "subscriptionHowItWorksTrial": "The first 30 days include full access to the entire app.",
+  "subscriptionHowItWorksNoSplit": "During the trial there is no split between basic and Premium features.",
+  "subscriptionHowItWorksAfterTrial": "After the trial ends, an active Premium subscription is required to continue using Budgetto.",
+  "subscriptionHowItWorksBilling": "You can choose monthly, quarterly, or yearly billing at any time.",
+  "subscriptionStoreUnavailable": "The payment store is currently unavailable. Try again later.",
   "subscriptionRestorePurchases": "Restore purchases",
-  "subscriptionExportMyData": "Export my data",
   "subscriptionRenewalNote": "The subscription renews automatically until the user cancels it in the App Store or Google Play.",
   "subscriptionPlanActive": "Active",
   "transactionsBudgetPickerTitle": "Choose a budget",
@@ -322,6 +323,9 @@
       }
     }
   },
+  "dataExportSelectMonthLabel": "Month",
+  "dataExportExportAction": "Export CSV",
+  "dataExportNoAvailableMonths": "No months are currently available for export",
   "dataExportMonthCountExceeded": "{count} transactions, exceeds limit",
   "@dataExportMonthCountExceeded": {
     "placeholders": {

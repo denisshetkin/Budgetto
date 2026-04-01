@@ -1,0 +1,668 @@
+{
+  "@@locale": "es",
+  "appTitle": "Budgetto",
+  "settingsTitle": "Ajustes",
+  "settingsPremiumTitle": "Premium",
+  "settingsPremiumSubtitle": "Suscripcion y acceso a la app",
+  "settingsBudgetsTitle": "Presupuestos",
+  "settingsBudgetsSubtitle": "Limites y objetivos por categoria",
+  "settingsPaymentMethodsTitle": "Metodos de pago",
+  "settingsPaymentMethodsSubtitle": "Tarjetas y cuentas para transacciones",
+  "settingsCategoriesTitle": "Categorias",
+  "settingsCategoriesSubtitle": "Editar la lista de categorias",
+  "settingsTagsTitle": "Etiquetas",
+  "settingsTagsSubtitle": "Agregar y renombrar etiquetas",
+  "settingsCurrencyTitle": "Moneda",
+  "settingsCurrencySubtitle": "Moneda para mostrar importes",
+  "settingsCurrencyNotSelected": "No seleccionada",
+  "settingsThemeTitle": "Tema",
+  "settingsThemeSubtitle": "Tema claro u oscuro",
+  "settingsThemeDark": "Oscuro",
+  "settingsThemeLight": "Claro",
+  "settingsLanguageTitle": "Idioma",
+  "settingsLanguageSubtitle": "Idioma de la interfaz de la app",
+  "settingsSyncTitle": "Sincronizacion",
+  "settingsSyncSubtitle": "Iniciar sesion y mover el progreso",
+  "settingsDataTitle": "Datos",
+  "settingsDataSubtitle": "Importar gastos desde CSV",
+  "commonCancel": "Cancelar",
+  "commonDelete": "Eliminar",
+  "commonReset": "Restablecer",
+  "commonApply": "Aplicar",
+  "commonSelect": "Seleccionar",
+  "commonEdit": "Editar",
+  "commonSave": "Guardar",
+  "commonCreate": "Crear",
+  "commonAdd": "Agregar",
+  "commonNotAvailable": "—",
+  "themeSettingsSectionTitle": "Apariencia",
+  "themeSettingsDescription": "El tema afecta al fondo, las tarjetas y los acentos de la interfaz.",
+  "languageSettingsDescription": "Elige un idioma fijo para la app o usa el idioma del sistema.",
+  "languageSystem": "Sistema",
+  "languageEnglish": "English",
+  "languageRussian": "Русский",
+  "languageSpanish": "Español",
+  "accessStatusPremiumActive": "Premium activo",
+  "accessStatusLocked": "Acceso bloqueado",
+  "accessStatusDaysRemaining": "Quedan {count} d.",
+  "@accessStatusDaysRemaining": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "appShellPlannedPayments": "Pagos recurrentes",
+  "appShellReminders": "Recordatorios",
+  "appShellShoppingLists": "Listas de compras",
+  "appShellImportCsv": "Importar CSV",
+  "appShellExportCsv": "Exportar CSV",
+  "overviewTitle": "Resumen",
+  "overviewRangePickHelp": "Elige un periodo",
+  "overviewRangeSave": "Listo",
+  "overviewRangeCancel": "Cancelar",
+  "overviewExpenses": "Gastos",
+  "overviewIncome": "Ingresos",
+  "overviewRangeDay": "Dia",
+  "overviewRangeWeek": "Semana",
+  "overviewRangeMonth": "Mes",
+  "overviewRangeYear": "Año",
+  "overviewRangePeriod": "Periodo",
+  "overviewTotal": "Total",
+  "overviewNoTransactions": "No hay transacciones para el periodo seleccionado.",
+  "homeBalanceTitle": "Saldo",
+  "homeCategoriesTitle": "Categorias",
+  "searchTitle": "Busqueda",
+  "searchHint": "Buscar por descripcion, categoria o etiqueta",
+  "searchAll": "Todo",
+  "searchFromPlaceholder": "Desde: fecha y hora",
+  "searchFromValue": "Desde: {value}",
+  "@searchFromValue": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "searchToPlaceholder": "Hasta: fecha y hora",
+  "searchToValue": "Hasta: {value}",
+  "@searchToValue": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "searchTagsEmpty": "Todavia no hay etiquetas",
+  "searchNoResults": "No se encontro nada",
+  "reportsTitle": "Informes",
+  "reportsByCategoryTitle": "Por categoria",
+  "reportsByTimeTitle": "Por tiempo",
+  "reportsCategoryFood": "Comida",
+  "reportsCategoryHousing": "Vivienda",
+  "reportsCategoryTransport": "Transporte",
+  "listsEmpty": "Todavia no hay listas",
+  "listsDeleteTitle": "¿Eliminar lista?",
+  "listsDeleteMessage": "¿Seguro que quieres eliminar esta lista?",
+  "listsSummaryEmpty": "Todavia no hay elementos",
+  "listsSummaryProgress": "Marcados {done} de {total}",
+  "@listsSummaryProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "listsDefaultTitle": "Lista",
+  "listsAddTitleOrItemError": "Agrega un titulo o un elemento de la lista",
+  "listsNewTitle": "Nueva lista",
+  "listsEditorTitle": "Lista",
+  "listsNameHint": "Titulo de la lista",
+  "listsItemHint": "Elemento de la lista",
+  "listsAddItem": "Agregar elemento",
+  "subscriptionPlanYearlyTitle": "Anual",
+  "subscriptionPlanYearlyFallback": "$15 / año",
+  "subscriptionPlanBestBadge": "Mejor opcion",
+  "subscriptionPlanQuarterlyTitle": "3 meses",
+  "subscriptionPlanQuarterlyFallback": "$5 / 3 meses",
+  "subscriptionPlanMonthlyTitle": "Mensual",
+  "subscriptionPlanMonthlyFallback": "$2 / mes",
+  "subscriptionDateNotSet": "no definida",
+  "subscriptionHeadlineActive": "Premium esta activo",
+  "subscriptionHeadlineTrial": "Los primeros 30 dias dan acceso completo",
+  "subscriptionHeadlineExpired": "El periodo de prueba ha terminado",
+  "subscriptionSubheadActive": "Premium mantiene el acceso completo a Budgetto despues del periodo de prueba.",
+  "subscriptionSubheadTrial": "Quedan {count} d. de acceso completo antes de que Premium sea necesario.",
+  "@subscriptionSubheadTrial": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionSubheadExpired": "Para seguir usando Budgetto despues del periodo de prueba, elige una suscripcion.",
+  "subscriptionUnlimited": "Ilimitado",
+  "subscriptionUntil": "Hasta {date}",
+  "@subscriptionUntil": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "subscriptionChipFullAccess": "Acceso completo",
+  "subscriptionChipPremiumAfterTrial": "Premium despues del trial",
+  "subscriptionChipSubscriptionRequired": "Suscripcion necesaria",
+  "subscriptionHowItWorksTitle": "Como funciona el acceso",
+  "subscriptionHowItWorksTrial": "Los primeros 30 dias dan acceso completo a toda la app.",
+  "subscriptionHowItWorksNoSplit": "Durante el trial no existe separacion entre funciones basicas y Premium.",
+  "subscriptionHowItWorksAfterTrial": "Cuando termina el trial, se necesita una suscripcion Premium activa para seguir usando Budgetto.",
+  "subscriptionHowItWorksBilling": "Puedes elegir un plan mensual, trimestral o anual en cualquier momento.",
+  "subscriptionStoreUnavailable": "La tienda de pagos no esta disponible ahora mismo. Intentalo mas tarde.",
+  "subscriptionRestorePurchases": "Restaurar compras",
+  "subscriptionRenewalNote": "La suscripcion se renueva automaticamente hasta que el usuario la cancele en la App Store o en Google Play.",
+  "subscriptionPlanActive": "Activa",
+  "transactionsBudgetPickerTitle": "Elige un presupuesto",
+  "transactionsPersonalBudgetTitle": "Presupuesto personal",
+  "transactionsPersonalBudgetSubtitle": "Solo para ti",
+  "transactionsDeleteTitle": "¿Eliminar transaccion?",
+  "transactionsDeleteMessage": "¿Seguro que quieres eliminar esta transaccion?",
+  "transactionsDeleted": "Transaccion eliminada",
+  "transactionsTextTitle": "Texto",
+  "transactionsTextHint": "Descripcion, categoria, etiqueta o importe",
+  "transactionsTypeTitle": "Tipo de transaccion",
+  "transactionsTypeAll": "Todo",
+  "transactionsTypeExpenses": "Gastos",
+  "transactionsTypeIncome": "Ingresos",
+  "transactionsPeriodTitle": "Periodo",
+  "transactionsQuickLastMonth": "Ultimo mes",
+  "transactionsQuickQuarter": "Trimestre",
+  "transactionsQuickYear": "Año",
+  "transactionsSelectMonth": "Seleccionar mes",
+  "transactionsFrom": "Desde",
+  "transactionsTo": "Hasta",
+  "transactionsChooseDate": "Elige una fecha",
+  "transactionsCategoriesTitle": "Categorias",
+  "transactionsTagsTitle": "Etiquetas",
+  "transactionsTagsEmpty": "Todavia no hay etiquetas",
+  "transactionsMethodsTitle": "Metodos de pago",
+  "transactionsDisplayTotal": "Total",
+  "transactionsDisplayByDate": "Por fecha",
+  "transactionsDisplayCategories": "Categorias",
+  "transactionsDisplayPayment": "Pago",
+  "transactionsDisplayTags": "Etiquetas",
+  "transactionsDisplayAuthor": "Autor",
+  "transactionsFamilyBudgetFallback": "Presupuesto compartido",
+  "transactionsNothingFound": "No se encontro nada",
+  "transactionsNoTransactions": "Todavia no hay transacciones",
+  "transactionsTitle": "Transacciones",
+  "transactionTypeExpense": "Gasto",
+  "transactionTypeIncome": "Ingreso",
+  "formAmountLabel": "Importe",
+  "formDescriptionLabel": "Descripcion",
+  "formPaymentLabel": "Pago",
+  "formCategoryLabel": "Categoria",
+  "formTagsLabel": "Etiquetas",
+  "formTagsEmpty": "Todavia no hay etiquetas",
+  "formChooseCategoryError": "Elige una categoria",
+  "formChoosePaymentError": "Elige un metodo de pago",
+  "formAmountPositiveError": "Introduce un importe mayor que 0",
+  "addTransactionNewTitle": "Nuevo {type}",
+  "@addTransactionNewTitle": {
+    "placeholders": {
+      "type": {}
+    }
+  },
+  "addTransactionEditTitle": "Editar transaccion",
+  "addTransactionDescriptionHint": "Por ejemplo, cafe y snack",
+  "plannedTitle": "Pagos recurrentes",
+  "plannedEmpty": "Todavia no hay pagos recurrentes",
+  "plannedDeleteTitle": "¿Eliminar registro?",
+  "plannedDeleteMessage": "¿Seguro que quieres eliminar este registro?",
+  "plannedDeleted": "Pago eliminado",
+  "plannedAddToTransactionsTitle": "¿Agregar a transacciones?",
+  "plannedAddToTransactionsMessage": "¿Crear una transaccion a partir de \"{description}\" por {amount}?",
+  "@plannedAddToTransactionsMessage": {
+    "placeholders": {
+      "description": {},
+      "amount": {}
+    }
+  },
+  "plannedAddedToTransactions": "Agregado a transacciones",
+  "plannedActionAddToTransactions": "Agregar a transacciones",
+  "plannedScheduledReminder": "Recordatorio: {date}",
+  "@plannedScheduledReminder": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "plannedScheduledDate": "Fecha: {date}",
+  "@plannedScheduledDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "plannedAddToTransactionsTooltip": "Agregar a transacciones",
+  "plannedNotificationsPermissionError": "Permite las notificaciones en los ajustes del dispositivo",
+  "plannedChooseDateTimeError": "Elige fecha y hora",
+  "plannedChooseFutureTimeError": "Elige una hora en el futuro",
+  "plannedNewTitle": "Nuevo registro recurrente",
+  "plannedEditTitle": "Editar registro",
+  "plannedDescriptionHint": "Por ejemplo, suministros",
+  "plannedWhenLabel": "Cuando",
+  "plannedChooseDateTime": "Elegir fecha y hora",
+  "plannedRemindLabel": "Recordarme",
+  "remindersTitle": "Recordatorios",
+  "remindersEmpty": "Todavia no hay recordatorios",
+  "remindersDeleteTitle": "¿Eliminar recordatorio?",
+  "remindersDeleteMessage": "¿Seguro que quieres eliminar este recordatorio?",
+  "remindersPermissionError": "Permite las notificaciones en los ajustes del dispositivo",
+  "remindersNewTitle": "Crear recordatorio",
+  "remindersEditTitle": "Editar recordatorio",
+  "remindersNameLabel": "Nombre del recordatorio",
+  "remindersNameHint": "Por ejemplo, pago del alquiler",
+  "remindersNameRequired": "Este campo es obligatorio",
+  "remindersFrequencyLabel": "Frecuencia",
+  "remindersStartDateLabel": "Fecha de inicio",
+  "remindersTimeLabel": "Hora",
+  "remindersCommentLabel": "Comentario",
+  "remindersCommentHint": "Comentario",
+  "remindersChooseFutureTimeError": "Elige una hora en el futuro",
+  "reminderFrequencyOnce": "Una vez",
+  "reminderFrequencyDaily": "Cada dia",
+  "reminderFrequencyWeekly": "Cada semana",
+  "reminderFrequencyBiweekly": "Cada 2 semanas",
+  "reminderFrequencyFourWeeks": "Cada 4 semanas",
+  "reminderFrequencyMonthly": "Cada mes",
+  "reminderFrequencyEveryTwoMonths": "Cada 2 meses",
+  "reminderFrequencyQuarterly": "Cada trimestre",
+  "reminderFrequencyHalfYear": "Cada medio año",
+  "reminderFrequencyYearly": "Cada año",
+  "dataExportNoTransactions": "No hay transacciones para exportar",
+  "dataExportMonthLimitMessage": "{month} tiene {count} transacciones. Limite de exportacion: {limit} filas.",
+  "@dataExportMonthLimitMessage": {
+    "placeholders": {
+      "month": {},
+      "count": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "dataExportNoTransactionsForMonth": "No hay transacciones para el mes seleccionado",
+  "dataExportColumnDate": "Fecha",
+  "dataExportColumnAuthor": "Quien",
+  "dataExportColumnMethod": "Metodo",
+  "dataExportColumnCategory": "Categoria",
+  "dataExportColumnDescription": "Descripcion",
+  "dataExportColumnType": "Tipo",
+  "dataExportColumnAmount": "Importe",
+  "dataExportSavedOnDevice": "La exportacion esta disponible en un dispositivo fisico. Archivo guardado: {path}",
+  "@dataExportSavedOnDevice": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "dataExportShareText": "Exportacion de transacciones de Budgetto para {month}",
+  "@dataExportShareText": {
+    "placeholders": {
+      "month": {}
+    }
+  },
+  "dataExportFileSaved": "Archivo guardado: {path}",
+  "@dataExportFileSaved": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "dataExportPickMonthTitle": "Elige un mes para exportar",
+  "dataExportPickMonthDescription": "Exporta solo un mes. Maximo {limit} filas.",
+  "@dataExportPickMonthDescription": {
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "dataExportSelectMonthLabel": "Mes",
+  "dataExportExportAction": "Exportar CSV",
+  "dataExportNoAvailableMonths": "Ahora no hay meses disponibles para exportar",
+  "dataExportMonthCountExceeded": "{count} transacciones, supera el limite",
+  "@dataExportMonthCountExceeded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dataExportMonthCount": "{count} transacciones",
+  "@dataExportMonthCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dataExportMonthsLimited": "Los meses con mas de {limit} transacciones no estan disponibles para exportar.",
+  "@dataExportMonthsLimited": {
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "paymentMethodCashLabel": "Efectivo",
+  "paymentMethodCardLabel": "Tarjeta",
+  "currencyNameUsd": "Dolar estadounidense",
+  "currencyNameEur": "Euro",
+  "currencyNameGbp": "Libra esterlina",
+  "currencyNameUah": "Grivna ucraniana",
+  "currencyNameJpy": "Yen japones",
+  "currencyNameRub": "Rublo ruso",
+  "syncSettingsGoogleConnected": "Google conectado",
+  "syncSettingsSignInCanceled": "Inicio de sesion cancelado",
+  "syncSettingsGoogleConnectFailed": "No se pudo conectar Google",
+  "syncSettingsStatusEnabled": "Activada",
+  "syncSettingsStatusDisabled": "Desactivada",
+  "syncSettingsGuest": "Invitado",
+  "syncSettingsAccountSectionTitle": "Cuenta",
+  "syncSettingsStatusLabel": "Estado",
+  "syncSettingsGoogleSignInButton": "Iniciar sesion con Google",
+  "syncSettingsGoogleDescription": "Conecta Google para mover tu progreso entre dispositivos.",
+  "syncSettingsStatusSectionTitle": "Estado",
+  "syncSettingsDataStatusLabel": "Sincronizacion de datos",
+  "syncSettingsCloudDescription": "La sincronizacion guarda tus datos en la nube y permite un presupuesto compartido.",
+  "settingsDataFileReadFailed": "No se pudo leer el archivo seleccionado.",
+  "settingsDataImportFailed": "La importacion fallo: {error}",
+  "@settingsDataImportFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "settingsDataErrorsTitle": "Corrige los errores del CSV",
+  "settingsDataValidationFailedNoName": "El archivo no paso la validacion.",
+  "settingsDataValidationFailedWithName": "El archivo \"{fileName}\" no paso la validacion.",
+  "@settingsDataValidationFailedWithName": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "settingsDataUnderstoodButton": "Entendido",
+  "settingsDataConfirmImportTitle": "Confirmar importacion",
+  "settingsDataFileLabel": "Archivo: {fileName}",
+  "@settingsDataFileLabel": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "settingsDataWillAddCount": "Registros que se agregaran: {count}",
+  "@settingsDataWillAddCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsDataNewCategories": "Nuevas categorias",
+  "settingsDataNewPaymentMethods": "Nuevos metodos de pago",
+  "settingsDataNewTags": "Nuevas etiquetas",
+  "settingsDataImportConfirmHint": "Las nuevas categorias, metodos de pago, etiquetas y registros se agregaran solo despues de pulsar \"Importar\".",
+  "settingsDataImportTagHint": "Todos los registros importados tambien recibiran una etiqueta del sistema de importacion para poder filtrarlos y eliminarlos rapidamente.",
+  "settingsDataCancelButton": "Cancelar",
+  "settingsDataImportAction": "Importar",
+  "settingsDataImportedSuccess": "Se importaron {count} registros. Etiqueta: {tag}.",
+  "@settingsDataImportedSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "tag": {}
+    }
+  },
+  "settingsDataImportCardTitle": "Importar gastos desde CSV",
+  "settingsDataSampleTitle": "Datos de ejemplo",
+  "settingsDataCheckingCsv": "Comprobando CSV...",
+  "settingsDataChooseCsv": "Elegir CSV y validar",
+  "transactionImportErrorEmptyFile": "El archivo esta vacio. Agrega encabezados y filas de datos.",
+  "transactionImportErrorUnclosedQuote": "El CSV contiene una comilla sin cerrar. Revisa el archivo e intentalo de nuevo.",
+  "transactionImportErrorReadRows": "No se pudieron leer las filas del CSV.",
+  "transactionImportMissingRequiredColumn": "No se encontro la columna obligatoria \"{column}\". Usa la plantilla de las instrucciones.",
+  "@transactionImportMissingRequiredColumn": {
+    "placeholders": {
+      "column": {}
+    }
+  },
+  "transactionImportErrorNoDataRows": "El archivo no tiene filas de transacciones. Agrega al menos un registro.",
+  "transactionImportErrorRowLimit": "El archivo tiene {count} filas, pero el limite actual de importacion es {limit}.",
+  "@transactionImportErrorRowLimit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "transactionImportErrorInvalidDate": "No se pudo reconocer la fecha \"{value}\". Usa una fecha con hora, por ejemplo 2026-02-05 00:53. Los segundos son opcionales y se ignoraran.",
+  "@transactionImportErrorInvalidDate": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "transactionImportErrorInvalidType": "El campo de tipo de transaccion no es valido. Usa \"{expense}\" o \"{income}\".",
+  "@transactionImportErrorInvalidType": {
+    "placeholders": {
+      "expense": {},
+      "income": {}
+    }
+  },
+  "transactionImportErrorOperationRequired": "El campo de operacion no debe estar vacio.",
+  "transactionImportErrorInvalidAmount": "El campo de importe debe ser un numero mayor que 0. Valor actual: \"{value}\".",
+  "@transactionImportErrorInvalidAmount": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "transactionImportErrorCategoryRequired": "El campo de categoria no debe estar vacio.",
+  "transactionImportErrorPaymentMethodRequired": "El campo de metodo de pago no debe estar vacio.",
+  "transactionImportInstructionPrepareTitle": "Prepara el archivo",
+  "transactionImportInstructionFormat": "Formato del archivo: CSV.",
+  "transactionImportInstructionEncoding": "Codificacion del archivo: UTF-8.",
+  "transactionImportInstructionHeaderRow": "Primera fila del archivo: {headers}.",
+  "@transactionImportInstructionHeaderRow": {
+    "placeholders": {
+      "headers": {}
+    }
+  },
+  "transactionImportInstructionDelimiter": "Separador: ;",
+  "transactionImportInstructionMaxRows": "Maximo: {limit} filas de datos sin contar el encabezado.",
+  "@transactionImportInstructionMaxRows": {
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "transactionImportInstructionColumnsTitle": "Rellena las columnas en la primera fila",
+  "transactionImportInstructionDateColumn": "{column}: fecha y hora de la transaccion. Formato recomendado: YYYY-MM-DD HH:mm. La importacion tambien acepta valores como 05.02.2026 0:53:29 e ignora los segundos.",
+  "@transactionImportInstructionDateColumn": {
+    "placeholders": {
+      "column": {}
+    }
+  },
+  "transactionImportInstructionTypeColumn": "{column}: usa el valor {expense} o {income}.",
+  "@transactionImportInstructionTypeColumn": {
+    "placeholders": {
+      "column": {},
+      "expense": {},
+      "income": {}
+    }
+  },
+  "transactionImportInstructionOperationColumn": "{column}: texto de la transaccion. Ejemplo: {example}.",
+  "@transactionImportInstructionOperationColumn": {
+    "placeholders": {
+      "column": {},
+      "example": {}
+    }
+  },
+  "transactionImportInstructionAmountColumn": "{column}: un numero mayor que 0 con el formato 12.50.",
+  "@transactionImportInstructionAmountColumn": {
+    "placeholders": {
+      "column": {}
+    }
+  },
+  "transactionImportInstructionCategoryColumn": "{column}: nombre de la categoria. Si todavia no existe, se creara tras la confirmacion.",
+  "@transactionImportInstructionCategoryColumn": {
+    "placeholders": {
+      "column": {}
+    }
+  },
+  "transactionImportInstructionPaymentMethodColumn": "{column}: nombre del metodo de pago. Este campo no puede estar vacio. Si todavia no existe, se creara tras la confirmacion.",
+  "@transactionImportInstructionPaymentMethodColumn": {
+    "placeholders": {
+      "column": {}
+    }
+  },
+  "transactionImportInstructionTagsColumn": "{column}: una lista de etiquetas separadas por comas. Este campo puede estar vacio. Las etiquetas que falten se crearan tras la confirmacion.",
+  "@transactionImportInstructionTagsColumn": {
+    "placeholders": {
+      "column": {}
+    }
+  },
+  "transactionImportInstructionReviewTitle": "Revisa los cambios antes de importar",
+  "transactionImportInstructionReviewItemOne": "Antes de importar, la app mostrara nuevas categorias, metodos de pago y etiquetas.",
+  "transactionImportInstructionReviewItemTwo": "Los nuevos elementos y registros se agregaran solo despues de pulsar el boton Importar.",
+  "transactionImportInstructionReviewItemThree": "Cada registro importado recibira una etiqueta del sistema con el formato import_YYYYMMDD_HHMMSS.",
+  "transactionImportColumnDate": "fecha",
+  "transactionImportColumnType": "tipo de transaccion",
+  "transactionImportColumnOperation": "operacion",
+  "transactionImportColumnAmount": "importe",
+  "transactionImportColumnCategory": "categoria",
+  "transactionImportColumnPaymentMethod": "metodo de pago",
+  "transactionImportColumnTags": "etiquetas",
+  "transactionImportLineMessage": "Linea {lineNumber}: {message}",
+  "@transactionImportLineMessage": {
+    "placeholders": {
+      "lineNumber": {
+        "type": "int"
+      },
+      "message": {}
+    }
+  },
+  "transactionImportSampleOperationOne": "Entradas de teatro",
+  "transactionImportSampleOperationTwo": "Taxi a casa",
+  "transactionImportSampleCategoryOne": "Entretenimiento",
+  "transactionImportSampleCategoryTwo": "Transporte",
+  "transactionImportSamplePaymentMethodOne": "Tarjeta principal",
+  "transactionImportSamplePaymentMethodTwo": "Efectivo",
+  "transactionImportSampleTagsOne": "Teatro,Noche",
+  "notificationChannelPlannedName": "Registros recurrentes",
+  "notificationChannelPlannedDescription": "Recordatorios sobre registros recurrentes",
+  "notificationChannelReminderName": "Recordatorios",
+  "notificationChannelReminderDescription": "Recordatorios sobre tareas importantes",
+  "notificationChannelFamilyName": "Gastos familiares",
+  "notificationChannelFamilyDescription": "Notificaciones sobre nuevos gastos en el presupuesto familiar",
+  "editorColorPickerTitle": "Elegir un color",
+  "editorIconColorLabel": "Color del icono",
+  "editorIconLabel": "Icono",
+  "cardsTitle": "Tarjetas",
+  "cardsEmpty": "Todavia no hay tarjetas",
+  "cardsDeleteTitle": "¿Eliminar tarjeta?",
+  "cardsDeleteMessage": "¿Seguro que quieres eliminar esta tarjeta?",
+  "cardsDeleteSuccess": "Tarjeta eliminada",
+  "cardsNewTitle": "Nueva tarjeta",
+  "cardsEditTitle": "Editar tarjeta",
+  "cardsNameHint": "Por ejemplo, Sergey WISE",
+  "tagsEmpty": "Todavia no hay etiquetas",
+  "tagsDeleteTitle": "¿Eliminar etiqueta?",
+  "tagsDeleteMessage": "¿Seguro que quieres eliminar esta etiqueta?",
+  "tagsDeleteSuccess": "Etiqueta eliminada",
+  "tagsNewTitle": "Nueva etiqueta",
+  "tagsEditTitle": "Editar etiqueta",
+  "tagsNameHint": "Por ejemplo, Trabajo",
+  "categoriesDeleteBlockedTitle": "No se puede eliminar la categoria",
+  "categoriesDeleteBlockedMessage": "Esta categoria ya esta en uso. Crea primero otra categoria para mover alli los registros.",
+  "categoriesDeleteTitle": "¿Eliminar categoria?",
+  "categoriesDeleteMessage": "¿Seguro que quieres eliminar esta categoria?",
+  "categoriesDeleteUsedMessage": "Esta categoria se usa en {transactions} transacciones y {planned} registros planificados.",
+  "@categoriesDeleteUsedMessage": {
+    "placeholders": {
+      "transactions": {
+        "type": "int"
+      },
+      "planned": {
+        "type": "int"
+      }
+    }
+  },
+  "categoriesDeleteReplacementHint": "Antes de eliminar, elige la categoria que debe recibir estos registros.",
+  "categoriesReplacementLabel": "Nueva categoria",
+  "categoriesDeleteMovedSuccess": "Categoria eliminada, registros movidos a \"{name}\".",
+  "@categoriesDeleteMovedSuccess": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "categoriesDeleteSuccess": "Categoria eliminada",
+  "categoriesNewTitle": "Nueva categoria",
+  "categoriesEditTitle": "Editar categoria",
+  "categoriesNameHint": "Por ejemplo, Deporte",
+  "budgetsReservedSelfName": "yo",
+  "budgetsNotificationsPermissionError": "Permite las notificaciones push en los ajustes del dispositivo",
+  "budgetsCreateTitle": "Agregar presupuesto compartido",
+  "budgetsNameLabel": "Nombre",
+  "budgetsNameHint": "Nombre del presupuesto",
+  "budgetsMemberNameLabel": "Tu nombre",
+  "budgetsMemberNameHint": "Tu nombre",
+  "budgetsJoinTitle": "Unirse con codigo",
+  "budgetsCodeLabel": "Codigo del presupuesto",
+  "budgetsCodeHint": "Codigo del presupuesto",
+  "budgetsCodeNotFound": "Codigo no encontrado",
+  "budgetsJoinAction": "Unirse",
+  "budgetsLeaveTitle": "¿Salir del presupuesto compartido?",
+  "budgetsLeaveMessage": "¿Seguro que quieres salir?",
+  "budgetsLeaveAction": "Salir",
+  "budgetsSectionTitle": "Tus presupuestos",
+  "budgetsPersonalTitle": "Presupuesto personal",
+  "budgetsPersonalSubtitle": "Solo para ti",
+  "budgetsSettingsSectionTitle": "Ajustes del presupuesto compartido",
+  "budgetsSavedChanges": "Cambios guardados",
+  "budgetsCodeCopied": "Codigo copiado",
+  "budgetsCopyCodeTooltip": "Copiar codigo",
+  "budgetsPersonalSettingsTitle": "Ajustes personales en este presupuesto",
+  "budgetsNotificationsTitle": "Avisarme de nuevos gastos",
+  "budgetsNotificationsDescription": "Llegara una notificacion push cuando alguien de la familia agregue un nuevo gasto a este presupuesto.",
+  "budgetsNotificationsPerUserHint": "Este interruptor funciona por separado para cada participante.",
+  "budgetsMembersTitle": "Miembros",
+  "budgetsLeaveButton": "Salir del presupuesto compartido",
+  "appStateSharedBudgetName": "Presupuesto compartido",
+  "appStatePersonalBudgetName": "Presupuesto personal",
+  "appStateCashMethodName": "Efectivo",
+  "appStateUnknownUserName": "Sin nombre",
+  "appStatePlannedNotificationTitle": "Registro recurrente",
+  "appStateFamilyTransactionTitle": "Nuevo gasto familiar",
+  "appStateFamilyTransactionBody": "Aparecio un nuevo gasto en el presupuesto familiar",
+  "appStateBillingUpdateError": "No se pudo actualizar el estado de la compra",
+  "appStateBillingConnectError": "No se pudo conectar con la tienda",
+  "appStateBillingProductUnavailable": "Este plan todavia no esta disponible en la tienda",
+  "appStateBillingStartPurchaseError": "No se pudo iniciar la compra",
+  "appStateBillingStoreUnavailable": "La tienda no esta disponible en este momento",
+  "appStateBillingRestoreError": "No se pudieron restaurar las compras",
+  "appStateBillingCompletePurchaseError": "No se pudo completar la compra",
+  "appStateCategoryFood": "Comida",
+  "appStateCategoryHome": "Vivienda",
+  "appStateCategoryTransport": "Transporte",
+  "appStateCategoryShopping": "Compras",
+  "appStateCategoryHealth": "Salud",
+  "appStateCategoryFun": "Entretenimiento",
+  "appStateCategoryEducation": "Educacion",
+  "appStateCategoryGifts": "Regalos",
+  "appStateCategoryTravel": "Viajes",
+  "appStateCategoryOther": "Otros",
+  "appStateTagWork": "Trabajo",
+  "appStateTagHome": "Casa",
+  "appStateTagTravel": "Viajes",
+  "appStateTagFamily": "Familia",
+  "appStateTagFun": "Entretenimiento",
+  "appStateTagEatingOut": "Comer fuera"
+}

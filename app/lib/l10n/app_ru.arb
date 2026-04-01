@@ -41,6 +41,7 @@
   "languageSystem": "Системный",
   "languageEnglish": "English",
   "languageRussian": "Русский",
+  "languageSpanish": "Español",
   "accessStatusPremiumActive": "Premium активен",
   "accessStatusLocked": "Доступ закрыт",
   "accessStatusDaysRemaining": "Осталось {count} д.",
@@ -126,11 +127,11 @@
   "subscriptionPlanMonthlyTitle": "Месячный",
   "subscriptionPlanMonthlyFallback": "$2 / месяц",
   "subscriptionDateNotSet": "не задана",
-  "subscriptionHeadlineActive": "Premium уже активен",
-  "subscriptionHeadlineTrial": "Первые 30 дней без ограничений",
+  "subscriptionHeadlineActive": "Premium активен",
+  "subscriptionHeadlineTrial": "Первые 30 дней дают полный доступ",
   "subscriptionHeadlineExpired": "Пробный период закончился",
-  "subscriptionSubheadActive": "Все функции Budgetto остаются доступны без ограничений.",
-  "subscriptionSubheadTrial": "Осталось {count} д. до включения подписки.",
+  "subscriptionSubheadActive": "Premium сохраняет полный доступ к Budgetto после пробного периода.",
+  "subscriptionSubheadTrial": "Осталось {count} д. полного доступа до того, как потребуется Premium.",
   "@subscriptionSubheadTrial": {
     "placeholders": {
       "count": {
@@ -138,7 +139,7 @@
       }
     }
   },
-  "subscriptionSubheadExpired": "Чтобы продолжить пользоваться приложением, выбери подписку.",
+  "subscriptionSubheadExpired": "Чтобы продолжить пользоваться Budgetto после пробного периода, выбери подписку.",
   "subscriptionUnlimited": "Без ограничений",
   "subscriptionUntil": "До {date}",
   "@subscriptionUntil": {
@@ -146,16 +147,16 @@
       "date": {}
     }
   },
-  "subscriptionSyncBackup": "Sync и backup",
-  "subscriptionExtendedReports": "Расширенные отчеты",
-  "subscriptionIncludedTitle": "Что входит в Premium",
-  "subscriptionBenefitSync": "Синхронизация между устройствами",
-  "subscriptionBenefitBackup": "Резервное копирование данных",
-  "subscriptionBenefitReports": "Расширенные отчеты и аналитика",
-  "subscriptionBenefitReminders": "Напоминания и planned-функции без лимитов",
-  "subscriptionStoreUnavailable": "Магазин платежей сейчас недоступен. Экспорт данных остается доступным.",
+  "subscriptionChipFullAccess": "Полный доступ",
+  "subscriptionChipPremiumAfterTrial": "Premium после trial",
+  "subscriptionChipSubscriptionRequired": "Нужна подписка",
+  "subscriptionHowItWorksTitle": "Как работает доступ",
+  "subscriptionHowItWorksTrial": "Первые 30 дней дают полный доступ ко всему приложению.",
+  "subscriptionHowItWorksNoSplit": "Во время trial у приложения нет разделения на базовые и Premium-функции.",
+  "subscriptionHowItWorksAfterTrial": "После окончания trial нужна активная подписка Premium, чтобы продолжить пользоваться Budgetto.",
+  "subscriptionHowItWorksBilling": "В любой момент можно выбрать месячный, квартальный или годовой тариф.",
+  "subscriptionStoreUnavailable": "Магазин платежей сейчас недоступен. Попробуй позже.",
   "subscriptionRestorePurchases": "Восстановить покупки",
-  "subscriptionExportMyData": "Export my data",
   "subscriptionRenewalNote": "Подписка продлевается автоматически, пока пользователь не отменит ее в App Store или Google Play.",
   "subscriptionPlanActive": "Активен",
   "transactionsBudgetPickerTitle": "Выбери бюджет",
@@ -322,6 +323,9 @@
       }
     }
   },
+  "dataExportSelectMonthLabel": "Месяц",
+  "dataExportExportAction": "Экспортировать CSV",
+  "dataExportNoAvailableMonths": "Сейчас нет месяцев, доступных для экспорта",
   "dataExportMonthCountExceeded": "{count} операций, превышает лимит",
   "@dataExportMonthCountExceeded": {
     "placeholders": {

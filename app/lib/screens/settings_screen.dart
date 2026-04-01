@@ -168,6 +168,8 @@ String _languageLabel(Locale? locale, AppLocalizations l10n) {
       return l10n.languageRussian;
     case 'en':
       return l10n.languageEnglish;
+    case 'es':
+      return l10n.languageSpanish;
     default:
       return locale.languageCode.toUpperCase();
   }
