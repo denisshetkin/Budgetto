@@ -26,6 +26,71 @@ import '../services/local_notifications.dart';
 
 enum PeriodFilter { week, month }
 
+const List<IconData> _supportedSerializedIcons = [
+  Icons.circle,
+  Icons.tag,
+  Icons.more_horiz,
+  Icons.payments_outlined,
+  Icons.payments_rounded,
+  Icons.credit_card,
+  Icons.credit_card_rounded,
+  Icons.wallet,
+  Icons.account_balance,
+  Icons.card_giftcard,
+  Icons.card_giftcard_outlined,
+  Icons.savings_outlined,
+  Icons.qr_code_2_outlined,
+  Icons.local_atm_outlined,
+  Icons.account_balance_wallet_outlined,
+  Icons.credit_score_outlined,
+  Icons.receipt_long_outlined,
+  Icons.restaurant_outlined,
+  Icons.local_cafe_outlined,
+  Icons.fastfood_outlined,
+  Icons.home_outlined,
+  Icons.directions_car_outlined,
+  Icons.directions_bus_outlined,
+  Icons.train_outlined,
+  Icons.local_taxi_outlined,
+  Icons.shopping_bag_outlined,
+  Icons.shopping_cart_outlined,
+  Icons.local_grocery_store_outlined,
+  Icons.favorite_border,
+  Icons.health_and_safety_outlined,
+  Icons.fitness_center_outlined,
+  Icons.movie_outlined,
+  Icons.music_note_outlined,
+  Icons.sports_soccer_outlined,
+  Icons.school_outlined,
+  Icons.work_outline,
+  Icons.flight_outlined,
+  Icons.beach_access_outlined,
+  Icons.hotel_outlined,
+  Icons.pets_outlined,
+  Icons.phone_iphone,
+  Icons.wifi,
+  Icons.lightbulb_outline,
+  Icons.water_drop_outlined,
+  Icons.category_outlined,
+];
+
+String _iconStorageKey(IconData icon) {
+  final family = icon.fontFamily ?? '';
+  final package = icon.fontPackage ?? '';
+  return '$family|$package|${icon.codePoint}';
+}
+
+String _legacyIconStorageKey(Map<String, dynamic> map) {
+  final family = map['family'] as String? ?? 'MaterialIcons';
+  final package = map['package'] as String? ?? '';
+  final code = (map['code'] as num?)?.toInt() ?? Icons.circle.codePoint;
+  return '$family|$package|$code';
+}
+
+final Map<String, IconData> _iconLookupByStorageKey = {
+  for (final icon in _supportedSerializedIcons) _iconStorageKey(icon): icon,
+};
+
 class AppState extends ChangeNotifier {
   AppState() {
     _seedDefaults();
@@ -2498,6 +2563,7 @@ class AppState extends ChangeNotifier {
 
   Map<String, dynamic> _iconToMap(IconData icon) {
     return {
+      'key': _iconStorageKey(icon),
       'code': icon.codePoint,
       'family': icon.fontFamily,
       'package': icon.fontPackage,
@@ -2508,11 +2574,14 @@ class AppState extends ChangeNotifier {
     if (map == null) {
       return Icons.circle;
     }
-    return IconData(
-      (map['code'] as num?)?.toInt() ?? Icons.circle.codePoint,
-      fontFamily: map['family'] as String? ?? 'MaterialIcons',
-      fontPackage: map['package'] as String?,
-    );
+    final key = map['key'] as String?;
+    if (key != null) {
+      final icon = _iconLookupByStorageKey[key];
+      if (icon != null) {
+        return icon;
+      }
+    }
+    return _iconLookupByStorageKey[_legacyIconStorageKey(map)] ?? Icons.circle;
   }
 
   Map<String, dynamic> _tagToMap(TagEntry tag) {
