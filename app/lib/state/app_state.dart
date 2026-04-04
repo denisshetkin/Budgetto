@@ -21,6 +21,7 @@ import '../models/planned_entry.dart';
 import '../models/reminder_entry.dart';
 import '../models/tag_entry.dart';
 import '../models/transaction_entry.dart';
+import '../services/trial_storage.dart';
 import '../models/user_profile.dart';
 import '../services/local_notifications.dart';
 
@@ -140,6 +141,8 @@ class AppState extends ChangeNotifier {
   bool _purchasePending = false;
   String? _billingError;
   final Map<String, ProductDetails> _subscriptionProducts = {};
+  bool _entitlementRefreshInProgress = false;
+  final Set<String> _restoredSubscriptionProductIds = {};
 
   static const _prefFcmToken = 'fcm_last_token';
   static const _prefLocale = 'locale';
@@ -148,9 +151,9 @@ class AppState extends ChangeNotifier {
   static const _prefActiveSubscriptionProductId =
       'active_subscription_product_id';
   static const _trialDurationDays = 30;
-  static const monthlySubscriptionProductId = 'budgetto_premium_monthly';
-  static const quarterlySubscriptionProductId = 'budgetto_premium_quarterly';
-  static const yearlySubscriptionProductId = 'budgetto_premium_yearly';
+  static const monthlySubscriptionProductId = 'budgetto_monthly_subscription';
+  static const quarterlySubscriptionProductId = 'budgetto_3_month_subscription';
+  static const yearlySubscriptionProductId = 'budgetto_yearly_subscription';
   static const Set<String> _subscriptionProductIds = {
     monthlySubscriptionProductId,
     quarterlySubscriptionProductId,
@@ -174,6 +177,14 @@ class AppState extends ChangeNotifier {
   bool get purchasePending => _purchasePending;
   String? get billingError => _billingError;
   bool get hasPremiumAccess => _activeSubscriptionProductId != null;
+  bool get hasPremiumFeaturesAccess => hasPremiumAccess || isTrialActive;
+  bool get canModifyData => hasPremiumFeaturesAccess;
+  bool get canManageCustomCategories => hasPremiumFeaturesAccess;
+  bool get canManageCustomTags => hasPremiumFeaturesAccess;
+  bool get canUseRecurringPayments => hasPremiumFeaturesAccess;
+  bool get canUseReminders => hasPremiumFeaturesAccess;
+  bool get canUseSharedBudgets => hasPremiumFeaturesAccess;
+  bool get canUseCsvTools => hasPremiumFeaturesAccess;
   AppLocalizations get _l10n =>
       lookupAppLocalizations(_locale ?? ui.PlatformDispatcher.instance.locale);
 
@@ -206,7 +217,7 @@ class AppState extends ChangeNotifier {
     return DateTime.now().isBefore(endsAt);
   }
 
-  bool get isAccessLocked => !hasPremiumAccess && !isTrialActive;
+  bool get isAccessLocked => !canModifyData;
 
   int get trialDaysRemaining {
     if (hasPremiumAccess) {
@@ -497,12 +508,18 @@ class AppState extends ChangeNotifier {
   }
 
   void addTransaction(TransactionEntry entry) {
+    if (!canModifyData) {
+      return;
+    }
     _transactions.insert(0, entry);
     notifyListeners();
     _saveTransactionRemote(entry);
   }
 
   void updateTransaction(TransactionEntry entry) {
+    if (!canModifyData) {
+      return;
+    }
     final index = _transactions.indexWhere((item) => item.id == entry.id);
     if (index == -1) {
       return;
@@ -513,12 +530,18 @@ class AppState extends ChangeNotifier {
   }
 
   void removeTransaction(String id) {
+    if (!canModifyData) {
+      return;
+    }
     _transactions.removeWhere((entry) => entry.id == id);
     notifyListeners();
     _deleteTransactionRemote(id);
   }
 
   Future<void> clearTransactions() async {
+    if (!canModifyData) {
+      return;
+    }
     _transactions.clear();
     notifyListeners();
     if (!_syncEnabled || _budgetId == null) {
@@ -544,6 +567,9 @@ class AppState extends ChangeNotifier {
     required IconData icon,
     required Color color,
   }) {
+    if (!canModifyData) {
+      return;
+    }
     final id = 'card_${DateTime.now().millisecondsSinceEpoch}';
     _paymentMethods.add(
       PaymentMethod(
@@ -564,6 +590,9 @@ class AppState extends ChangeNotifier {
     required IconData icon,
     required Color color,
   }) {
+    if (!canModifyData) {
+      return;
+    }
     final index = _paymentMethods.indexWhere((method) => method.id == id);
     if (index == -1) {
       return;
@@ -630,12 +659,18 @@ class AppState extends ChangeNotifier {
   }
 
   void removeCard(String id) {
+    if (!canModifyData) {
+      return;
+    }
     _paymentMethods.removeWhere((method) => method.id == id);
     notifyListeners();
     _deletePaymentMethodRemote(id);
   }
 
   void reorderCard(int oldIndex, int newIndex) {
+    if (!canModifyData) {
+      return;
+    }
     final cards = _paymentMethods
         .where((method) => method.type == PaymentMethodType.card)
         .toList();
@@ -666,6 +701,9 @@ class AppState extends ChangeNotifier {
     required IconData icon,
     required Color color,
   }) {
+    if (!canManageCustomCategories) {
+      return;
+    }
     addCategoryEntry(name: name, icon: icon, color: color);
   }
 
@@ -674,6 +712,13 @@ class AppState extends ChangeNotifier {
     required IconData icon,
     required Color color,
   }) {
+    if (!canManageCustomCategories) {
+      final existing = findCategoryByName(name);
+      if (existing != null) {
+        return existing;
+      }
+      return _categories.first;
+    }
     final id = 'cat_${DateTime.now().microsecondsSinceEpoch}';
     final entry = CategoryEntry(id: id, name: name, icon: icon, color: color);
     _categories.add(entry);
@@ -712,6 +757,9 @@ class AppState extends ChangeNotifier {
     required IconData icon,
     required Color color,
   }) {
+    if (!canManageCustomCategories) {
+      return;
+    }
     final index = _categories.indexWhere((category) => category.id == id);
     if (index == -1) {
       return;
@@ -772,6 +820,9 @@ class AppState extends ChangeNotifier {
   }
 
   void removeCategory(String id) {
+    if (!canManageCustomCategories) {
+      return;
+    }
     _categories.removeWhere((category) => category.id == id);
     notifyListeners();
     _deleteCategoryRemote(id);
@@ -854,6 +905,9 @@ class AppState extends ChangeNotifier {
   }
 
   void reorderCategory(int oldIndex, int newIndex) {
+    if (!canManageCustomCategories) {
+      return;
+    }
     if (oldIndex < 0 || oldIndex >= _categories.length) {
       return;
     }
@@ -874,6 +928,9 @@ class AppState extends ChangeNotifier {
     required IconData icon,
     required Color color,
   }) {
+    if (!canManageCustomTags) {
+      return;
+    }
     addTagEntry(name: name, icon: icon, color: color);
   }
 
@@ -882,6 +939,13 @@ class AppState extends ChangeNotifier {
     required IconData icon,
     required Color color,
   }) {
+    if (!canManageCustomTags) {
+      final existing = findTagByName(name);
+      if (existing != null) {
+        return existing;
+      }
+      return _tags.first;
+    }
     final id = 'tag_${DateTime.now().microsecondsSinceEpoch}';
     final entry = TagEntry(id: id, name: name, icon: icon, color: color);
     _tags.add(entry);
@@ -949,6 +1013,9 @@ class AppState extends ChangeNotifier {
     required IconData icon,
     required Color color,
   }) {
+    if (!canManageCustomTags) {
+      return;
+    }
     final index = _tags.indexWhere((tag) => tag.id == id);
     if (index == -1) {
       return;
@@ -1030,6 +1097,9 @@ class AppState extends ChangeNotifier {
   }
 
   void removeTag(String id) {
+    if (!canManageCustomTags) {
+      return;
+    }
     _tags.removeWhere((tag) => tag.id == id);
 
     for (var i = 0; i < _transactions.length; i++) {
@@ -1091,6 +1161,9 @@ class AppState extends ChangeNotifier {
   }
 
   void reorderTag(int oldIndex, int newIndex) {
+    if (!canManageCustomTags) {
+      return;
+    }
     if (oldIndex < 0 || oldIndex >= _tags.length) {
       return;
     }
@@ -1107,6 +1180,9 @@ class AppState extends ChangeNotifier {
   }
 
   void addPlanned(PlannedEntry entry) {
+    if (!canUseRecurringPayments) {
+      return;
+    }
     _plannedEntries.add(entry);
     notifyListeners();
     _savePlannedRemote(entry);
@@ -1114,6 +1190,9 @@ class AppState extends ChangeNotifier {
   }
 
   void updatePlanned(PlannedEntry entry) {
+    if (!canUseRecurringPayments) {
+      return;
+    }
     final index = _plannedEntries.indexWhere((item) => item.id == entry.id);
     if (index == -1) {
       return;
@@ -1126,6 +1205,9 @@ class AppState extends ChangeNotifier {
   }
 
   void removePlanned(String id) {
+    if (!canUseRecurringPayments) {
+      return;
+    }
     final index = _plannedEntries.indexWhere((entry) => entry.id == id);
     PlannedEntry? removed;
     if (index != -1) {
@@ -1140,6 +1222,9 @@ class AppState extends ChangeNotifier {
   }
 
   void addReminder(ReminderEntry entry) {
+    if (!canUseReminders) {
+      return;
+    }
     _reminders.add(entry);
     notifyListeners();
     _saveReminderRemote(entry);
@@ -1147,6 +1232,9 @@ class AppState extends ChangeNotifier {
   }
 
   void updateReminder(ReminderEntry entry) {
+    if (!canUseReminders) {
+      return;
+    }
     final index = _reminders.indexWhere((item) => item.id == entry.id);
     if (index == -1) {
       return;
@@ -1159,6 +1247,9 @@ class AppState extends ChangeNotifier {
   }
 
   void removeReminder(String id) {
+    if (!canUseReminders) {
+      return;
+    }
     final index = _reminders.indexWhere((entry) => entry.id == id);
     ReminderEntry? removed;
     if (index != -1) {
@@ -1173,6 +1264,9 @@ class AppState extends ChangeNotifier {
   }
 
   void addChecklist(ChecklistEntry entry) {
+    if (!canModifyData) {
+      return;
+    }
     _checklists.add(entry);
     notifyListeners();
     _saveChecklistRemote(entry);
@@ -1180,6 +1274,9 @@ class AppState extends ChangeNotifier {
   }
 
   void updateChecklist(ChecklistEntry entry) {
+    if (!canModifyData) {
+      return;
+    }
     final index = _checklists.indexWhere((item) => item.id == entry.id);
     if (index == -1) {
       return;
@@ -1190,6 +1287,9 @@ class AppState extends ChangeNotifier {
   }
 
   void removeChecklist(String id) {
+    if (!canModifyData) {
+      return;
+    }
     final index = _checklists.indexWhere((entry) => entry.id == id);
     if (index == -1) {
       return;
@@ -1512,17 +1612,16 @@ class AppState extends ChangeNotifier {
     final theme = prefs.getString(_prefThemeMode);
     _themeMode = theme == 'light' ? ThemeMode.light : ThemeMode.dark;
     final storedTrialStartedAt = prefs.getInt(_prefTrialStartedAt);
-    if (storedTrialStartedAt == null) {
-      _trialStartedAt = DateTime.now();
-      await prefs.setInt(
-        _prefTrialStartedAt,
-        _trialStartedAt!.millisecondsSinceEpoch,
-      );
-    } else {
-      _trialStartedAt = DateTime.fromMillisecondsSinceEpoch(
-        storedTrialStartedAt,
-      );
-    }
+    final keychainTrialStartedAt =
+        await TrialStorage.readTrialStartedAtMillis();
+    final resolvedTrialStartedAt = _earliestDate([
+      if (storedTrialStartedAt != null)
+        DateTime.fromMillisecondsSinceEpoch(storedTrialStartedAt),
+      if (keychainTrialStartedAt != null)
+        DateTime.fromMillisecondsSinceEpoch(keychainTrialStartedAt),
+    ]);
+    _trialStartedAt = resolvedTrialStartedAt ?? DateTime.now();
+    await _persistTrialStartedAtLocally(_trialStartedAt!);
     _activeSubscriptionProductId = prefs.getString(
       _prefActiveSubscriptionProductId,
     );
@@ -1577,6 +1676,7 @@ class AppState extends ChangeNotifier {
             (product) => MapEntry(product.id, product),
           ),
         );
+      unawaited(_refreshSubscriptionEntitlement());
     } catch (_) {
       _storeAvailable = false;
       _subscriptionProducts.clear();
@@ -1629,6 +1729,14 @@ class AppState extends ChangeNotifier {
   Future<void> _handlePurchaseUpdates(
     List<PurchaseDetails> purchaseDetailsList,
   ) async {
+    if (_entitlementRefreshInProgress && purchaseDetailsList.isEmpty) {
+      await _setActiveSubscriptionProductId(null);
+      _purchasePending = false;
+      _billingError = null;
+      notifyListeners();
+      return;
+    }
+
     var shouldNotify = false;
     for (final purchase in purchaseDetailsList) {
       switch (purchase.status) {
@@ -1639,10 +1747,10 @@ class AppState extends ChangeNotifier {
         case PurchaseStatus.purchased:
         case PurchaseStatus.restored:
           if (_subscriptionProductIds.contains(purchase.productID)) {
-            _activeSubscriptionProductId = purchase.productID;
+            _restoredSubscriptionProductIds.add(purchase.productID);
+            await _setActiveSubscriptionProductId(purchase.productID);
             _purchasePending = false;
             _billingError = null;
-            await _storeActiveSubscriptionProductId(purchase.productID);
             shouldNotify = true;
           }
           break;
@@ -1668,6 +1776,46 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<void> _refreshSubscriptionEntitlement() async {
+    if (!_storeAvailable || _entitlementRefreshInProgress) {
+      return;
+    }
+    _entitlementRefreshInProgress = true;
+    _restoredSubscriptionProductIds.clear();
+    try {
+      await _inAppPurchase.restorePurchases();
+      await _setActiveSubscriptionProductId(
+        _preferredSubscriptionProductId(_restoredSubscriptionProductIds),
+      );
+    } catch (_) {
+      // Keep the last known local entitlement if the refresh failed.
+    } finally {
+      _entitlementRefreshInProgress = false;
+      notifyListeners();
+    }
+  }
+
+  String? _preferredSubscriptionProductId(Iterable<String> productIds) {
+    for (final productId in const [
+      yearlySubscriptionProductId,
+      quarterlySubscriptionProductId,
+      monthlySubscriptionProductId,
+    ]) {
+      if (productIds.contains(productId)) {
+        return productId;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _setActiveSubscriptionProductId(String? productId) async {
+    if (_activeSubscriptionProductId == productId) {
+      return;
+    }
+    _activeSubscriptionProductId = productId;
+    await _storeActiveSubscriptionProductId(productId);
+  }
+
   Future<void> _storeActiveSubscriptionProductId(String? productId) async {
     final prefs = await SharedPreferences.getInstance();
     if (productId == null) {
@@ -1677,12 +1825,65 @@ class AppState extends ChangeNotifier {
     await prefs.setString(_prefActiveSubscriptionProductId, productId);
   }
 
+  Future<void> _persistTrialStartedAtLocally(DateTime value) async {
+    final millis = value.millisecondsSinceEpoch;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_prefTrialStartedAt, millis);
+    await TrialStorage.writeTrialStartedAtMillis(millis);
+  }
+
+  DateTime? _trialStartedAtFromDynamic(Object? value) {
+    if (value is Timestamp) {
+      return value.toDate();
+    }
+    if (value is DateTime) {
+      return value;
+    }
+    if (value is int) {
+      return DateTime.fromMillisecondsSinceEpoch(value);
+    }
+    if (value is num) {
+      return DateTime.fromMillisecondsSinceEpoch(value.toInt());
+    }
+    if (value is String) {
+      return DateTime.tryParse(value);
+    }
+    return null;
+  }
+
+  DateTime? _earliestDate(Iterable<DateTime> values) {
+    DateTime? earliest;
+    for (final value in values) {
+      if (earliest == null || value.isBefore(earliest)) {
+        earliest = value;
+      }
+    }
+    return earliest;
+  }
+
   Future<void> _loadUserContext(User user) async {
     await _ensureUserDocument(user);
     _startFamilyListSync(user.uid);
 
     final userSnap = await _db.collection('users').doc(user.uid).get();
     final data = userSnap.data();
+    final remoteTrialStartedAt = _trialStartedAtFromDynamic(
+      data?['trialStartedAt'],
+    );
+    final resolvedTrialStartedAt = _earliestDate([
+      if (_trialStartedAt != null) _trialStartedAt!,
+      if (remoteTrialStartedAt != null) remoteTrialStartedAt,
+    ]);
+    if (resolvedTrialStartedAt != null) {
+      _trialStartedAt = resolvedTrialStartedAt;
+      await _persistTrialStartedAtLocally(resolvedTrialStartedAt);
+      if (remoteTrialStartedAt == null ||
+          !remoteTrialStartedAt.isAtSameMomentAs(resolvedTrialStartedAt)) {
+        await _updateUserField({
+          'trialStartedAt': Timestamp.fromDate(resolvedTrialStartedAt),
+        });
+      }
+    }
     final currentBudgetId = data?['currentBudgetId'] as String?;
     final currentBudgetType = data?['currentBudgetType'] as String?;
     final notifyFamily = data?['notifyFamilyTransactions'] as bool?;
@@ -1844,6 +2045,7 @@ class AppState extends ChangeNotifier {
         'name': _currentUser.name,
         'provider': _currentUser.provider,
         'notifyFamilyTransactions': true,
+        'trialStartedAt': Timestamp.fromDate(_trialStartedAt ?? DateTime.now()),
         'createdAt': FieldValue.serverTimestamp(),
       });
     }

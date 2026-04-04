@@ -9,23 +9,24 @@ import '../models/tag_entry.dart';
 import '../models/transaction_entry.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
+import '../widgets/premium_feature_gate.dart';
 import '../widgets/soft_card.dart';
 
 typedef _CategoryItem = CategoryEntry;
 
 typedef _PaymentItem = PaymentMethod;
 
-typedef _TagItem = TagEntry;
-
 class AddTransactionScreen extends StatefulWidget {
   const AddTransactionScreen({
     super.key,
     required this.initialType,
     this.initialEntry,
+    this.readOnly = false,
   });
 
   final TransactionType initialType;
   final TransactionEntry? initialEntry;
+  final bool readOnly;
 
   @override
   State<AddTransactionScreen> createState() => _AddTransactionScreenState();
@@ -129,6 +130,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   void _save() {
+    if (widget.readOnly) {
+      return;
+    }
     final appState = AppStateScope.of(context);
     final l10n = context.l10n;
     final raw = _amountController.text.trim().replaceAll(',', '.');
@@ -210,6 +214,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     final tags = appState.tags;
 
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final isReadOnly = widget.readOnly;
 
     return Scaffold(
       appBar: AppBar(
@@ -234,7 +239,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             tooltip: l10n.commonCancel,
           ),
           IconButton(
-            onPressed: _save,
+            onPressed: isReadOnly ? null : _save,
             icon: Icon(Icons.check_rounded, color: Color(0xFF9AD27A)),
             iconSize: 36,
             tooltip: l10n.commonSave,
@@ -248,6 +253,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (isReadOnly) ...[
+                const ReadOnlyAccessCard(),
+                const SizedBox(height: 16),
+              ],
               SoftCard(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -262,7 +271,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           InkWell(
-                            onTap: _pickDate,
+                            onTap: isReadOnly ? null : _pickDate,
                             borderRadius: BorderRadius.circular(16),
                             child: Row(
                               children: [
@@ -285,7 +294,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           ),
                           const SizedBox(height: 8),
                           InkWell(
-                            onTap: _pickTime,
+                            onTap: isReadOnly ? null : _pickTime,
                             borderRadius: BorderRadius.circular(16),
                             child: Row(
                               children: [
@@ -339,11 +348,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           ),
                         ],
                         selected: {_type},
-                        onSelectionChanged: (selection) {
-                          setState(() {
-                            _type = selection.first;
-                          });
-                        },
+                        onSelectionChanged: isReadOnly
+                            ? null
+                            : (selection) {
+                                setState(() {
+                                  _type = selection.first;
+                                });
+                              },
                       ),
                     ),
                   ],
@@ -377,6 +388,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: TextField(
                           controller: _amountController,
+                          readOnly: isReadOnly,
                           keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,
                           ),
@@ -428,6 +440,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: TextField(
                           controller: _noteController,
+                          readOnly: isReadOnly,
                           maxLines: 3,
                           decoration: InputDecoration(
                             hintText: l10n.addTransactionDescriptionHint,
@@ -456,11 +469,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 children: methods.map((method) {
                   final isSelected = _selectedMethod?.id == method.id;
                   return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedMethod = method;
-                      });
-                    },
+                    onTap: isReadOnly
+                        ? null
+                        : () {
+                            setState(() {
+                              _selectedMethod = method;
+                            });
+                          },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -505,11 +520,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 children: categories.map((category) {
                   final isSelected = _selectedCategory?.id == category.id;
                   return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedCategory = category;
-                      });
-                    },
+                    onTap: isReadOnly
+                        ? null
+                        : () {
+                            setState(() {
+                              _selectedCategory = category;
+                            });
+                          },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -562,15 +579,17 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   children: tags.map((tag) {
                     final isSelected = _selectedTagIds.contains(tag.id);
                     return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          if (isSelected) {
-                            _selectedTagIds.remove(tag.id);
-                          } else {
-                            _selectedTagIds.add(tag.id);
-                          }
-                        });
-                      },
+                      onTap: isReadOnly
+                          ? null
+                          : () {
+                              setState(() {
+                                if (isSelected) {
+                                  _selectedTagIds.remove(tag.id);
+                                } else {
+                                  _selectedTagIds.add(tag.id);
+                                }
+                              });
+                            },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,

@@ -5,6 +5,7 @@ import '../models/category_entry.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_header.dart';
+import '../widgets/premium_feature_gate.dart';
 import '../widgets/soft_card.dart';
 
 class CategoriesScreen extends StatelessWidget {
@@ -188,6 +189,86 @@ class CategoriesScreen extends StatelessWidget {
     final l10n = context.l10n;
     final categories = appState.categories;
     final canPop = Navigator.of(context).canPop();
+    final canManageCategories = appState.canManageCustomCategories;
+
+    Widget buildCategoryRow(CategoryEntry category, {int? index}) {
+      final row = SoftCard(
+        child: SizedBox(
+          height: 44,
+          child: Row(
+            children: [
+              Container(
+                height: 32,
+                width: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.surface2,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  category.icon,
+                  color: category.color,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  category.name,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ),
+              if (canManageCategories) ...[
+                Icon(
+                  Icons.drag_indicator,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
+                const SizedBox(width: 6),
+                IconButton(
+                  onPressed: () => _openAddCategory(
+                    context,
+                    appState,
+                    category: category,
+                  ),
+                  icon: Icon(Icons.edit, color: AppColors.accentIncome),
+                  iconSize: 26,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 32,
+                    height: 32,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                IconButton(
+                  onPressed: () => _confirmDelete(context, appState, category),
+                  icon: Icon(Icons.delete, color: AppColors.accentExpense),
+                  iconSize: 26,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 32,
+                    height: 32,
+                  ),
+                ),
+              ] else
+                Icon(
+                  Icons.lock_outline_rounded,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
+            ],
+          ),
+        ),
+      );
+
+      if (index == null) {
+        return row;
+      }
+
+      return ReorderableDelayedDragStartListener(
+        index: index,
+        child: row,
+      );
+    }
 
     return Scaffold(
       body: SafeArea(
@@ -204,7 +285,17 @@ class CategoriesScreen extends StatelessWidget {
                   : null,
               actions: [
                 IconButton(
-                  onPressed: () => _openAddCategory(context, appState),
+                  onPressed: () {
+                    if (!canManageCategories) {
+                      showPremiumFeatureSheet(
+                        context,
+                        featureName: l10n.premiumFeatureCustomCategories,
+                        message: l10n.premiumCategoriesInlineHint,
+                      );
+                      return;
+                    }
+                    _openAddCategory(context, appState);
+                  },
                   icon: const Icon(Icons.add),
                 ),
               ],
@@ -212,94 +303,47 @@ class CategoriesScreen extends StatelessWidget {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(20),
-                child: ReorderableListView.builder(
-                  buildDefaultDragHandles: false,
-                  itemCount: categories.length,
-                  onReorder: (oldIndex, newIndex) {
-                    appState.reorderCategory(oldIndex, newIndex);
-                  },
-                  itemBuilder: (context, index) {
-                    final category = categories[index];
-                    return Padding(
-                      key: ValueKey(category.id),
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: ReorderableDelayedDragStartListener(
-                        index: index,
-                        child: SoftCard(
-                          child: SizedBox(
-                            height: 44,
-                            child: Row(
-                              children: [
-                                Container(
-                                  height: 32,
-                                  width: 32,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.surface2,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(
-                                    category.icon,
-                                    color: category.color,
-                                    size: 18,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    category.name,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyLarge,
-                                  ),
-                                ),
-                                Icon(
-                                  Icons.drag_indicator,
-                                  color: AppColors.textSecondary,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 6),
-                                IconButton(
-                                  onPressed: () => _openAddCategory(
-                                    context,
-                                    appState,
-                                    category: category,
-                                  ),
-                                  icon: Icon(
-                                    Icons.edit,
-                                    color: AppColors.accentIncome,
-                                  ),
-                                  iconSize: 26,
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints.tightFor(
-                                    width: 32,
-                                    height: 32,
-                                  ),
-                                ),
-                                const SizedBox(width: 2),
-                                IconButton(
-                                  onPressed: () => _confirmDelete(
-                                    context,
-                                    appState,
-                                    category,
-                                  ),
-                                  icon: Icon(
-                                    Icons.delete,
-                                    color: AppColors.accentExpense,
-                                  ),
-                                  iconSize: 26,
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints.tightFor(
-                                    width: 32,
-                                    height: 32,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                child: Column(
+                  children: [
+                    if (!canManageCategories) ...[
+                      PremiumFeatureCard(
+                        featureName: l10n.premiumFeatureCustomCategories,
+                        message: l10n.premiumCategoriesInlineHint,
                       ),
-                    );
-                  },
+                      const SizedBox(height: 12),
+                    ],
+                    Expanded(
+                      child: canManageCategories
+                          ? ReorderableListView.builder(
+                              buildDefaultDragHandles: false,
+                              itemCount: categories.length,
+                              onReorder: (oldIndex, newIndex) {
+                                appState.reorderCategory(oldIndex, newIndex);
+                              },
+                              itemBuilder: (context, index) {
+                                final category = categories[index];
+                                return Padding(
+                                  key: ValueKey(category.id),
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: buildCategoryRow(
+                                    category,
+                                    index: index,
+                                  ),
+                                );
+                              },
+                            )
+                          : ListView.builder(
+                              itemCount: categories.length,
+                              itemBuilder: (context, index) {
+                                final category = categories[index];
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: buildCategoryRow(category),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
                 ),
               ),
             ),

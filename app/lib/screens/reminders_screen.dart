@@ -8,6 +8,7 @@ import '../services/local_notifications.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_header.dart';
+import '../widgets/premium_feature_gate.dart';
 import '../widgets/slide_action_icon.dart';
 import '../widgets/soft_card.dart';
 
@@ -148,6 +149,38 @@ class RemindersScreen extends StatelessWidget {
     final localeTag = Localizations.localeOf(context).toLanguageTag();
     final reminders = appState.reminders;
     final canPop = Navigator.of(context).canPop();
+
+    if (!appState.canUseReminders) {
+      return Scaffold(
+        body: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              AppHeader(
+                title: l10n.remindersTitle,
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                leading: canPop
+                    ? IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.arrow_back),
+                      )
+                    : null,
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Center(
+                    child: PremiumFeatureCard(
+                      featureName: l10n.premiumFeatureReminders,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       body: SafeArea(

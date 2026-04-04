@@ -18,7 +18,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsPremiumTitle => 'Premium';
 
   @override
-  String get settingsPremiumSubtitle => 'Subscription and app access';
+  String get settingsPremiumSubtitle => 'Subscription and premium features';
 
   @override
   String get settingsBudgetsTitle => 'Budgets';
@@ -142,6 +142,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accessStatusLocked => 'Access locked';
+
+  @override
+  String get accessStatusBasic => 'Basic plan';
 
   @override
   String accessStatusDaysRemaining(int count) {
@@ -300,7 +303,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get subscriptionPlanYearlyTitle => 'Yearly';
 
   @override
-  String get subscriptionPlanYearlyFallback => '\$15 / year';
+  String get subscriptionPlanYearlyFallback => '\$14.99 / year';
 
   @override
   String get subscriptionPlanBestBadge => 'Best value';
@@ -309,13 +312,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get subscriptionPlanQuarterlyTitle => '3 months';
 
   @override
-  String get subscriptionPlanQuarterlyFallback => '\$5 / 3 months';
+  String get subscriptionPlanQuarterlyFallback => '\$4.99 / 3 months';
 
   @override
   String get subscriptionPlanMonthlyTitle => 'Monthly';
 
   @override
-  String get subscriptionPlanMonthlyFallback => '\$2 / month';
+  String get subscriptionPlanMonthlyFallback => '\$1.99 / month';
 
   @override
   String get subscriptionDateNotSet => 'not set';
@@ -324,24 +327,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get subscriptionHeadlineActive => 'Premium is active';
 
   @override
-  String get subscriptionHeadlineTrial =>
-      'The first 30 days include full access';
+  String get subscriptionHeadlineTrial => 'Premium trial is active';
 
   @override
-  String get subscriptionHeadlineExpired => 'Trial period has ended';
+  String get subscriptionHeadlineExpired => 'Free trial has ended';
 
   @override
   String get subscriptionSubheadActive =>
-      'Premium keeps full access to Budgetto after the trial.';
+      'All Premium features are unlocked on this device.';
 
   @override
   String subscriptionSubheadTrial(int count) {
-    return '$count d. of full access left before Premium is required.';
+    return '$count d. of Premium left in the free trial.';
   }
 
   @override
   String get subscriptionSubheadExpired =>
-      'To keep using Budgetto after the trial, choose a subscription.';
+      'Budgetto is now in read-only mode. A subscription is required to add or edit data again.';
 
   @override
   String get subscriptionUnlimited => 'Unlimited';
@@ -355,29 +357,62 @@ class AppLocalizationsEn extends AppLocalizations {
   String get subscriptionChipFullAccess => 'Full access';
 
   @override
+  String get subscriptionChipPremiumFeatures => 'Premium features';
+
+  @override
   String get subscriptionChipPremiumAfterTrial => 'Premium after trial';
 
   @override
   String get subscriptionChipSubscriptionRequired => 'Subscription required';
 
   @override
+  String get subscriptionChipBasicPlan => 'Read-only';
+
+  @override
   String get subscriptionHowItWorksTitle => 'How access works';
 
   @override
   String get subscriptionHowItWorksTrial =>
-      'The first 30 days include full access to the entire app.';
+      'The first 30 days unlock every feature with no limits.';
 
   @override
   String get subscriptionHowItWorksNoSplit =>
-      'During the trial there is no split between basic and Premium features.';
+      'During the trial you can add, edit, and delete any data.';
 
   @override
   String get subscriptionHowItWorksAfterTrial =>
-      'After the trial ends, an active Premium subscription is required to continue using Budgetto.';
+      'After the trial, Budgetto stays in read-only mode until a subscription is active.';
 
   @override
   String get subscriptionHowItWorksBilling =>
-      'You can choose monthly, quarterly, or yearly billing at any time.';
+      'Choose monthly, 3-month, or yearly billing any time.';
+
+  @override
+  String get subscriptionPremiumUnlocksTitle => 'Premium unlocks';
+
+  @override
+  String get subscriptionFeatureCustomCategories =>
+      'Create, edit, and reorder custom categories.';
+
+  @override
+  String get subscriptionFeatureCustomTags =>
+      'Create, edit, and reorder your own tags.';
+
+  @override
+  String get subscriptionFeatureRecurringPayments =>
+      'Plan recurring payments and add them faster.';
+
+  @override
+  String get subscriptionFeatureReminders =>
+      'Set reminders for bills and important dates.';
+
+  @override
+  String get subscriptionFeatureSharedBudgets =>
+      'Use shared budgets for family or partner planning.';
+
+  @override
+  String get subscriptionFeatureCsvTools =>
+      'Import and export transactions with CSV.';
 
   @override
   String get subscriptionStoreUnavailable =>
@@ -392,6 +427,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get subscriptionPlanActive => 'Active';
+
+  @override
+  String get premiumRequiredTitle => 'Premium required';
+
+  @override
+  String premiumRequiredMessage(Object feature) {
+    return 'Premium unlocks $feature. Choose a plan to continue.';
+  }
+
+  @override
+  String get premiumViewPlans => 'View plans';
+
+  @override
+  String get premiumOnlyBadge => 'Premium';
+
+  @override
+  String get premiumFeatureCustomCategories => 'custom categories';
+
+  @override
+  String get premiumFeatureCustomTags => 'custom tags';
+
+  @override
+  String get premiumFeatureRecurringPayments => 'recurring payments';
+
+  @override
+  String get premiumFeatureReminders => 'reminders';
+
+  @override
+  String get premiumFeatureSharedBudgets => 'shared budgets';
+
+  @override
+  String get premiumFeatureCsvTools => 'CSV import and export';
+
+  @override
+  String get premiumFeatureEditing => 'adding and editing data';
+
+  @override
+  String get premiumReadOnlyMessage =>
+      'Your free trial has ended. Budgetto is now in read-only mode. Subscribe to add, edit, and delete data again.';
+
+  @override
+  String get premiumCategoriesInlineHint =>
+      'Default categories stay available. Premium unlocks your own categories, editing, and reordering.';
+
+  @override
+  String get premiumTagsInlineHint =>
+      'Default tags stay available. Premium unlocks your own tags, editing, and reordering.';
 
   @override
   String get transactionsBudgetPickerTitle => 'Choose a budget';

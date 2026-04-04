@@ -5,15 +5,20 @@ import '../models/checklist_entry.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_header.dart';
+import '../widgets/premium_feature_gate.dart';
 import '../widgets/soft_card.dart';
 
 class ListsScreen extends StatelessWidget {
   const ListsScreen({super.key});
 
   void _openEditor(BuildContext context, ChecklistEntry? entry) {
+    final appState = AppStateScope.of(context);
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ChecklistEditorScreen(initialEntry: entry),
+        builder: (_) => ChecklistEditorScreen(
+          initialEntry: entry,
+          readOnly: !appState.canModifyData,
+        ),
       ),
     );
   }
@@ -23,6 +28,10 @@ class ListsScreen extends StatelessWidget {
     AppState appState,
     ChecklistEntry entry,
   ) async {
+    if (!appState.canModifyData) {
+      await showReadOnlyAfterTrialSheet(context);
+      return;
+    }
     final l10n = context.l10n;
     final confirm = await showDialog<bool>(
       context: context,
@@ -65,6 +74,7 @@ class ListsScreen extends StatelessWidget {
     final l10n = context.l10n;
     final lists = appState.checklists;
     final canPop = Navigator.of(context).canPop();
+    final isReadOnly = !appState.canModifyData;
 
     return Scaffold(
       body: SafeArea(
@@ -82,7 +92,13 @@ class ListsScreen extends StatelessWidget {
                   : null,
               actions: [
                 IconButton(
-                  onPressed: () => _openEditor(context, null),
+                  onPressed: () {
+                    if (isReadOnly) {
+                      showReadOnlyAfterTrialSheet(context);
+                      return;
+                    }
+                    _openEditor(context, null);
+                  },
                   icon: const Icon(Icons.add),
                 ),
               ],
@@ -90,86 +106,101 @@ class ListsScreen extends StatelessWidget {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(12),
-                child: lists.isEmpty
-                    ? Center(
-                        child: Text(
-                          l10n.listsEmpty,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: AppColors.textSecondary),
-                        ),
-                      )
-                    : ListView.separated(
-                        padding: EdgeInsets.zero,
-                        itemCount: lists.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final entry = lists[index];
-                          return GestureDetector(
-                            onTap: () => _openEditor(context, entry),
-                            child: SoftCard(
-                              child: Row(
-                                children: [
-                                  Container(
-                                    height: 40,
-                                    width: 40,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.surface2,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Icon(
-                                      Icons.fact_check,
-                                      color: AppColors.chipBlue,
-                                      size: 22,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                child: Column(
+                  children: [
+                    if (isReadOnly) ...[
+                      const ReadOnlyAccessCard(),
+                      const SizedBox(height: 12),
+                    ],
+                    Expanded(
+                      child: lists.isEmpty
+                          ? Center(
+                              child: Text(
+                                l10n.listsEmpty,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(color: AppColors.textSecondary),
+                              ),
+                            )
+                          : ListView.separated(
+                              padding: EdgeInsets.zero,
+                              itemCount: lists.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(height: 12),
+                              itemBuilder: (context, index) {
+                                final entry = lists[index];
+                                return GestureDetector(
+                                  onTap: () => _openEditor(context, entry),
+                                  child: SoftCard(
+                                    child: Row(
                                       children: [
-                                        Text(
-                                          entry.title,
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.bodyLarge,
+                                        Container(
+                                          height: 40,
+                                          width: 40,
+                                          decoration: BoxDecoration(
+                                            color: AppColors.surface2,
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            Icons.fact_check,
+                                            color: AppColors.chipBlue,
+                                            size: 22,
+                                          ),
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          _summary(entry, context),
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall
-                                              ?.copyWith(
-                                                color: AppColors.textSecondary,
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                entry.title,
+                                                style: Theme.of(
+                                                  context,
+                                                ).textTheme.bodyLarge,
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                _summary(entry, context),
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall
+                                                    ?.copyWith(
+                                                      color: AppColors
+                                                          .textSecondary,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        IconButton(
+                                          onPressed: () => _confirmDelete(
+                                            context,
+                                            appState,
+                                            entry,
+                                          ),
+                                          icon: Icon(
+                                            Icons.delete,
+                                            color: AppColors.accentExpense,
+                                          ),
+                                          iconSize: 22,
+                                          padding: EdgeInsets.zero,
+                                          constraints:
+                                              const BoxConstraints.tightFor(
+                                                width: 32,
+                                                height: 32,
                                               ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  IconButton(
-                                    onPressed: () => _confirmDelete(
-                                      context,
-                                      appState,
-                                      entry,
-                                    ),
-                                    icon: Icon(
-                                      Icons.delete,
-                                      color: AppColors.accentExpense,
-                                    ),
-                                    iconSize: 22,
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints.tightFor(
-                                      width: 32,
-                                      height: 32,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -180,9 +211,14 @@ class ListsScreen extends StatelessWidget {
 }
 
 class ChecklistEditorScreen extends StatefulWidget {
-  const ChecklistEditorScreen({super.key, this.initialEntry});
+  const ChecklistEditorScreen({
+    super.key,
+    this.initialEntry,
+    this.readOnly = false,
+  });
 
   final ChecklistEntry? initialEntry;
+  final bool readOnly;
 
   @override
   State<ChecklistEditorScreen> createState() => _ChecklistEditorScreenState();
@@ -240,12 +276,18 @@ class _ChecklistEditorScreenState extends State<ChecklistEditorScreen> {
   }
 
   void _addItem() {
+    if (widget.readOnly) {
+      return;
+    }
     setState(() {
       _items.add(_createEditableItem());
     });
   }
 
   void _removeItem(int index) {
+    if (widget.readOnly) {
+      return;
+    }
     setState(() {
       final removed = _items.removeAt(index);
       removed.controller.dispose();
@@ -315,6 +357,12 @@ class _ChecklistEditorScreenState extends State<ChecklistEditorScreen> {
   }
 
   Future<void> _save({required bool pop}) async {
+    if (widget.readOnly) {
+      if (pop && mounted) {
+        Navigator.of(context).pop();
+      }
+      return;
+    }
     final appState = AppStateScope.of(context);
     final l10n = context.l10n;
     final entry = _buildEntry();
@@ -345,11 +393,15 @@ class _ChecklistEditorScreenState extends State<ChecklistEditorScreen> {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final navigator = Navigator.of(context);
     final canPop = navigator.canPop();
+    final isReadOnly = widget.readOnly;
 
     return PopScope<void>(
-      canPop: false,
+      canPop: isReadOnly,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) {
+          return;
+        }
+        if (isReadOnly) {
           return;
         }
         await _save(pop: false);
@@ -370,6 +422,10 @@ class _ChecklistEditorScreenState extends State<ChecklistEditorScreen> {
                 leading: canPop
                     ? IconButton(
                         onPressed: () async {
+                          if (isReadOnly) {
+                            navigator.pop();
+                            return;
+                          }
                           await _save(pop: false);
                           if (mounted) {
                             navigator.pop();
@@ -379,19 +435,25 @@ class _ChecklistEditorScreenState extends State<ChecklistEditorScreen> {
                       )
                     : null,
                 actions: [
-                  TextButton(
-                    onPressed: () => _save(pop: true),
-                    child: Text(l10n.commonSave),
-                  ),
+                  if (!isReadOnly)
+                    TextButton(
+                      onPressed: () => _save(pop: true),
+                      child: Text(l10n.commonSave),
+                    ),
                 ],
               ),
               Expanded(
                 child: ListView(
                   padding: EdgeInsets.fromLTRB(12, 12, 12, 12 + bottomInset),
                   children: [
+                    if (isReadOnly) ...[
+                      const ReadOnlyAccessCard(),
+                      const SizedBox(height: 12),
+                    ],
                     SoftCard(
                       child: TextField(
                         controller: _titleController,
+                        readOnly: isReadOnly,
                         decoration: InputDecoration(
                           hintText: l10n.listsNameHint,
                           border: InputBorder.none,
@@ -408,52 +470,58 @@ class _ChecklistEditorScreenState extends State<ChecklistEditorScreen> {
                               children: [
                                 Checkbox(
                                   value: _items[i].checked,
-                                  onChanged: (value) {
-                                    if (value == null) {
-                                      return;
-                                    }
-                                    setState(() {
-                                      _items[i].checked = value;
-                                    });
-                                  },
+                                  onChanged: isReadOnly
+                                      ? null
+                                      : (value) {
+                                          if (value == null) {
+                                            return;
+                                          }
+                                          setState(() {
+                                            _items[i].checked = value;
+                                          });
+                                        },
                                 ),
                                 Expanded(
                                   child: TextField(
                                     controller: _items[i].controller,
+                                    readOnly: isReadOnly,
                                     decoration: InputDecoration(
                                       hintText: l10n.listsItemHint,
                                       border: InputBorder.none,
                                     ),
                                   ),
                                 ),
-                                IconButton(
-                                  onPressed: () => _removeItem(i),
-                                  icon: Icon(
-                                    Icons.close,
-                                    color: AppColors.accentExpense,
+                                if (!isReadOnly)
+                                  IconButton(
+                                    onPressed: () => _removeItem(i),
+                                    icon: Icon(
+                                      Icons.close,
+                                      color: AppColors.accentExpense,
+                                    ),
+                                    iconSize: 20,
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints.tightFor(
+                                      width: 28,
+                                      height: 28,
+                                    ),
                                   ),
-                                  iconSize: 20,
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints.tightFor(
-                                    width: 28,
-                                    height: 28,
-                                  ),
-                                ),
                               ],
                             ),
                           ],
                         ],
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: _addItem,
-                      icon: const Icon(Icons.add),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.accentIncome,
+                    if (!isReadOnly) ...[
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: _addItem,
+                        icon: const Icon(Icons.add),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.accentIncome,
+                        ),
+                        label: Text(l10n.listsAddItem),
                       ),
-                      label: Text(l10n.listsAddItem),
-                    ),
+                    ],
                   ],
                 ),
               ),

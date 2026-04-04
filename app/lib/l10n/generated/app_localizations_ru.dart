@@ -18,7 +18,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsPremiumTitle => 'Premium';
 
   @override
-  String get settingsPremiumSubtitle => 'Подписка и доступ к приложению';
+  String get settingsPremiumSubtitle => 'Подписка и premium-возможности';
 
   @override
   String get settingsBudgetsTitle => 'Бюджеты';
@@ -141,6 +141,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get accessStatusLocked => 'Доступ закрыт';
+
+  @override
+  String get accessStatusBasic => 'Базовый план';
 
   @override
   String accessStatusDaysRemaining(int count) {
@@ -298,7 +301,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get subscriptionPlanYearlyTitle => 'Годовой';
 
   @override
-  String get subscriptionPlanYearlyFallback => '\$15 / год';
+  String get subscriptionPlanYearlyFallback => '\$14.99 / год';
 
   @override
   String get subscriptionPlanBestBadge => 'Лучшая цена';
@@ -307,13 +310,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get subscriptionPlanQuarterlyTitle => '3 месяца';
 
   @override
-  String get subscriptionPlanQuarterlyFallback => '\$5 / 3 месяца';
+  String get subscriptionPlanQuarterlyFallback => '\$4.99 / 3 месяца';
 
   @override
   String get subscriptionPlanMonthlyTitle => 'Месячный';
 
   @override
-  String get subscriptionPlanMonthlyFallback => '\$2 / месяц';
+  String get subscriptionPlanMonthlyFallback => '\$1.99 / месяц';
 
   @override
   String get subscriptionDateNotSet => 'не задана';
@@ -322,23 +325,23 @@ class AppLocalizationsRu extends AppLocalizations {
   String get subscriptionHeadlineActive => 'Premium активен';
 
   @override
-  String get subscriptionHeadlineTrial => 'Первые 30 дней дают полный доступ';
+  String get subscriptionHeadlineTrial => 'Пробный Premium активен';
 
   @override
   String get subscriptionHeadlineExpired => 'Пробный период закончился';
 
   @override
   String get subscriptionSubheadActive =>
-      'Premium сохраняет полный доступ к Budgetto после пробного периода.';
+      'На этом устройстве открыты все Premium-возможности.';
 
   @override
   String subscriptionSubheadTrial(int count) {
-    return 'Осталось $count д. полного доступа до того, как потребуется Premium.';
+    return 'Осталось $count д. Premium в бесплатном trial.';
   }
 
   @override
   String get subscriptionSubheadExpired =>
-      'Чтобы продолжить пользоваться Budgetto после пробного периода, выбери подписку.';
+      'Budgetto перешел в режим просмотра. Чтобы снова добавлять и редактировать данные, нужна подписка.';
 
   @override
   String get subscriptionUnlimited => 'Без ограничений';
@@ -352,29 +355,62 @@ class AppLocalizationsRu extends AppLocalizations {
   String get subscriptionChipFullAccess => 'Полный доступ';
 
   @override
+  String get subscriptionChipPremiumFeatures => 'Premium-возможности';
+
+  @override
   String get subscriptionChipPremiumAfterTrial => 'Premium после trial';
 
   @override
   String get subscriptionChipSubscriptionRequired => 'Нужна подписка';
 
   @override
+  String get subscriptionChipBasicPlan => 'Только просмотр';
+
+  @override
   String get subscriptionHowItWorksTitle => 'Как работает доступ';
 
   @override
   String get subscriptionHowItWorksTrial =>
-      'Первые 30 дней дают полный доступ ко всему приложению.';
+      'Первые 30 дней открывают все функции без ограничений.';
 
   @override
   String get subscriptionHowItWorksNoSplit =>
-      'Во время trial у приложения нет разделения на базовые и Premium-функции.';
+      'В течение trial можно добавлять, редактировать и удалять любые данные.';
 
   @override
   String get subscriptionHowItWorksAfterTrial =>
-      'После окончания trial нужна активная подписка Premium, чтобы продолжить пользоваться Budgetto.';
+      'После trial без подписки Budgetto остается в режиме просмотра, пока подписка не будет активирована.';
 
   @override
   String get subscriptionHowItWorksBilling =>
-      'В любой момент можно выбрать месячный, квартальный или годовой тариф.';
+      'В любой момент можно выбрать месячный, 3-месячный или годовой тариф.';
+
+  @override
+  String get subscriptionPremiumUnlocksTitle => 'Что открывает Premium';
+
+  @override
+  String get subscriptionFeatureCustomCategories =>
+      'Создание, редактирование и сортировка своих категорий.';
+
+  @override
+  String get subscriptionFeatureCustomTags =>
+      'Создание, редактирование и сортировка своих тегов.';
+
+  @override
+  String get subscriptionFeatureRecurringPayments =>
+      'Регулярные платежи и быстрые повторяющиеся операции.';
+
+  @override
+  String get subscriptionFeatureReminders =>
+      'Напоминания о счетах и важных датах.';
+
+  @override
+  String get subscriptionFeatureSharedBudgets =>
+      'Общие бюджеты для семьи или партнёра.';
+
+  @override
+  String get subscriptionFeatureCsvTools =>
+      'Импорт и экспорт операций через CSV.';
 
   @override
   String get subscriptionStoreUnavailable =>
@@ -389,6 +425,53 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get subscriptionPlanActive => 'Активен';
+
+  @override
+  String get premiumRequiredTitle => 'Нужен Premium';
+
+  @override
+  String premiumRequiredMessage(Object feature) {
+    return 'Premium открывает функцию: $feature. Выбери тариф, чтобы продолжить.';
+  }
+
+  @override
+  String get premiumViewPlans => 'Посмотреть тарифы';
+
+  @override
+  String get premiumOnlyBadge => 'Premium';
+
+  @override
+  String get premiumFeatureCustomCategories => 'свои категории';
+
+  @override
+  String get premiumFeatureCustomTags => 'свои теги';
+
+  @override
+  String get premiumFeatureRecurringPayments => 'регулярные платежи';
+
+  @override
+  String get premiumFeatureReminders => 'напоминания';
+
+  @override
+  String get premiumFeatureSharedBudgets => 'общие бюджеты';
+
+  @override
+  String get premiumFeatureCsvTools => 'импорт и экспорт CSV';
+
+  @override
+  String get premiumFeatureEditing => 'добавление и редактирование данных';
+
+  @override
+  String get premiumReadOnlyMessage =>
+      'Пробный период закончился. Budgetto сейчас работает в режиме просмотра. Оформи подписку, чтобы снова добавлять, редактировать и удалять данные.';
+
+  @override
+  String get premiumCategoriesInlineHint =>
+      'Базовые категории остаются доступны. Premium открывает свои категории, их редактирование и сортировку.';
+
+  @override
+  String get premiumTagsInlineHint =>
+      'Базовые теги остаются доступны. Premium открывает свои теги, их редактирование и сортировку.';
 
   @override
   String get transactionsBudgetPickerTitle => 'Выбери бюджет';

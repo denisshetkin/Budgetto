@@ -5,6 +5,7 @@ import '../models/payment_method.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_header.dart';
+import '../widgets/premium_feature_gate.dart';
 import '../widgets/soft_card.dart';
 
 class CardsScreen extends StatelessWidget {
@@ -15,6 +16,10 @@ class CardsScreen extends StatelessWidget {
     AppState appState, {
     PaymentMethod? method,
   }) {
+    if (!appState.canModifyData) {
+      showReadOnlyAfterTrialSheet(context);
+      return;
+    }
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface1,
@@ -47,6 +52,10 @@ class CardsScreen extends StatelessWidget {
     AppState appState,
     PaymentMethod method,
   ) async {
+    if (!appState.canModifyData) {
+      await showReadOnlyAfterTrialSheet(context);
+      return;
+    }
     final l10n = context.l10n;
     final confirm = await showDialog<bool>(
       context: context,
@@ -87,6 +96,7 @@ class CardsScreen extends StatelessWidget {
         .where((method) => method.type == PaymentMethodType.card)
         .toList();
     final canPop = Navigator.of(context).canPop();
+    final isReadOnly = !appState.canModifyData;
 
     return Scaffold(
       body: SafeArea(
@@ -111,108 +121,151 @@ class CardsScreen extends StatelessWidget {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(20),
-                child: cards.isEmpty
-                    ? Center(
-                        child: Text(
-                          l10n.cardsEmpty,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: AppColors.textSecondary),
-                        ),
-                      )
-                    : ReorderableListView.builder(
-                        buildDefaultDragHandles: false,
-                        itemCount: cards.length,
-                        onReorder: (oldIndex, newIndex) {
-                          appState.reorderCard(oldIndex, newIndex);
-                        },
-                        itemBuilder: (context, index) {
-                          final method = cards[index];
-                          return Padding(
-                            key: ValueKey(method.id),
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: ReorderableDelayedDragStartListener(
-                              index: index,
-                              child: SoftCard(
-                                child: SizedBox(
-                                  height: 44,
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        height: 32,
-                                        width: 32,
-                                        decoration: BoxDecoration(
-                                          color: AppColors.surface2,
-                                          borderRadius: BorderRadius.circular(
-                                            10,
+                child: Column(
+                  children: [
+                    if (isReadOnly) ...[
+                      const ReadOnlyAccessCard(),
+                      const SizedBox(height: 12),
+                    ],
+                    Expanded(
+                      child: cards.isEmpty
+                          ? Center(
+                              child: Text(
+                                l10n.cardsEmpty,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(color: AppColors.textSecondary),
+                              ),
+                            )
+                          : (isReadOnly
+                                ? ListView.builder(
+                                    itemCount: cards.length,
+                                    itemBuilder: (context, index) {
+                                      final method = cards[index];
+                                      return Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 12,
+                                        ),
+                                        child: _CardTile(
+                                          method: method,
+                                          showDragHandle: false,
+                                          onEdit: () => _openAddCard(
+                                            context,
+                                            appState,
+                                            method: method,
+                                          ),
+                                          onDelete: () => _confirmDelete(
+                                            context,
+                                            appState,
+                                            method,
                                           ),
                                         ),
-                                        child: Icon(
-                                          method.icon,
-                                          color: method.color,
-                                          size: 18,
+                                      );
+                                    },
+                                  )
+                                : ReorderableListView.builder(
+                                    buildDefaultDragHandles: false,
+                                    itemCount: cards.length,
+                                    onReorder: (oldIndex, newIndex) {
+                                      appState.reorderCard(oldIndex, newIndex);
+                                    },
+                                    itemBuilder: (context, index) {
+                                      final method = cards[index];
+                                      return Padding(
+                                        key: ValueKey(method.id),
+                                        padding: const EdgeInsets.only(
+                                          bottom: 12,
                                         ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Text(
-                                          method.name,
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.bodyLarge,
-                                        ),
-                                      ),
-                                      Icon(
-                                        Icons.drag_indicator,
-                                        color: AppColors.textSecondary,
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      IconButton(
-                                        onPressed: () => _openAddCard(
-                                          context,
-                                          appState,
-                                          method: method,
-                                        ),
-                                        icon: Icon(
-                                          Icons.edit,
-                                          color: AppColors.accentIncome,
-                                        ),
-                                        iconSize: 26,
-                                        padding: EdgeInsets.zero,
-                                        constraints:
-                                            const BoxConstraints.tightFor(
-                                              width: 32,
-                                              height: 32,
+                                        child:
+                                            ReorderableDelayedDragStartListener(
+                                              index: index,
+                                              child: _CardTile(
+                                                method: method,
+                                                showDragHandle: true,
+                                                onEdit: () => _openAddCard(
+                                                  context,
+                                                  appState,
+                                                  method: method,
+                                                ),
+                                                onDelete: () => _confirmDelete(
+                                                  context,
+                                                  appState,
+                                                  method,
+                                                ),
+                                              ),
                                             ),
-                                      ),
-                                      const SizedBox(width: 2),
-                                      IconButton(
-                                        onPressed: () => _confirmDelete(
-                                          context,
-                                          appState,
-                                          method,
-                                        ),
-                                        icon: Icon(
-                                          Icons.delete,
-                                          color: AppColors.accentExpense,
-                                        ),
-                                        iconSize: 26,
-                                        padding: EdgeInsets.zero,
-                                        constraints:
-                                            const BoxConstraints.tightFor(
-                                              width: 32,
-                                              height: 32,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+                                      );
+                                    },
+                                  )),
+                    ),
+                  ],
+                ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CardTile extends StatelessWidget {
+  const _CardTile({
+    required this.method,
+    required this.showDragHandle,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final PaymentMethod method;
+  final bool showDragHandle;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return SoftCard(
+      child: SizedBox(
+        height: 44,
+        child: Row(
+          children: [
+            Container(
+              height: 32,
+              width: 32,
+              decoration: BoxDecoration(
+                color: AppColors.surface2,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(method.icon, color: method.color, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                method.name,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ),
+            if (showDragHandle) ...[
+              Icon(
+                Icons.drag_indicator,
+                color: AppColors.textSecondary,
+                size: 20,
+              ),
+              const SizedBox(width: 6),
+            ],
+            IconButton(
+              onPressed: onEdit,
+              icon: Icon(Icons.edit, color: AppColors.accentIncome),
+              iconSize: 26,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+            ),
+            const SizedBox(width: 2),
+            IconButton(
+              onPressed: onDelete,
+              icon: Icon(Icons.delete, color: AppColors.accentExpense),
+              iconSize: 26,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 32, height: 32),
             ),
           ],
         ),

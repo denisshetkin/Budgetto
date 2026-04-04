@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'l10n/app_locale.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'screens/app_shell.dart';
-import 'screens/subscription_screen.dart';
 import 'state/app_state.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
@@ -62,9 +61,7 @@ class _SmartWalletAppState extends State<SmartWalletApp> {
             supportedLocales: supportedAppLocales,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             home: _ready
-                ? (_appState.isAccessLocked
-                      ? const SubscriptionScreen()
-                      : const AppShell())
+                ? const AppShell()
                 : (_fontsReady ? const _SplashScreen() : const _BlankScreen()),
           );
         },

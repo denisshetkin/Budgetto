@@ -46,7 +46,7 @@ class SubscriptionScreen extends StatelessWidget {
     if (appState.isTrialActive) {
       return l10n.subscriptionChipPremiumAfterTrial;
     }
-    return l10n.subscriptionChipSubscriptionRequired;
+    return l10n.subscriptionChipBasicPlan;
   }
 
   @override
@@ -55,6 +55,14 @@ class SubscriptionScreen extends StatelessWidget {
     final canPop = Navigator.of(context).canPop();
     final l10n = context.l10n;
     final localeTag = Localizations.localeOf(context).toLanguageTag();
+    final premiumFeatures = [
+      l10n.subscriptionFeatureCustomCategories,
+      l10n.subscriptionFeatureCustomTags,
+      l10n.subscriptionFeatureRecurringPayments,
+      l10n.subscriptionFeatureReminders,
+      l10n.subscriptionFeatureSharedBudgets,
+      l10n.subscriptionFeatureCsvTools,
+    ];
     final plans = [
       _PlanConfig(
         productId: AppState.yearlySubscriptionProductId,
@@ -134,7 +142,7 @@ class SubscriptionScreen extends StatelessWidget {
                                 ),
                                 _InfoChip(
                                   icon: Icons.cloud_sync_outlined,
-                                  label: l10n.subscriptionChipFullAccess,
+                                  label: l10n.subscriptionChipPremiumFeatures,
                                 ),
                                 _InfoChip(
                                   icon: Icons.workspace_premium_outlined,
@@ -174,6 +182,29 @@ class SubscriptionScreen extends StatelessWidget {
                             _BenefitRow(
                               icon: Icons.receipt_long_outlined,
                               text: l10n.subscriptionHowItWorksBilling,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SoftCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.subscriptionPremiumUnlocksTitle,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 12),
+                            ...premiumFeatures.map(
+                              (feature) => Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: _BenefitRow(
+                                  icon: Icons.check_circle_outline,
+                                  text: feature,
+                                ),
+                              ),
                             ),
                           ],
                         ),

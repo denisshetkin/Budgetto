@@ -121,7 +121,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsPremiumSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Subscription and app access'**
+  /// **'Subscription and premium features'**
   String get settingsPremiumSubtitle;
 
   /// No description provided for @settingsBudgetsTitle.
@@ -363,6 +363,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Access locked'**
   String get accessStatusLocked;
+
+  /// No description provided for @accessStatusBasic.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic plan'**
+  String get accessStatusBasic;
 
   /// No description provided for @accessStatusDaysRemaining.
   ///
@@ -661,7 +667,7 @@ abstract class AppLocalizations {
   /// No description provided for @subscriptionPlanYearlyFallback.
   ///
   /// In en, this message translates to:
-  /// **'\$15 / year'**
+  /// **'\$14.99 / year'**
   String get subscriptionPlanYearlyFallback;
 
   /// No description provided for @subscriptionPlanBestBadge.
@@ -679,7 +685,7 @@ abstract class AppLocalizations {
   /// No description provided for @subscriptionPlanQuarterlyFallback.
   ///
   /// In en, this message translates to:
-  /// **'\$5 / 3 months'**
+  /// **'\$4.99 / 3 months'**
   String get subscriptionPlanQuarterlyFallback;
 
   /// No description provided for @subscriptionPlanMonthlyTitle.
@@ -691,7 +697,7 @@ abstract class AppLocalizations {
   /// No description provided for @subscriptionPlanMonthlyFallback.
   ///
   /// In en, this message translates to:
-  /// **'\$2 / month'**
+  /// **'\$1.99 / month'**
   String get subscriptionPlanMonthlyFallback;
 
   /// No description provided for @subscriptionDateNotSet.
@@ -709,31 +715,31 @@ abstract class AppLocalizations {
   /// No description provided for @subscriptionHeadlineTrial.
   ///
   /// In en, this message translates to:
-  /// **'The first 30 days include full access'**
+  /// **'Premium trial is active'**
   String get subscriptionHeadlineTrial;
 
   /// No description provided for @subscriptionHeadlineExpired.
   ///
   /// In en, this message translates to:
-  /// **'Trial period has ended'**
+  /// **'Free trial has ended'**
   String get subscriptionHeadlineExpired;
 
   /// No description provided for @subscriptionSubheadActive.
   ///
   /// In en, this message translates to:
-  /// **'Premium keeps full access to Budgetto after the trial.'**
+  /// **'All Premium features are unlocked on this device.'**
   String get subscriptionSubheadActive;
 
   /// No description provided for @subscriptionSubheadTrial.
   ///
   /// In en, this message translates to:
-  /// **'{count} d. of full access left before Premium is required.'**
+  /// **'{count} d. of Premium left in the free trial.'**
   String subscriptionSubheadTrial(int count);
 
   /// No description provided for @subscriptionSubheadExpired.
   ///
   /// In en, this message translates to:
-  /// **'To keep using Budgetto after the trial, choose a subscription.'**
+  /// **'Budgetto is now in read-only mode. A subscription is required to add or edit data again.'**
   String get subscriptionSubheadExpired;
 
   /// No description provided for @subscriptionUnlimited.
@@ -754,6 +760,12 @@ abstract class AppLocalizations {
   /// **'Full access'**
   String get subscriptionChipFullAccess;
 
+  /// No description provided for @subscriptionChipPremiumFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium features'**
+  String get subscriptionChipPremiumFeatures;
+
   /// No description provided for @subscriptionChipPremiumAfterTrial.
   ///
   /// In en, this message translates to:
@@ -766,6 +778,12 @@ abstract class AppLocalizations {
   /// **'Subscription required'**
   String get subscriptionChipSubscriptionRequired;
 
+  /// No description provided for @subscriptionChipBasicPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Read-only'**
+  String get subscriptionChipBasicPlan;
+
   /// No description provided for @subscriptionHowItWorksTitle.
   ///
   /// In en, this message translates to:
@@ -775,26 +793,68 @@ abstract class AppLocalizations {
   /// No description provided for @subscriptionHowItWorksTrial.
   ///
   /// In en, this message translates to:
-  /// **'The first 30 days include full access to the entire app.'**
+  /// **'The first 30 days unlock every feature with no limits.'**
   String get subscriptionHowItWorksTrial;
 
   /// No description provided for @subscriptionHowItWorksNoSplit.
   ///
   /// In en, this message translates to:
-  /// **'During the trial there is no split between basic and Premium features.'**
+  /// **'During the trial you can add, edit, and delete any data.'**
   String get subscriptionHowItWorksNoSplit;
 
   /// No description provided for @subscriptionHowItWorksAfterTrial.
   ///
   /// In en, this message translates to:
-  /// **'After the trial ends, an active Premium subscription is required to continue using Budgetto.'**
+  /// **'After the trial, Budgetto stays in read-only mode until a subscription is active.'**
   String get subscriptionHowItWorksAfterTrial;
 
   /// No description provided for @subscriptionHowItWorksBilling.
   ///
   /// In en, this message translates to:
-  /// **'You can choose monthly, quarterly, or yearly billing at any time.'**
+  /// **'Choose monthly, 3-month, or yearly billing any time.'**
   String get subscriptionHowItWorksBilling;
+
+  /// No description provided for @subscriptionPremiumUnlocksTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium unlocks'**
+  String get subscriptionPremiumUnlocksTitle;
+
+  /// No description provided for @subscriptionFeatureCustomCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Create, edit, and reorder custom categories.'**
+  String get subscriptionFeatureCustomCategories;
+
+  /// No description provided for @subscriptionFeatureCustomTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Create, edit, and reorder your own tags.'**
+  String get subscriptionFeatureCustomTags;
+
+  /// No description provided for @subscriptionFeatureRecurringPayments.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan recurring payments and add them faster.'**
+  String get subscriptionFeatureRecurringPayments;
+
+  /// No description provided for @subscriptionFeatureReminders.
+  ///
+  /// In en, this message translates to:
+  /// **'Set reminders for bills and important dates.'**
+  String get subscriptionFeatureReminders;
+
+  /// No description provided for @subscriptionFeatureSharedBudgets.
+  ///
+  /// In en, this message translates to:
+  /// **'Use shared budgets for family or partner planning.'**
+  String get subscriptionFeatureSharedBudgets;
+
+  /// No description provided for @subscriptionFeatureCsvTools.
+  ///
+  /// In en, this message translates to:
+  /// **'Import and export transactions with CSV.'**
+  String get subscriptionFeatureCsvTools;
 
   /// No description provided for @subscriptionStoreUnavailable.
   ///
@@ -819,6 +879,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Active'**
   String get subscriptionPlanActive;
+
+  /// No description provided for @premiumRequiredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium required'**
+  String get premiumRequiredTitle;
+
+  /// No description provided for @premiumRequiredMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium unlocks {feature}. Choose a plan to continue.'**
+  String premiumRequiredMessage(Object feature);
+
+  /// No description provided for @premiumViewPlans.
+  ///
+  /// In en, this message translates to:
+  /// **'View plans'**
+  String get premiumViewPlans;
+
+  /// No description provided for @premiumOnlyBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium'**
+  String get premiumOnlyBadge;
+
+  /// No description provided for @premiumFeatureCustomCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'custom categories'**
+  String get premiumFeatureCustomCategories;
+
+  /// No description provided for @premiumFeatureCustomTags.
+  ///
+  /// In en, this message translates to:
+  /// **'custom tags'**
+  String get premiumFeatureCustomTags;
+
+  /// No description provided for @premiumFeatureRecurringPayments.
+  ///
+  /// In en, this message translates to:
+  /// **'recurring payments'**
+  String get premiumFeatureRecurringPayments;
+
+  /// No description provided for @premiumFeatureReminders.
+  ///
+  /// In en, this message translates to:
+  /// **'reminders'**
+  String get premiumFeatureReminders;
+
+  /// No description provided for @premiumFeatureSharedBudgets.
+  ///
+  /// In en, this message translates to:
+  /// **'shared budgets'**
+  String get premiumFeatureSharedBudgets;
+
+  /// No description provided for @premiumFeatureCsvTools.
+  ///
+  /// In en, this message translates to:
+  /// **'CSV import and export'**
+  String get premiumFeatureCsvTools;
+
+  /// No description provided for @premiumFeatureEditing.
+  ///
+  /// In en, this message translates to:
+  /// **'adding and editing data'**
+  String get premiumFeatureEditing;
+
+  /// No description provided for @premiumReadOnlyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your free trial has ended. Budgetto is now in read-only mode. Subscribe to add, edit, and delete data again.'**
+  String get premiumReadOnlyMessage;
+
+  /// No description provided for @premiumCategoriesInlineHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Default categories stay available. Premium unlocks your own categories, editing, and reordering.'**
+  String get premiumCategoriesInlineHint;
+
+  /// No description provided for @premiumTagsInlineHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Default tags stay available. Premium unlocks your own tags, editing, and reordering.'**
+  String get premiumTagsInlineHint;
 
   /// No description provided for @transactionsBudgetPickerTitle.
   ///

@@ -5,6 +5,7 @@ import '../models/tag_entry.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_header.dart';
+import '../widgets/premium_feature_gate.dart';
 import '../widgets/soft_card.dart';
 
 class TagsScreen extends StatelessWidget {
@@ -81,6 +82,79 @@ class TagsScreen extends StatelessWidget {
     final l10n = context.l10n;
     final tags = appState.tags;
     final canPop = Navigator.of(context).canPop();
+    final canManageTags = appState.canManageCustomTags;
+
+    Widget buildTagRow(TagEntry tag, {int? index}) {
+      final row = SoftCard(
+        child: SizedBox(
+          height: 44,
+          child: Row(
+            children: [
+              Container(
+                height: 32,
+                width: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.surface2,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.tag,
+                  color: tag.color,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  tag.name,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ),
+              if (canManageTags) ...[
+                Icon(
+                  Icons.drag_indicator,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
+                const SizedBox(width: 6),
+                IconButton(
+                  onPressed: () => _openAddTag(context, appState, tag: tag),
+                  icon: Icon(Icons.edit, color: AppColors.accentIncome),
+                  iconSize: 26,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 32,
+                    height: 32,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                IconButton(
+                  onPressed: () => _confirmDelete(context, appState, tag),
+                  icon: Icon(Icons.delete, color: AppColors.accentExpense),
+                  iconSize: 26,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 32,
+                    height: 32,
+                  ),
+                ),
+              ] else
+                Icon(
+                  Icons.lock_outline_rounded,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
+            ],
+          ),
+        ),
+      );
+
+      if (index == null) {
+        return row;
+      }
+
+      return ReorderableDelayedDragStartListener(index: index, child: row);
+    }
 
     return Scaffold(
       body: SafeArea(
@@ -97,7 +171,17 @@ class TagsScreen extends StatelessWidget {
                   : null,
               actions: [
                 IconButton(
-                  onPressed: () => _openAddTag(context, appState),
+                  onPressed: () {
+                    if (!canManageTags) {
+                      showPremiumFeatureSheet(
+                        context,
+                        featureName: l10n.premiumFeatureCustomTags,
+                        message: l10n.premiumTagsInlineHint,
+                      );
+                      return;
+                    }
+                    _openAddTag(context, appState);
+                  },
                   icon: const Icon(Icons.add),
                 ),
               ],
@@ -105,107 +189,53 @@ class TagsScreen extends StatelessWidget {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(20),
-                child: tags.isEmpty
-                    ? Center(
-                        child: Text(
-                          l10n.tagsEmpty,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: AppColors.textSecondary),
-                        ),
-                      )
-                    : ReorderableListView.builder(
-                        buildDefaultDragHandles: false,
-                        itemCount: tags.length,
-                        onReorder: (oldIndex, newIndex) {
-                          appState.reorderTag(oldIndex, newIndex);
-                        },
-                        itemBuilder: (context, index) {
-                          final tag = tags[index];
-                          return Padding(
-                            key: ValueKey(tag.id),
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: ReorderableDelayedDragStartListener(
-                              index: index,
-                              child: SoftCard(
-                                child: SizedBox(
-                                  height: 44,
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        height: 32,
-                                        width: 32,
-                                        decoration: BoxDecoration(
-                                          color: AppColors.surface2,
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          Icons.tag,
-                                          color: tag.color,
-                                          size: 18,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Text(
-                                          tag.name,
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.bodyLarge,
-                                        ),
-                                      ),
-                                      Icon(
-                                        Icons.drag_indicator,
-                                        color: AppColors.textSecondary,
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      IconButton(
-                                        onPressed: () => _openAddTag(
-                                          context,
-                                          appState,
-                                          tag: tag,
-                                        ),
-                                        icon: Icon(
-                                          Icons.edit,
-                                          color: AppColors.accentIncome,
-                                        ),
-                                        iconSize: 26,
-                                        padding: EdgeInsets.zero,
-                                        constraints:
-                                            const BoxConstraints.tightFor(
-                                              width: 32,
-                                              height: 32,
-                                            ),
-                                      ),
-                                      const SizedBox(width: 2),
-                                      IconButton(
-                                        onPressed: () => _confirmDelete(
-                                          context,
-                                          appState,
-                                          tag,
-                                        ),
-                                        icon: Icon(
-                                          Icons.delete,
-                                          color: AppColors.accentExpense,
-                                        ),
-                                        iconSize: 26,
-                                        padding: EdgeInsets.zero,
-                                        constraints:
-                                            const BoxConstraints.tightFor(
-                                              width: 32,
-                                              height: 32,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
+                child: Column(
+                  children: [
+                    if (!canManageTags) ...[
+                      PremiumFeatureCard(
+                        featureName: l10n.premiumFeatureCustomTags,
+                        message: l10n.premiumTagsInlineHint,
                       ),
+                      const SizedBox(height: 12),
+                    ],
+                    Expanded(
+                      child: tags.isEmpty
+                          ? Center(
+                              child: Text(
+                                l10n.tagsEmpty,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(color: AppColors.textSecondary),
+                              ),
+                            )
+                          : canManageTags
+                          ? ReorderableListView.builder(
+                              buildDefaultDragHandles: false,
+                              itemCount: tags.length,
+                              onReorder: (oldIndex, newIndex) {
+                                appState.reorderTag(oldIndex, newIndex);
+                              },
+                              itemBuilder: (context, index) {
+                                final tag = tags[index];
+                                return Padding(
+                                  key: ValueKey(tag.id),
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: buildTagRow(tag, index: index),
+                                );
+                              },
+                            )
+                          : ListView.builder(
+                              itemCount: tags.length,
+                              itemBuilder: (context, index) {
+                                final tag = tags[index];
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: buildTagRow(tag),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

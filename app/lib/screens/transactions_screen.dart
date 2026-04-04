@@ -9,6 +9,7 @@ import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../utils/transaction_filters.dart';
 import '../widgets/app_header.dart';
+import '../widgets/premium_feature_gate.dart';
 import '../widgets/slide_action_icon.dart';
 import '../widgets/soft_card.dart';
 import '../widgets/transaction_row.dart';
@@ -142,6 +143,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     AppState appState,
     TransactionEntry entry,
   ) async {
+    if (!appState.canModifyData) {
+      await showReadOnlyAfterTrialSheet(context);
+      return;
+    }
     final l10n = context.l10n;
     final confirm = await showDialog<bool>(
       context: context,
@@ -186,6 +191,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     AppState appState,
     TransactionEntry entry,
   ) {
+    if (!appState.canModifyData) {
+      showReadOnlyAfterTrialSheet(context);
+      return;
+    }
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface1,
@@ -1514,6 +1523,44 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     required String symbol,
     required bool showAuthors,
   }) {
+    final isReadOnly = !appState.canModifyData;
+    final tileChild = GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => AddTransactionScreen(
+              initialType: entry.type,
+              initialEntry: entry,
+              readOnly: isReadOnly,
+            ),
+          ),
+        );
+      },
+      onLongPress: isReadOnly
+          ? () => showReadOnlyAfterTrialSheet(context)
+          : () => _openActionsSheet(context, appState, entry),
+      child: SoftCard(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: TransactionRow(
+          entry: entry,
+          symbol: symbol,
+          showCategoryIcon: _showCategoryIcon,
+          showPaymentIcon: _showPaymentIcon,
+          showTags: _showTags,
+          authorName: showAuthors
+              ? appState.memberName(entry.createdByUserId)
+              : null,
+        ),
+      ),
+    );
+
+    if (isReadOnly) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: tileChild,
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Slidable(
@@ -1529,6 +1576,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     builder: (_) => AddTransactionScreen(
                       initialType: entry.type,
                       initialEntry: entry,
+                      readOnly: false,
                     ),
                   ),
                 );
@@ -1563,32 +1611,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ),
           ],
         ),
-        child: GestureDetector(
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => AddTransactionScreen(
-                  initialType: entry.type,
-                  initialEntry: entry,
-                ),
-              ),
-            );
-          },
-          onLongPress: () => _openActionsSheet(context, appState, entry),
-          child: SoftCard(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: TransactionRow(
-              entry: entry,
-              symbol: symbol,
-              showCategoryIcon: _showCategoryIcon,
-              showPaymentIcon: _showPaymentIcon,
-              showTags: _showTags,
-              authorName: showAuthors
-                  ? appState.memberName(entry.createdByUserId)
-                  : null,
-            ),
-          ),
-        ),
+        child: tileChild,
       ),
     );
   }

@@ -6,6 +6,7 @@ import '../l10n/l10n.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_header.dart';
+import '../widgets/premium_feature_gate.dart';
 import '../widgets/soft_card.dart';
 
 class BudgetsScreen extends StatefulWidget {
@@ -414,6 +415,38 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     final l10n = context.l10n;
     final family = appState.family;
     final sharedBudgets = appState.availableFamilies;
+
+    if (!appState.canUseSharedBudgets) {
+      return Scaffold(
+        body: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              AppHeader(
+                title: l10n.settingsBudgetsTitle,
+                leading: Navigator.of(context).canPop()
+                    ? IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.arrow_back_rounded),
+                      )
+                    : null,
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Center(
+                    child: PremiumFeatureCard(
+                      featureName: l10n.premiumFeatureSharedBudgets,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (family != null) {
       if (!_familyNameDirty &&
           _familyNameController.text.trim() != family.name.trim()) {

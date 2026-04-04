@@ -6,6 +6,7 @@ import '../services/data_export.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/gradient_icon.dart';
+import '../widgets/premium_feature_gate.dart';
 import 'add_transaction_screen.dart';
 import 'lists_screen.dart';
 import 'overview_screen.dart';
@@ -32,6 +33,11 @@ class _AppShellState extends State<AppShell> {
   ];
 
   void _openAddTransaction() {
+    final appState = AppStateScope.of(context);
+    if (!appState.canModifyData) {
+      showReadOnlyAfterTrialSheet(context);
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) =>
@@ -64,7 +70,14 @@ class _AppShellState extends State<AppShell> {
                   title: Text(l10n.appShellPlannedPayments),
                   onTap: () {
                     Navigator.of(context).pop();
-                    Navigator.of(context).push(
+                    if (!appState.canUseRecurringPayments) {
+                      showPremiumFeatureSheet(
+                        this.context,
+                        featureName: l10n.premiumFeatureRecurringPayments,
+                      );
+                      return;
+                    }
+                    Navigator.of(this.context).push(
                       MaterialPageRoute(builder: (_) => const PlannedScreen()),
                     );
                   },
@@ -77,7 +90,14 @@ class _AppShellState extends State<AppShell> {
                   title: Text(l10n.appShellReminders),
                   onTap: () {
                     Navigator.of(context).pop();
-                    Navigator.of(context).push(
+                    if (!appState.canUseReminders) {
+                      showPremiumFeatureSheet(
+                        this.context,
+                        featureName: l10n.premiumFeatureReminders,
+                      );
+                      return;
+                    }
+                    Navigator.of(this.context).push(
                       MaterialPageRoute(
                         builder: (_) => const RemindersScreen(),
                       ),
@@ -102,7 +122,14 @@ class _AppShellState extends State<AppShell> {
                   title: Text(l10n.appShellImportCsv),
                   onTap: () {
                     Navigator.of(context).pop();
-                    Navigator.of(context).push(
+                    if (!appState.canUseCsvTools) {
+                      showPremiumFeatureSheet(
+                        this.context,
+                        featureName: l10n.premiumFeatureCsvTools,
+                      );
+                      return;
+                    }
+                    Navigator.of(this.context).push(
                       MaterialPageRoute(
                         builder: (_) => const DataSettingsScreen(),
                       ),
@@ -117,6 +144,13 @@ class _AppShellState extends State<AppShell> {
                   title: Text(l10n.appShellExportCsv),
                   onTap: () {
                     Navigator.of(context).pop();
+                    if (!appState.canUseCsvTools) {
+                      showPremiumFeatureSheet(
+                        this.context,
+                        featureName: l10n.premiumFeatureCsvTools,
+                      );
+                      return;
+                    }
                     DataExport.exportTransactionsCsv(this.context, appState);
                   },
                 ),

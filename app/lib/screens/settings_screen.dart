@@ -12,6 +12,7 @@ import '../services/transaction_import.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_header.dart';
+import '../widgets/premium_feature_gate.dart';
 import '../widgets/soft_card.dart';
 import 'budgets_screen.dart';
 import 'cards_screen.dart';
@@ -65,8 +66,20 @@ class SettingsScreen extends StatelessWidget {
                     icon: Icons.account_balance_wallet_outlined,
                     title: l10n.settingsBudgetsTitle,
                     subtitle: l10n.settingsBudgetsSubtitle,
+                    value: appState.canUseSharedBudgets
+                        ? null
+                        : l10n.premiumOnlyBadge,
                     iconColor: AppColors.accentTotal,
-                    onTap: () => _openScreen(context, const BudgetsScreen()),
+                    onTap: () {
+                      if (!appState.canUseSharedBudgets) {
+                        showPremiumFeatureSheet(
+                          context,
+                          featureName: l10n.premiumFeatureSharedBudgets,
+                        );
+                        return;
+                      }
+                      _openScreen(context, const BudgetsScreen());
+                    },
                   ),
                   const SizedBox(height: 8),
                   _SettingsMenuItem(
@@ -81,6 +94,9 @@ class SettingsScreen extends StatelessWidget {
                     icon: Icons.category_outlined,
                     title: l10n.settingsCategoriesTitle,
                     subtitle: l10n.settingsCategoriesSubtitle,
+                    value: appState.canManageCustomCategories
+                        ? null
+                        : l10n.premiumOnlyBadge,
                     iconColor: AppColors.categoryPalette[4],
                     onTap: () => _openScreen(context, const CategoriesScreen()),
                   ),
@@ -89,6 +105,9 @@ class SettingsScreen extends StatelessWidget {
                     icon: Icons.sell_outlined,
                     title: l10n.settingsTagsTitle,
                     subtitle: l10n.settingsTagsSubtitle,
+                    value: appState.canManageCustomTags
+                        ? null
+                        : l10n.premiumOnlyBadge,
                     iconColor: AppColors.categoryPalette[7],
                     onTap: () => _openScreen(context, const TagsScreen()),
                   ),
@@ -138,9 +157,20 @@ class SettingsScreen extends StatelessWidget {
                     icon: Icons.storage_outlined,
                     title: l10n.settingsDataTitle,
                     subtitle: l10n.settingsDataSubtitle,
+                    value: appState.canUseCsvTools
+                        ? null
+                        : l10n.premiumOnlyBadge,
                     iconColor: AppColors.accentExpense,
-                    onTap: () =>
-                        _openScreen(context, const DataSettingsScreen()),
+                    onTap: () {
+                      if (!appState.canUseCsvTools) {
+                        showPremiumFeatureSheet(
+                          context,
+                          featureName: l10n.premiumFeatureCsvTools,
+                        );
+                        return;
+                      }
+                      _openScreen(context, const DataSettingsScreen());
+                    },
                   ),
                 ],
               ),
@@ -918,6 +948,35 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
     final l10n = context.l10n;
     final instructionSections =
         TransactionImportService.buildInstructionSections(l10n);
+
+    if (!appState.canUseCsvTools) {
+      return Scaffold(
+        body: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              AppHeader(
+                title: l10n.settingsDataTitle,
+                leading: IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.arrow_back_rounded),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Center(
+                    child: PremiumFeatureCard(
+                      featureName: l10n.premiumFeatureCsvTools,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       body: SafeArea(
