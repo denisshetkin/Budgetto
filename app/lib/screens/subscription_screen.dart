@@ -9,8 +9,36 @@ import '../theme/app_colors.dart';
 import '../widgets/app_header.dart';
 import '../widgets/soft_card.dart';
 
-class SubscriptionScreen extends StatelessWidget {
+class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
+
+  @override
+  State<SubscriptionScreen> createState() => _SubscriptionScreenState();
+}
+
+class _SubscriptionScreenState extends State<SubscriptionScreen> {
+  bool _didTriggerRetry = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didTriggerRetry) {
+      return;
+    }
+    final appState = AppStateScope.of(context);
+    if (appState.billingLoading ||
+        appState.subscriptionProducts.isNotEmpty ||
+        appState.hasPremiumAccess) {
+      return;
+    }
+    _didTriggerRetry = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      AppStateScope.of(context).reloadBilling();
+    });
+  }
 
   String _formatDate(DateTime? date, String localeTag, AppLocalizations l10n) {
     if (date == null) {
@@ -241,10 +269,23 @@ class SubscriptionScreen extends StatelessWidget {
                       }),
                       if (appState.billingError != null) ...[
                         SoftCard(
-                          child: Text(
-                            appState.billingError!,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: AppColors.accentExpense),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                appState.billingError!,
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(color: AppColors.accentExpense),
+                              ),
+                              if (!appState.billingLoading) ...[
+                                const SizedBox(height: 12),
+                                OutlinedButton.icon(
+                                  onPressed: () => appState.reloadBilling(),
+                                  icon: const Icon(Icons.refresh_rounded),
+                                  label: Text(l10n.commonRetry),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                         const SizedBox(height: 12),

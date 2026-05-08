@@ -21,6 +21,7 @@ import '../models/planned_entry.dart';
 import '../models/reminder_entry.dart';
 import '../models/tag_entry.dart';
 import '../models/transaction_entry.dart';
+import '../services/diagnostics_logger.dart';
 import '../services/trial_storage.dart';
 import '../models/user_profile.dart';
 import '../services/local_notifications.dart';
@@ -176,6 +177,12 @@ class AppState extends ChangeNotifier {
   bool get billingLoading => _billingLoading;
   bool get purchasePending => _purchasePending;
   String? get billingError => _billingError;
+  String? get activeSubscriptionProductId => _activeSubscriptionProductId;
+  List<String> get loadedSubscriptionProductIds {
+    final productIds = _subscriptionProducts.keys.toList()..sort();
+    return List.unmodifiable(productIds);
+  }
+
   bool get hasPremiumAccess => _activeSubscriptionProductId != null;
   bool get hasPremiumFeaturesAccess => hasPremiumAccess || isTrialActive;
   bool get canModifyData => hasPremiumFeaturesAccess;
@@ -1625,12 +1632,25 @@ class AppState extends ChangeNotifier {
     _activeSubscriptionProductId = prefs.getString(
       _prefActiveSubscriptionProductId,
     );
+    unawaited(
+      DiagnosticsLogger.instance.log(
+        'app',
+        'Loaded local preferences',
+        details: {
+          'locale': _locale?.toLanguageTag() ?? 'system',
+          'themeMode': _themeMode.name,
+          'trialStartedAt': _trialStartedAt,
+          'activeSubscriptionProductId': _activeSubscriptionProductId ?? 'none',
+        },
+      ),
+    );
   }
 
   Future<void> initialize() async {
     if (_initialized) {
       return;
     }
+    await DiagnosticsLogger.instance.initialize();
     _bindMessagingListeners();
     await _loadLocalPreferences();
     unawaited(_initializeBilling());
@@ -1639,11 +1659,24 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> _initializeBilling() async {
+    unawaited(
+      DiagnosticsLogger.instance.log(
+        'billing',
+        'Initializing billing connection',
+      ),
+    );
     _purchaseSub ??= _inAppPurchase.purchaseStream.listen(
       _handlePurchaseUpdates,
       onError: (Object error) {
         _purchasePending = false;
         _billingError = _billingUpdateError;
+        unawaited(
+          DiagnosticsLogger.instance.log(
+            'billing',
+            'Purchase stream emitted an error',
+            details: {'error': error.toString()},
+          ),
+        );
         notifyListeners();
       },
     );
@@ -1654,6 +1687,13 @@ class AppState extends ChangeNotifier {
     try {
       final isAvailable = await _inAppPurchase.isAvailable();
       _storeAvailable = isAvailable;
+      unawaited(
+        DiagnosticsLogger.instance.log(
+          'billing',
+          'Store availability checked',
+          details: {'available': isAvailable},
+        ),
+      );
       if (!isAvailable) {
         _subscriptionProducts.clear();
         _billingLoading = false;
@@ -1669,6 +1709,17 @@ class AppState extends ChangeNotifier {
       } else {
         _billingError = null;
       }
+      unawaited(
+        DiagnosticsLogger.instance.log(
+          'billing',
+          'Product details query finished',
+          details: {
+            'foundProductIds': response.productDetails.map((item) => item.id),
+            'notFoundProductIds': response.notFoundIDs,
+            'error': response.error?.message,
+          },
+        ),
+      );
       _subscriptionProducts
         ..clear()
         ..addEntries(
@@ -1681,29 +1732,82 @@ class AppState extends ChangeNotifier {
       _storeAvailable = false;
       _subscriptionProducts.clear();
       _billingError = _billingConnectError;
+      unawaited(
+        DiagnosticsLogger.instance.log(
+          'billing',
+          'Billing initialization failed',
+          details: {'error': _billingConnectError},
+        ),
+      );
     } finally {
       _billingLoading = false;
       notifyListeners();
     }
   }
 
+  Future<void> reloadBilling() async {
+    unawaited(
+      DiagnosticsLogger.instance.log(
+        'billing',
+        'Manual billing reload requested',
+      ),
+    );
+    await _initializeBilling();
+  }
+
   Future<void> purchaseSubscription(String productId) async {
     final product = _subscriptionProducts[productId];
     if (product == null) {
       _billingError = _billingProductUnavailable;
+      unawaited(
+        DiagnosticsLogger.instance.log(
+          'billing',
+          'Purchase requested for unavailable product',
+          details: {'productId': productId},
+        ),
+      );
       notifyListeners();
       return;
     }
     _purchasePending = true;
     _billingError = null;
-    notifyListeners();
-    final purchaseParam = PurchaseParam(productDetails: product);
-    final started = await _inAppPurchase.buyNonConsumable(
-      purchaseParam: purchaseParam,
+    unawaited(
+      DiagnosticsLogger.instance.log(
+        'billing',
+        'Starting purchase',
+        details: {'productId': productId},
+      ),
     );
-    if (!started) {
+    notifyListeners();
+    try {
+      final purchaseParam = PurchaseParam(productDetails: product);
+      final started = await _inAppPurchase.buyNonConsumable(
+        purchaseParam: purchaseParam,
+      );
+      unawaited(
+        DiagnosticsLogger.instance.log(
+          'billing',
+          'Purchase request returned',
+          details: {'productId': productId, 'started': started},
+        ),
+      );
+      if (!started) {
+        _purchasePending = false;
+        _billingError = _billingStartPurchaseError;
+        notifyListeners();
+      }
+    } catch (error) {
       _purchasePending = false;
-      _billingError = _billingStartPurchaseError;
+      _billingError = error is Exception
+          ? error.toString()
+          : _billingStartPurchaseError;
+      unawaited(
+        DiagnosticsLogger.instance.log(
+          'billing',
+          'Purchase request threw an exception',
+          details: {'productId': productId, 'error': error.toString()},
+        ),
+      );
       notifyListeners();
     }
   }
@@ -1711,17 +1815,39 @@ class AppState extends ChangeNotifier {
   Future<void> restorePurchases() async {
     if (!_storeAvailable) {
       _billingError = _billingStoreUnavailable;
+      unawaited(
+        DiagnosticsLogger.instance.log(
+          'billing',
+          'Restore requested while store unavailable',
+        ),
+      );
       notifyListeners();
       return;
     }
     _purchasePending = true;
     _billingError = null;
+    unawaited(
+      DiagnosticsLogger.instance.log('billing', 'Starting restore purchases'),
+    );
     notifyListeners();
     try {
       await _inAppPurchase.restorePurchases();
+      unawaited(
+        DiagnosticsLogger.instance.log(
+          'billing',
+          'Restore purchases request finished',
+        ),
+      );
     } catch (_) {
       _purchasePending = false;
       _billingError = _billingRestoreError;
+      unawaited(
+        DiagnosticsLogger.instance.log(
+          'billing',
+          'Restore purchases failed',
+          details: {'error': _billingRestoreError},
+        ),
+      );
       notifyListeners();
     }
   }
@@ -1733,12 +1859,29 @@ class AppState extends ChangeNotifier {
       await _setActiveSubscriptionProductId(null);
       _purchasePending = false;
       _billingError = null;
+      unawaited(
+        DiagnosticsLogger.instance.log(
+          'billing',
+          'Entitlement refresh returned no purchases',
+        ),
+      );
       notifyListeners();
       return;
     }
 
     var shouldNotify = false;
     for (final purchase in purchaseDetailsList) {
+      unawaited(
+        DiagnosticsLogger.instance.log(
+          'billing',
+          'Purchase stream update received',
+          details: {
+            'productId': purchase.productID,
+            'status': purchase.status.name,
+            'pendingCompletePurchase': purchase.pendingCompletePurchase,
+          },
+        ),
+      );
       switch (purchase.status) {
         case PurchaseStatus.pending:
           _purchasePending = true;
@@ -1782,6 +1925,12 @@ class AppState extends ChangeNotifier {
     }
     _entitlementRefreshInProgress = true;
     _restoredSubscriptionProductIds.clear();
+    unawaited(
+      DiagnosticsLogger.instance.log(
+        'billing',
+        'Refreshing subscription entitlement',
+      ),
+    );
     try {
       await _inAppPurchase.restorePurchases();
       await _setActiveSubscriptionProductId(
@@ -1789,6 +1938,9 @@ class AppState extends ChangeNotifier {
       );
     } catch (_) {
       // Keep the last known local entitlement if the refresh failed.
+      unawaited(
+        DiagnosticsLogger.instance.log('billing', 'Entitlement refresh failed'),
+      );
     } finally {
       _entitlementRefreshInProgress = false;
       notifyListeners();
@@ -1877,6 +2029,16 @@ class AppState extends ChangeNotifier {
     if (resolvedTrialStartedAt != null) {
       _trialStartedAt = resolvedTrialStartedAt;
       await _persistTrialStartedAtLocally(resolvedTrialStartedAt);
+      unawaited(
+        DiagnosticsLogger.instance.log(
+          'app',
+          'Resolved trial state from user context',
+          details: {
+            'remoteTrialStartedAt': remoteTrialStartedAt?.toIso8601String(),
+            'resolvedTrialStartedAt': resolvedTrialStartedAt,
+          },
+        ),
+      );
       if (remoteTrialStartedAt == null ||
           !remoteTrialStartedAt.isAtSameMomentAs(resolvedTrialStartedAt)) {
         await _updateUserField({

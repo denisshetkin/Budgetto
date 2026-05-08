@@ -85,6 +85,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDataSubtitle => 'Import expenses from CSV';
 
   @override
+  String get settingsDiagnosticsTitle => 'Diagnostics';
+
+  @override
+  String get settingsDiagnosticsSubtitle =>
+      'Technical report for subscription issues';
+
+  @override
   String get commonCancel => 'Cancel';
 
   @override
@@ -95,6 +102,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonApply => 'Apply';
+
+  @override
+  String get commonRetry => 'Try again';
 
   @override
   String get commonSelect => 'Select';
@@ -466,6 +476,50 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get premiumReadOnlyMessage =>
       'Your free trial has ended. Budgetto is now in read-only mode. Subscribe to add, edit, and delete data again.';
+
+  @override
+  String get diagnosticsSummaryTitle => 'Diagnostics report';
+
+  @override
+  String get diagnosticsSummaryDescription =>
+      'This screen collects only technical app, subscription, and StoreKit data. Personal data, email, and transactions are not included.';
+
+  @override
+  String get diagnosticsVersionLabel => 'Version';
+
+  @override
+  String get diagnosticsDeviceLabel => 'Device';
+
+  @override
+  String get diagnosticsStoreLabel => 'Store';
+
+  @override
+  String get diagnosticsProductsLabel => 'Products';
+
+  @override
+  String get diagnosticsErrorLabel => 'Error';
+
+  @override
+  String get diagnosticsShareAction => 'Share diagnostics';
+
+  @override
+  String get diagnosticsClearAction => 'Clear';
+
+  @override
+  String get diagnosticsClearTitle => 'Clear diagnostics?';
+
+  @override
+  String get diagnosticsClearMessage =>
+      'All saved technical events on this device will be removed.';
+
+  @override
+  String get diagnosticsEventsTitle => 'Recent events';
+
+  @override
+  String get diagnosticsEmpty => 'There are no technical events yet.';
+
+  @override
+  String get diagnosticsReportSubject => 'Budgetto diagnostics report';
 
   @override
   String get premiumCategoriesInlineHint =>

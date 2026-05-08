@@ -250,6 +250,18 @@ abstract class AppLocalizations {
   /// **'Import expenses from CSV'**
   String get settingsDataSubtitle;
 
+  /// No description provided for @settingsDiagnosticsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics'**
+  String get settingsDiagnosticsTitle;
+
+  /// No description provided for @settingsDiagnosticsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Technical report for subscription issues'**
+  String get settingsDiagnosticsSubtitle;
+
   /// No description provided for @commonCancel.
   ///
   /// In en, this message translates to:
@@ -273,6 +285,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Apply'**
   String get commonApply;
+
+  /// No description provided for @commonRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get commonRetry;
 
   /// No description provided for @commonSelect.
   ///
@@ -951,6 +969,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your free trial has ended. Budgetto is now in read-only mode. Subscribe to add, edit, and delete data again.'**
   String get premiumReadOnlyMessage;
+
+  /// No description provided for @diagnosticsSummaryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics report'**
+  String get diagnosticsSummaryTitle;
+
+  /// No description provided for @diagnosticsSummaryDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'This screen collects only technical app, subscription, and StoreKit data. Personal data, email, and transactions are not included.'**
+  String get diagnosticsSummaryDescription;
+
+  /// No description provided for @diagnosticsVersionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Version'**
+  String get diagnosticsVersionLabel;
+
+  /// No description provided for @diagnosticsDeviceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Device'**
+  String get diagnosticsDeviceLabel;
+
+  /// No description provided for @diagnosticsStoreLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Store'**
+  String get diagnosticsStoreLabel;
+
+  /// No description provided for @diagnosticsProductsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Products'**
+  String get diagnosticsProductsLabel;
+
+  /// No description provided for @diagnosticsErrorLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get diagnosticsErrorLabel;
+
+  /// No description provided for @diagnosticsShareAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Share diagnostics'**
+  String get diagnosticsShareAction;
+
+  /// No description provided for @diagnosticsClearAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get diagnosticsClearAction;
+
+  /// No description provided for @diagnosticsClearTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear diagnostics?'**
+  String get diagnosticsClearTitle;
+
+  /// No description provided for @diagnosticsClearMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'All saved technical events on this device will be removed.'**
+  String get diagnosticsClearMessage;
+
+  /// No description provided for @diagnosticsEventsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent events'**
+  String get diagnosticsEventsTitle;
+
+  /// No description provided for @diagnosticsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'There are no technical events yet.'**
+  String get diagnosticsEmpty;
+
+  /// No description provided for @diagnosticsReportSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Budgetto diagnostics report'**
+  String get diagnosticsReportSubject;
 
   /// No description provided for @premiumCategoriesInlineHint.
   ///

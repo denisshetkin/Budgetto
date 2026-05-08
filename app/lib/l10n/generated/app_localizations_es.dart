@@ -85,6 +85,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsDataSubtitle => 'Importar gastos desde CSV';
 
   @override
+  String get settingsDiagnosticsTitle => 'Diagnostico';
+
+  @override
+  String get settingsDiagnosticsSubtitle =>
+      'Informe tecnico para problemas de suscripcion';
+
+  @override
   String get commonCancel => 'Cancelar';
 
   @override
@@ -95,6 +102,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get commonApply => 'Aplicar';
+
+  @override
+  String get commonRetry => 'Reintentar';
 
   @override
   String get commonSelect => 'Seleccionar';
@@ -467,6 +477,50 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get premiumReadOnlyMessage =>
       'Tu periodo de prueba termino. Budgetto ahora funciona en modo solo lectura. Suscribete para volver a agregar, editar y eliminar datos.';
+
+  @override
+  String get diagnosticsSummaryTitle => 'Informe diagnostico';
+
+  @override
+  String get diagnosticsSummaryDescription =>
+      'Esta pantalla recopila solo datos tecnicos de la app, la suscripcion y StoreKit. No incluye datos personales, email ni transacciones.';
+
+  @override
+  String get diagnosticsVersionLabel => 'Version';
+
+  @override
+  String get diagnosticsDeviceLabel => 'Dispositivo';
+
+  @override
+  String get diagnosticsStoreLabel => 'Store';
+
+  @override
+  String get diagnosticsProductsLabel => 'Productos';
+
+  @override
+  String get diagnosticsErrorLabel => 'Error';
+
+  @override
+  String get diagnosticsShareAction => 'Compartir diagnostico';
+
+  @override
+  String get diagnosticsClearAction => 'Borrar';
+
+  @override
+  String get diagnosticsClearTitle => '¿Borrar diagnostico?';
+
+  @override
+  String get diagnosticsClearMessage =>
+      'Se eliminaran todos los eventos tecnicos guardados en este dispositivo.';
+
+  @override
+  String get diagnosticsEventsTitle => 'Eventos recientes';
+
+  @override
+  String get diagnosticsEmpty => 'Todavia no hay eventos tecnicos.';
+
+  @override
+  String get diagnosticsReportSubject => 'Budgetto diagnostics report';
 
   @override
   String get premiumCategoriesInlineHint =>

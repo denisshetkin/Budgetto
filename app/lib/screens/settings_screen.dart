@@ -1,13 +1,17 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 
+import '../app_metadata.dart';
 import '../l10n/app_locale.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/l10n.dart';
+import '../services/diagnostics_logger.dart';
 import '../services/transaction_import.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
@@ -171,6 +175,16 @@ class SettingsScreen extends StatelessWidget {
                       }
                       _openScreen(context, const DataSettingsScreen());
                     },
+                  ),
+                  const SizedBox(height: 8),
+                  _SettingsMenuItem(
+                    icon: Icons.bug_report_outlined,
+                    title: l10n.settingsDiagnosticsTitle,
+                    subtitle: l10n.settingsDiagnosticsSubtitle,
+                    value: appVersionLabel,
+                    iconColor: AppColors.categoryPalette[2],
+                    onTap: () =>
+                        _openScreen(context, const DiagnosticsScreen()),
                   ),
                 ],
               ),
@@ -716,6 +730,347 @@ class SyncSettingsScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class DiagnosticsScreen extends StatefulWidget {
+  const DiagnosticsScreen({super.key});
+
+  @override
+  State<DiagnosticsScreen> createState() => _DiagnosticsScreenState();
+}
+
+class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
+  String? _deviceDescription;
+  bool _shareBusy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDeviceDescription();
+  }
+
+  Future<void> _loadDeviceDescription() async {
+    try {
+      final plugin = DeviceInfoPlugin();
+      String value;
+      switch (defaultTargetPlatform) {
+        case TargetPlatform.iOS:
+          final info = await plugin.iosInfo;
+          value = '${info.model} / iOS ${info.systemVersion}';
+          break;
+        case TargetPlatform.android:
+          final info = await plugin.androidInfo;
+          value =
+              '${info.brand} ${info.model} / Android ${info.version.release}';
+          break;
+        case TargetPlatform.macOS:
+          final info = await plugin.macOsInfo;
+          value = '${info.model} / macOS ${info.osRelease}';
+          break;
+        default:
+          value = defaultTargetPlatform.name;
+      }
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _deviceDescription = value;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _deviceDescription = defaultTargetPlatform.name;
+      });
+    }
+  }
+
+  Future<void> _shareDiagnostics(AppState appState) async {
+    if (_shareBusy) {
+      return;
+    }
+    setState(() {
+      _shareBusy = true;
+    });
+    try {
+      await DiagnosticsLogger.instance.shareReport(
+        report: _buildReport(appState),
+        fileName: 'budgetto-diagnostics-$appBuildNumber.txt',
+        subject: context.l10n.diagnosticsReportSubject,
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _shareBusy = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _clearDiagnostics() async {
+    final l10n = context.l10n;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(l10n.diagnosticsClearTitle),
+          content: Text(l10n.diagnosticsClearMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(l10n.commonCancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(l10n.diagnosticsClearAction),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true) {
+      return;
+    }
+    await DiagnosticsLogger.instance.clear();
+    if (!mounted) {
+      return;
+    }
+    setState(() {});
+  }
+
+  String _buildReport(AppState appState) {
+    final localeTag = Localizations.localeOf(context).toLanguageTag();
+    final entries = DiagnosticsLogger.instance.entries();
+    final buffer = StringBuffer()
+      ..writeln('Budgetto diagnostics report')
+      ..writeln('generated_at=${DateTime.now().toIso8601String()}')
+      ..writeln('app_version=$appVersionName')
+      ..writeln('app_build=$appBuildNumber')
+      ..writeln('device=${_deviceDescription ?? defaultTargetPlatform.name}')
+      ..writeln('locale=$localeTag')
+      ..writeln('currency=${appState.currencyCode ?? 'not_set'}')
+      ..writeln('store_available=${appState.storeAvailable}')
+      ..writeln('billing_loading=${appState.billingLoading}')
+      ..writeln('purchase_pending=${appState.purchasePending}')
+      ..writeln('billing_error=${appState.billingError ?? 'none'}')
+      ..writeln(
+        'loaded_product_ids=${appState.loadedSubscriptionProductIds.join(', ')}',
+      )
+      ..writeln(
+        'active_subscription_product_id=${appState.activeSubscriptionProductId ?? 'none'}',
+      )
+      ..writeln('has_premium_access=${appState.hasPremiumAccess}')
+      ..writeln('is_trial_active=${appState.isTrialActive}')
+      ..writeln('trial_days_remaining=${appState.trialDaysRemaining}')
+      ..writeln(
+        'trial_started_at=${appState.trialStartedAt?.toIso8601String() ?? 'not_set'}',
+      )
+      ..writeln(
+        'trial_ends_at=${appState.trialEndsAt?.toIso8601String() ?? 'not_set'}',
+      )
+      ..writeln('sync_enabled=${appState.syncEnabled}')
+      ..writeln('is_family_mode=${appState.isFamilyMode}')
+      ..writeln('is_anonymous_user=${appState.isAnonymousUser}')
+      ..writeln('is_google_signed_in=${appState.isGoogleSignedIn}')
+      ..writeln('auth_provider=${appState.currentUser.provider ?? 'unknown'}')
+      ..writeln()
+      ..writeln('events:');
+
+    if (entries.isEmpty) {
+      buffer.writeln('- no entries');
+    } else {
+      for (final entry in entries) {
+        final details = entry.details.entries
+            .map((item) => '${item.key}=${item.value}')
+            .join(', ');
+        buffer.writeln(
+          '- ${entry.timestamp.toIso8601String()} [${entry.category}] ${entry.message}${details.isEmpty ? '' : ' | $details'}',
+        );
+      }
+    }
+    return buffer.toString();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = AppStateScope.of(context);
+    final l10n = context.l10n;
+    final entries = DiagnosticsLogger.instance.entries();
+
+    return Scaffold(
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            AppHeader(
+              title: l10n.settingsDiagnosticsTitle,
+              leading: IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.arrow_back_rounded),
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  SoftCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.diagnosticsSummaryTitle,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          l10n.diagnosticsSummaryDescription,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.textSecondary),
+                        ),
+                        const SizedBox(height: 14),
+                        _DiagnosticsLine(
+                          label: l10n.diagnosticsVersionLabel,
+                          value: appVersionLabel,
+                        ),
+                        _DiagnosticsLine(
+                          label: l10n.diagnosticsDeviceLabel,
+                          value: _deviceDescription ?? l10n.commonNotAvailable,
+                        ),
+                        _DiagnosticsLine(
+                          label: l10n.diagnosticsStoreLabel,
+                          value: appState.storeAvailable.toString(),
+                        ),
+                        _DiagnosticsLine(
+                          label: l10n.diagnosticsProductsLabel,
+                          value: appState.loadedSubscriptionProductIds.isEmpty
+                              ? l10n.commonNotAvailable
+                              : appState.loadedSubscriptionProductIds.join(
+                                  ', ',
+                                ),
+                        ),
+                        _DiagnosticsLine(
+                          label: l10n.diagnosticsErrorLabel,
+                          value:
+                              appState.billingError ?? l10n.commonNotAvailable,
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: FilledButton.icon(
+                                onPressed: _shareBusy
+                                    ? null
+                                    : () => _shareDiagnostics(appState),
+                                icon: const Icon(Icons.ios_share_rounded),
+                                label: Text(l10n.diagnosticsShareAction),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            OutlinedButton(
+                              onPressed: _clearDiagnostics,
+                              child: Text(l10n.diagnosticsClearAction),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.diagnosticsEventsTitle,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (entries.isEmpty)
+                    SoftCard(
+                      child: Text(
+                        l10n.diagnosticsEmpty,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    )
+                  else
+                    ...entries.map(
+                      (entry) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: SoftCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${entry.timestamp.toLocal()} • ${entry.category}',
+                                style: Theme.of(context).textTheme.labelMedium
+                                    ?.copyWith(color: AppColors.textSecondary),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                entry.message,
+                                style: Theme.of(context).textTheme.bodyLarge,
+                              ),
+                              if (entry.details.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                SelectableText(
+                                  entry.details.entries
+                                      .map(
+                                        (item) => '${item.key}: ${item.value}',
+                                      )
+                                      .join('\n'),
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DiagnosticsLine extends StatelessWidget {
+  const _DiagnosticsLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: SelectableText(
+              value,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+        ],
       ),
     );
   }
