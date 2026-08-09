@@ -152,6 +152,8 @@ class AppState extends ChangeNotifier {
   static const _prefActiveSubscriptionProductId =
       'active_subscription_product_id';
   static const _trialDurationDays = 30;
+  // TODO: Remove after the purchase flow is fixed.
+  static const bool temporaryPremiumAccessBypass = true;
   static const monthlySubscriptionProductId = 'budgetto_monthly_subscription';
   static const quarterlySubscriptionProductId = 'budgetto_3_month_subscription';
   static const yearlySubscriptionProductId = 'budgetto_yearly_subscription';
@@ -178,12 +180,14 @@ class AppState extends ChangeNotifier {
   bool get purchasePending => _purchasePending;
   String? get billingError => _billingError;
   String? get activeSubscriptionProductId => _activeSubscriptionProductId;
+  bool get isPremiumAccessBypassEnabled => temporaryPremiumAccessBypass;
   List<String> get loadedSubscriptionProductIds {
     final productIds = _subscriptionProducts.keys.toList()..sort();
     return List.unmodifiable(productIds);
   }
 
-  bool get hasPremiumAccess => _activeSubscriptionProductId != null;
+  bool get hasPremiumAccess =>
+      temporaryPremiumAccessBypass || _activeSubscriptionProductId != null;
   bool get hasPremiumFeaturesAccess => hasPremiumAccess || isTrialActive;
   bool get canModifyData => hasPremiumFeaturesAccess;
   bool get canManageCustomCategories => hasPremiumFeaturesAccess;

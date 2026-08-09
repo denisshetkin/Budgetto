@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import '../l10n/l10n.dart';
 import '../models/category_entry.dart';
 import '../models/payment_method.dart';
-import '../models/tag_entry.dart';
 import '../models/transaction_entry.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
@@ -209,7 +208,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         : AppColors.accentIncome;
     const leftColumnWidth = 120.0;
 
-    final categories = appState.categories;
+    final categories = _sortedCategoriesForSelection(appState);
     final methods = appState.paymentMethods;
     final tags = appState.tags;
 
@@ -327,7 +326,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                             states,
                           ) {
                             if (states.contains(WidgetState.selected)) {
-                              return accent.withOpacity(0.22);
+                              return accent.withValues(alpha: 0.22);
                             }
                             return AppColors.surface1;
                           }),
@@ -381,7 +380,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     Expanded(
                       child: Container(
                         decoration: BoxDecoration(
-                          color: AppColors.surface2.withOpacity(0.9),
+                          color: AppColors.surface2.withValues(alpha: 0.9),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: accent, width: 1.4),
                         ),
@@ -433,7 +432,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     Expanded(
                       child: Container(
                         decoration: BoxDecoration(
-                          color: AppColors.surface2.withOpacity(0.9),
+                          color: AppColors.surface2.withValues(alpha: 0.9),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: accent, width: 1.4),
                         ),
@@ -638,5 +637,39 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     return DateFormat.Hm(
       Localizations.localeOf(context).toLanguageTag(),
     ).format(date);
+  }
+
+  List<CategoryEntry> _sortedCategoriesForSelection(AppState appState) {
+    final categories = appState.categories.toList();
+    final originalIndexById = <String, int>{
+      for (var i = 0; i < categories.length; i++) categories[i].id: i,
+    };
+    final usageCountById = <String, int>{};
+
+    for (final transaction in appState.transactions) {
+      if (transaction.type != _type) {
+        continue;
+      }
+      usageCountById.update(
+        transaction.categoryId,
+        (count) => count + 1,
+        ifAbsent: () => 1,
+      );
+    }
+
+    categories.sort((left, right) {
+      final leftCount = usageCountById[left.id] ?? 0;
+      final rightCount = usageCountById[right.id] ?? 0;
+      final usageComparison = rightCount.compareTo(leftCount);
+      if (usageComparison != 0) {
+        return usageComparison;
+      }
+
+      return (originalIndexById[left.id] ?? 0).compareTo(
+        originalIndexById[right.id] ?? 0,
+      );
+    });
+
+    return categories;
   }
 }

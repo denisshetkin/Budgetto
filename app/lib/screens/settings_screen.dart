@@ -863,6 +863,9 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
       ..writeln(
         'active_subscription_product_id=${appState.activeSubscriptionProductId ?? 'none'}',
       )
+      ..writeln(
+        'temporary_premium_access_bypass=${appState.isPremiumAccessBypassEnabled}',
+      )
       ..writeln('has_premium_access=${appState.hasPremiumAccess}')
       ..writeln('is_trial_active=${appState.isTrialActive}')
       ..writeln('trial_days_remaining=${appState.trialDaysRemaining}')

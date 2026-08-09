@@ -1,4 +1,4 @@
-const String appVersionName = '1.0.1';
-const String appBuildNumber = '9';
+const String appVersionName = '1.0.3';
+const String appBuildNumber = '11';
 
 String get appVersionLabel => '$appVersionName ($appBuildNumber)';
